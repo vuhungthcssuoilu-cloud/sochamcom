@@ -329,39 +329,53 @@ export default function App() {
   // --- Render Helpers ---
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
-    <div className="bg-white relative">
-      <table className="w-full border-collapse text-[7px] leading-none border-[0.5px] border-black">
+    <div className="bg-white relative w-full">
+      <table className="w-full border-collapse text-[10px] leading-none border-[0.5px] border-black table-fixed">
+        <colgroup>
+          <col className="w-8" /><col className="w-40" />
+          {days.map(d => (
+            <React.Fragment key={d}>
+              <col className="w-[18px]" /><col className="w-[18px]" /><col className="w-[18px]" />
+            </React.Fragment>
+          ))}
+          {isSecondHalf && (
+            <>
+              <col className="w-[20px]" /><col className="w-[20px]" /><col className="w-[20px]" />
+              <col className="w-[20px]" /><col className="w-[20px]" /><col className="w-[20px]" />
+            </>
+          )}
+        </colgroup>
         <thead>
           {/* Header Row 1: Title */}
           <tr>
-            <th colSpan={days.length * 3 + 2 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black p-1 text-center font-bold uppercase text-[9px]">
+            <th colSpan={days.length * 3 + 2 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black p-2 text-center font-bold uppercase text-sm">
               SỔ CHẤM CƠM LỚP: 
               <input 
                 type="text" 
                 value={className} 
                 onChange={(e) => setClassName(e.target.value)}
-                className="font-bold text-[9px] uppercase border-none focus:ring-0 p-0 w-8 text-center bg-transparent inline-block mx-1"
+                className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-12 text-center bg-transparent inline-block mx-1"
               />
                THÁNG {month + 1}/{year}
             </th>
           </tr>
           {/* Header Row 2: Day Numbers */}
           <tr>
-            <th rowSpan={2} className="border-[0.5px] border-black w-4 text-center font-normal">STT</th>
-            <th rowSpan={2} className="border-[0.5px] border-black min-w-[70px] text-center relative h-16">
+            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal">STT</th>
+            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16">
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <svg className="w-full h-full" preserveAspectRatio="none">
-                  <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.3" />
+                  <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.5" />
                 </svg>
               </div>
-              <span className="absolute top-1 right-2 scale-90">Ngày</span>
-              <span className="absolute bottom-1 left-2 scale-90">Thứ</span>
+              <span className="absolute top-1 right-1">Ngày</span>
+              <span className="absolute bottom-1 left-1">Thứ</span>
             </th>
             {days.map(d => (
               <th key={d} colSpan={3} className="border-[0.5px] border-black text-center py-1 font-normal">{d}</th>
             ))}
             {isSecondHalf && (
-              <th colSpan={6} className="border-[0.5px] border-black text-center text-[8px] font-bold">Số ngày ăn trong tháng</th>
+              <th colSpan={6} className="border-[0.5px] border-black text-center text-[9px] font-bold">Số ngày ăn trong tháng</th>
             )}
           </tr>
           {/* Header Row 3: Day of Week */}
@@ -373,8 +387,8 @@ export default function App() {
             ))}
             {isSecondHalf && (
               <>
-                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold">Số ngày báo ăn</th>
-                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold">Số ngày không báo ăn</th>
+                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[8px]">Có báo ăn</th>
+                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[8px]">Không báo</th>
               </>
             )}
           </tr>
@@ -383,19 +397,19 @@ export default function App() {
             <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1">Họ và tên</th>
             {days.map(d => (
               <React.Fragment key={d}>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">S</th>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">T</th>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">T</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">S</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
               </React.Fragment>
             ))}
             {isSecondHalf && (
               <>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">S</th>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">T</th>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">T</th>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">S</th>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">T</th>
-                <th className="border-[0.5px] border-black w-2.5 text-center font-normal">T</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">S</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">S</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
               </>
             )}
           </tr>
@@ -404,14 +418,14 @@ export default function App() {
           {students.map((student, idx) => {
             const totals = calculateStudentTotals(student);
             return (
-              <tr key={student.id} className="hover:bg-blue-50 group h-4">
+              <tr key={student.id} className="hover:bg-blue-50 group h-6">
                 <td className="border-[0.5px] border-black text-center">{idx + 1}</td>
-                <td className="border-[0.5px] border-black px-0.5 font-medium whitespace-nowrap overflow-hidden relative group/cell">
+                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell">
                   <input 
                     type="text" 
                     value={student.name} 
                     onChange={(e) => updateStudentName(student.id, e.target.value)}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-[7px] h-full"
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-[10px] h-full"
                   />
                   <button
                     onClick={(e) => { e.stopPropagation(); removeStudent(student.id); }}
@@ -425,46 +439,46 @@ export default function App() {
                   <React.Fragment key={d}>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'S')}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none w-2.5 ${student.meals[d]?.S ? 'font-bold' : ''}`}
+                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.S ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.S ? '+' : ''}
+                      {student.meals[d]?.S ? 'x' : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T1')}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none w-2.5 ${student.meals[d]?.T1 ? 'font-bold' : ''}`}
+                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T1 ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.T1 ? '+' : ''}
+                      {student.meals[d]?.T1 ? 'x' : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T2')}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none w-2.5 ${student.meals[d]?.T2 ? 'font-bold' : ''}`}
+                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T2 ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.T2 ? '+' : ''}
+                      {student.meals[d]?.T2 ? 'x' : ''}
                     </td>
                   </React.Fragment>
                 ))}
                 {isSecondHalf && (
                   <>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50">{totals.S}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50">{totals.T1}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50">{totals.T2}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50">{totals.uS}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50">{totals.uT1}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50">{totals.uT2}</td>
+                    <td className="border-[0.5px] border-black text-center bg-gray-50 font-medium">{totals.S}</td>
+                    <td className="border-[0.5px] border-black text-center bg-gray-50 font-medium">{totals.T1}</td>
+                    <td className="border-[0.5px] border-black text-center bg-gray-50 font-medium">{totals.T2}</td>
+                    <td className="border-[0.5px] border-black text-center bg-gray-50 text-gray-500">{totals.uS}</td>
+                    <td className="border-[0.5px] border-black text-center bg-gray-50 text-gray-500">{totals.uT1}</td>
+                    <td className="border-[0.5px] border-black text-center bg-gray-50 text-gray-500">{totals.uT2}</td>
                   </>
                 )}
               </tr>
             );
           })}
           {/* Add Student Row */}
-          <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add" onClick={addStudent}>
+          <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
             <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100">+</td>
-            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[7px] text-emerald-600 font-bold group-hover/add:bg-emerald-100">
+            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100">
               Thêm học sinh mới...
             </td>
           </tr>
           {/* Footer Row: Totals */}
-          <tr className="bg-gray-50 font-bold h-4">
+          <tr className="bg-gray-50 font-bold h-6">
             <td colSpan={2} className="border-[0.5px] border-black text-center uppercase">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
@@ -481,7 +495,7 @@ export default function App() {
       </table>
       {/* Watermark-like Page Label */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] text-8xl font-bold select-none">
-        Page {isSecondHalf ? '3' : '1'}
+        Page {isSecondHalf ? '2' : '1'}
       </div>
     </div>
   );
@@ -650,7 +664,7 @@ export default function App() {
               type="text" 
               value={schoolName} 
               onChange={(e) => setSchoolName(e.target.value)}
-              className="font-bold text-[10px] uppercase border-none focus:ring-0 p-0 w-[200px] bg-transparent"
+              className="font-bold text-xs uppercase border-none focus:ring-0 p-0 w-[300px] bg-transparent"
             />
           </div>
         </div>
@@ -661,62 +675,62 @@ export default function App() {
           <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-blue-500 border-dashed z-10 pointer-events-none hidden lg:block print:hidden"></div>
           
           {/* Left Half: Days 1-16 */}
-          <div className="border-r-[0.5px] border-black relative print:border-none print:break-after-page print:w-full print:h-screen overflow-x-auto">
+          <div className="border-r-[0.5px] border-black relative print:border-none print:break-after-page print:w-full overflow-x-auto">
             {renderTableHalf(firstHalfDays, false)}
           </div>
 
           {/* Right Half: Days 17-End */}
-          <div className="relative print:w-full print:h-screen print:pt-4 overflow-x-auto">
+          <div className="relative print:w-full print:pt-4 overflow-x-auto">
             {renderTableHalf(secondHalfDays, true)}
           </div>
         </div>
 
         {/* Footer Section */}
-        <div className="mt-4 flex justify-between items-end px-4">
+        <div className="mt-4 flex justify-between items-end px-4 print:mt-8">
           {/* Định mức ăn info (Print Only) */}
-          <div className="w-32 text-[8px] invisible print:visible">
+          <div className="w-40 text-[10px] invisible print:visible">
             <p><strong>Định mức ăn:</strong></p>
             <p>S: {standardMeals.S}, T: {standardMeals.T1}, T: {standardMeals.T2}</p>
           </div>
 
-          <div className="text-center w-48">
-            <p className="italic text-[9px] mb-0.5 flex items-center justify-center gap-0.5">
+          <div className="text-center w-64">
+            <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
               <input 
                 type="text" 
                 value={location} 
                 onChange={(e) => setLocation(e.target.value)}
-                className="border-none focus:ring-0 p-0 w-auto min-w-[30px] text-right bg-transparent italic"
-                style={{ width: `${location.length * 5}px` }}
+                className="border-none focus:ring-0 p-0 min-w-[50px] text-right bg-transparent italic"
+                style={{ width: `${Math.max(location.length * 8, 50)}px` }}
               />
               , ngày 
               <input 
-                type="number" 
+                type="text" 
                 value={footerDay} 
                 onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                className="border-none focus:ring-0 p-0 w-[18px] text-center bg-transparent italic appearance-none"
+                className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
               />
                tháng 
               <input 
-                type="number" 
+                type="text" 
                 value={footerMonth} 
                 onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                className="border-none focus:ring-0 p-0 w-[18px] text-center bg-transparent italic appearance-none"
+                className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
               />
                năm 
               <input 
-                type="number" 
+                type="text" 
                 value={footerYear} 
                 onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic appearance-none"
+                className="border-none focus:ring-0 p-0 w-[40px] text-center bg-transparent italic"
               />
             </p>
-            <p className="font-bold uppercase text-[9px]">GIÁO VIÊN CHỦ NHIỆM</p>
-            <div className="h-12"></div>
+            <p className="font-bold uppercase text-[11px]">GIÁO VIÊN CHỦ NHIỆM</p>
+            <div className="h-20"></div>
             <input 
               type="text" 
               value={teacherName} 
               onChange={(e) => setTeacherName(e.target.value)}
-              className="font-bold text-[9px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
+              className="font-bold text-[11px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
             />
           </div>
         </div>
