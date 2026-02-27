@@ -52,16 +52,7 @@ const getDayOfWeek = (day: number, month: number, year: number) => {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-const INITIAL_STUDENTS = [
-  "Lò Hải Đăng", "Hạ Thị Dếnh", "Vàng A Dinh", "Vàng A Dình", "Lầu Thị Đùa",
-  "Vàng Thị Thuỳ Linh", "Lầu Thị May", "Vàng A Minh", "Lầu Thị Mo", "Vàng Thị Mua(A)",
-  "Vàng Thị Mua(B)", "Vàng A Nếnh", "Hạ A Phong", "Chá Thị Sanh", "Chá A Sủa",
-  "Lầu Thị Trang", "Lò Thị Vân", "Lò Thị Sen", "Cứ Thị Húa", "Lù Duy Khánh"
-].map(name => ({
-  id: generateId(),
-  name,
-  meals: {}
-}));
+const INITIAL_STUDENTS: Student[] = [];
 
 export default function App() {
   // --- State ---
