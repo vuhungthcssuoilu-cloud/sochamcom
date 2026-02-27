@@ -364,6 +364,11 @@ export default function App() {
     setStudents(prev => prev.map(s => ({ ...s, meals: {} })));
   };
 
+  const clearAllStudents = () => {
+    if (!confirm('CẢNH BÁO: Bạn đang chọn xóa TOÀN BỘ danh sách học sinh. Mọi tên học sinh và dữ liệu chấm cơm sẽ bị mất. Bạn có chắc chắn không?')) return;
+    setStudents([]);
+  };
+
   const updateStudentName = (id: string, newName: string) => {
     setStudents(prev => prev.map(s => s.id === id ? { ...s, name: newName } : s));
   };
@@ -1005,9 +1010,16 @@ export default function App() {
           <button 
             onClick={clearMonth}
             className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
-            title="Xóa toàn bộ dữ liệu tháng này"
+            title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
           >
             <Trash2 className="w-4 h-4" /> Xóa hết tháng
+          </button>
+          <button 
+            onClick={clearAllStudents}
+            className="flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors border border-red-300"
+            title="Xóa toàn bộ danh sách học sinh"
+          >
+            <Trash2 className="w-4 h-4" /> Xóa danh sách
           </button>
           <button 
             onClick={() => handleSave()}
