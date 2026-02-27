@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste } from 'lucide-react';
 import { read, utils } from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -83,6 +83,8 @@ export default function App() {
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [clipboard, setClipboard] = useState<MealData | null>(null);
+  const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Computed ---
@@ -264,6 +266,82 @@ export default function App() {
           [day]: {
             ...currentMeals,
             [meal]: !currentMeals[meal]
+          }
+        }
+      };
+    }));
+  };
+
+  const copyMeals = (student: Student) => {
+    setClipboard(JSON.parse(JSON.stringify(student.meals)));
+  };
+
+  const pasteMeals = (studentId: string) => {
+    if (!clipboard) return;
+    setStudents(prev => prev.map(s => {
+      if (s.id === studentId) {
+        return { ...s, meals: JSON.parse(JSON.stringify(clipboard)) };
+      }
+      return s;
+    }));
+  };
+
+  const pasteToAll = () => {
+    if (!clipboard || !confirm('Bạn có muốn dán dữ liệu này cho TẤT CẢ học sinh không?')) return;
+    setStudents(prev => prev.map(s => ({
+      ...s,
+      meals: JSON.parse(JSON.stringify(clipboard))
+    })));
+  };
+
+  const copyColumn = (day: number, meal: MealType) => {
+    const values = students.map(s => !!s.meals[day]?.[meal]);
+    setColumnClipboard(values);
+  };
+
+  const pasteColumn = (day: number, meal: MealType) => {
+    if (!columnClipboard) return;
+    setStudents(prev => prev.map((s, idx) => {
+      const currentMeals = s.meals[day] || { S: false, T1: false, T2: false };
+      return {
+        ...s,
+        meals: {
+          ...s.meals,
+          [day]: {
+            ...currentMeals,
+            [meal]: columnClipboard[idx] || false
+          }
+        }
+      };
+    }));
+  };
+
+  const fillColumn = (day: number, meal: MealType) => {
+    setStudents(prev => prev.map(s => {
+      const currentMeals = s.meals[day] || { S: false, T1: false, T2: false };
+      return {
+        ...s,
+        meals: {
+          ...s.meals,
+          [day]: {
+            ...currentMeals,
+            [meal]: true
+          }
+        }
+      };
+    }));
+  };
+
+  const clearColumn = (day: number, meal: MealType) => {
+    setStudents(prev => prev.map(s => {
+      const currentMeals = s.meals[day] || { S: false, T1: false, T2: false };
+      return {
+        ...s,
+        meals: {
+          ...s.meals,
+          [day]: {
+            ...currentMeals,
+            [meal]: false
           }
         }
       };
@@ -601,8 +679,8 @@ export default function App() {
   // --- Render Helpers ---
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
-    <div className="bg-white relative w-full">
-      <table className="w-full border-collapse text-[10px] leading-none border-[0.5px] border-black table-fixed">
+    <div className="bg-white relative w-full overflow-x-auto">
+      <table className="w-full border-collapse text-[10px] leading-none border-[0.5px] border-black table-fixed min-w-max">
         <colgroup>
           <col className="w-8" /><col className="w-40" />
           {days.map(d => (
@@ -633,8 +711,8 @@ export default function App() {
           </tr>
           {/* Header Row 2: Day Numbers */}
           <tr>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal">STT</th>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16">
+            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal sticky left-0 bg-white z-20">STT</th>
+            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 sticky left-8 bg-white z-20">
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <svg className="w-full h-full" preserveAspectRatio="none">
                   <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.5" />
@@ -666,12 +744,49 @@ export default function App() {
           </tr>
           {/* Header Row 4: Name & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1">Họ và tên</th>
+            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20">
+              <div className="flex items-center justify-between px-1">
+                <span>Họ và tên</span>
+                {clipboard && (
+                  <button 
+                    onClick={pasteToAll}
+                    className="p-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 print:hidden"
+                    title="Dán mẫu cho tất cả học sinh"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </th>
             {days.map(d => (
               <React.Fragment key={d}>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">S</th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px]">T</th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px] relative group/h">
+                  S
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
+                    <button onClick={() => fillColumn(d, 'S')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
+                    <button onClick={() => copyColumn(d, 'S')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
+                    {columnClipboard && <button onClick={() => pasteColumn(d, 'S')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
+                    <button onClick={() => clearColumn(d, 'S')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
+                  </div>
+                </th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px] relative group/h">
+                  T
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
+                    <button onClick={() => fillColumn(d, 'T1')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
+                    <button onClick={() => copyColumn(d, 'T1')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
+                    {columnClipboard && <button onClick={() => pasteColumn(d, 'T1')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
+                    <button onClick={() => clearColumn(d, 'T1')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
+                  </div>
+                </th>
+                <th className="border-[0.5px] border-black text-center font-normal text-[8px] relative group/h">
+                  T
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
+                    <button onClick={() => fillColumn(d, 'T2')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
+                    <button onClick={() => copyColumn(d, 'T2')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
+                    {columnClipboard && <button onClick={() => pasteColumn(d, 'T2')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
+                    <button onClick={() => clearColumn(d, 'T2')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
+                  </div>
+                </th>
               </React.Fragment>
             ))}
             {isSecondHalf && (
@@ -691,21 +806,41 @@ export default function App() {
             const totals = calculateStudentTotals(student);
             return (
               <tr key={student.id} className="hover:bg-blue-50 group h-6">
-                <td className="border-[0.5px] border-black text-center">{idx + 1}</td>
-                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell">
-                  <input 
-                    type="text" 
-                    value={student.name} 
-                    onChange={(e) => updateStudentName(student.id, e.target.value)}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-[10px] h-full"
-                  />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeStudent(student.id); }}
-                    className="absolute right-0 top-0 bottom-0 px-1 bg-white/90 text-red-500 opacity-0 group-hover/cell:opacity-100 hover:bg-red-50 transition-all print:hidden flex items-center justify-center"
-                    title="Xóa học sinh"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                <td className="border-[0.5px] border-black text-center sticky left-0 bg-white group-hover:bg-blue-50 z-10">{idx + 1}</td>
+                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 bg-white group-hover:bg-blue-50 z-10">
+                  <div className="flex items-center gap-1 h-full">
+                    <input 
+                      type="text" 
+                      value={student.name} 
+                      onChange={(e) => updateStudentName(student.id, e.target.value)}
+                      className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-[10px] h-full min-w-0"
+                    />
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                      <button
+                        onClick={() => copyMeals(student)}
+                        className="p-0.5 hover:bg-indigo-100 text-indigo-600 rounded"
+                        title="Sao chép mẫu chấm cơm"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                      {clipboard && (
+                        <button
+                          onClick={() => pasteMeals(student.id)}
+                          className="p-0.5 hover:bg-orange-100 text-orange-600 rounded"
+                          title="Dán mẫu chấm cơm"
+                        >
+                          <ClipboardPaste className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeStudent(student.id); }}
+                        className="p-0.5 hover:bg-red-100 text-red-500 rounded"
+                        title="Xóa học sinh"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
                 </td>
                 {days.map(d => (
                   <React.Fragment key={d}>
@@ -744,14 +879,14 @@ export default function App() {
           })}
           {/* Add Student Row */}
           <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
-            <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100">+</td>
-            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100">
+            <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 bg-white z-10">+</td>
+            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 bg-white z-10">
               Thêm học sinh mới...
             </td>
           </tr>
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase">CỘNG</td>
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 bg-gray-50 z-10">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
                 <td className="border-[0.5px] border-black text-center">{calculateDayTotals(d, 'S')}</td>
