@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet } from 'lucide-react';
 import { read, utils } from 'xlsx';
 import ExcelJS from 'exceljs';
@@ -103,6 +103,9 @@ export default function App() {
   }, [daysInMonth]);
 
   // --- Auth & Data Fetching ---
+  
+  // Ref to track if data has been modified
+  const isDirty = useRef(false);
 
   useEffect(() => {
     // Check active session
@@ -117,6 +120,55 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Save function
+  const handleSave = useCallback(async (silent = false) => {
+    if (!user) return;
+    if (!silent) setSaving(true);
+
+    const { error } = await supabase
+      .from('monthly_sheets')
+      .upsert({
+        user_id: user.id,
+        month,
+        year,
+        class_name: className,
+        teacher_name: teacherName,
+        school_name: schoolName,
+        location,
+        students,
+        standard_meals: standardMeals,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,month,year' });
+
+    if (error) {
+      console.error('Error saving data:', error);
+      if (!silent) alert('Lỗi khi lưu dữ liệu!');
+    } else {
+      if (!silent) alert('Đã lưu dữ liệu thành công!');
+      isDirty.current = false; // Reset dirty flag after successful save
+    }
+    if (!silent) setSaving(false);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals]);
+
+  // Auto-save effect
+  useEffect(() => {
+    if (loading || !isDirty.current) return;
+
+    const timer = setTimeout(() => {
+      handleSave(true);
+    }, 2000); // Auto-save after 2 seconds of inactivity
+
+    return () => clearTimeout(timer);
+  }, [students, className, teacherName, schoolName, location, standardMeals, handleSave, loading]);
+
+  // Mark as dirty when data changes
+  useEffect(() => {
+    if (!loading) {
+      isDirty.current = true;
+    }
+  }, [students, className, teacherName, schoolName, location, standardMeals]);
+
 
   // Fetch data when user, month, or year changes
   useEffect(() => {
@@ -145,42 +197,24 @@ export default function App() {
         setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
       } else {
         console.log('No data found for this month, starting fresh or keeping current state.');
+        // Reset to initial state if switching to a new month with no data
+        // But keep school/teacher info if possible? Ideally yes, but for now simple reset or keep previous is safer?
+        // Actually, keeping previous state is BAD if we switch months and see old data.
+        // We should reset students to initial if not found.
+        setStudents(INITIAL_STUDENTS);
+        // Keep other fields as they are likely constant across months
       }
+      isDirty.current = false; // Reset dirty flag after fetch
       setLoading(false);
     };
 
     fetchData();
   }, [user, month, year]);
 
-  const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
-
-    const { error } = await supabase
-      .from('monthly_sheets')
-      .upsert({
-        user_id: user.id,
-        month,
-        year,
-        class_name: className,
-        teacher_name: teacherName,
-        school_name: schoolName,
-        location,
-        students,
-        standard_meals: standardMeals,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,month,year' });
-
-    if (error) {
-      console.error('Error saving data:', error);
-      alert('Lỗi khi lưu dữ liệu!');
-    } else {
-      alert('Đã lưu dữ liệu thành công!');
-    }
-    setSaving(false);
-  };
-
   const handleLogout = async () => {
+    if (isDirty.current) {
+      await handleSave(true);
+    }
     await supabase.auth.signOut();
   };
 
@@ -194,7 +228,8 @@ export default function App() {
 
   // --- Handlers ---
 
-  const prevMonth = () => {
+  const prevMonth = async () => {
+    if (isDirty.current) await handleSave(true);
     if (month === 0) {
       setMonth(11);
       setYear(y => y - 1);
@@ -203,13 +238,19 @@ export default function App() {
     }
   };
 
-  const nextMonth = () => {
+  const nextMonth = async () => {
+    if (isDirty.current) await handleSave(true);
     if (month === 11) {
       setMonth(0);
       setYear(y => y + 1);
     } else {
       setMonth(m => m + 1);
     }
+  };
+  
+  const handleYearChange = async (newYear: number) => {
+    if (isDirty.current) await handleSave(true);
+    setYear(newYear);
   };
 
   const toggleMeal = (studentId: string, day: number, meal: MealType) => {
@@ -392,7 +433,7 @@ export default function App() {
         headerRow2Values.push(String(d), '', ''); // Merged 3 cells
       });
       if (isSecondHalf) {
-        headerRow2Values.push('Số ngày ăn trong tháng', '', '', 'Số ngày không ăn', '', '');
+        headerRow2Values.push('Số ngày ăn trong tháng', '', '', '', '', '');
       }
       const headerRow2 = sheet.addRow(headerRow2Values);
       
@@ -403,7 +444,7 @@ export default function App() {
         headerRow3Values.push(dow, '', ''); // Merged 3 cells
       });
       if (isSecondHalf) {
-        headerRow3Values.push('S', 'T', 'T', 'S', 'T', 'T');
+        headerRow3Values.push('Số ngày báo ăn', '', '', 'Số ngày không báo ăn', '', '');
       }
       const headerRow3 = sheet.addRow(headerRow3Values);
 
@@ -618,8 +659,8 @@ export default function App() {
             ))}
             {isSecondHalf && (
               <>
-                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[8px]">Có báo ăn</th>
-                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[8px]">Không báo</th>
+                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[8px]">Số ngày<br/>báo ăn</th>
+                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[8px]">Số ngày<br/>không báo ăn</th>
               </>
             )}
           </tr>
@@ -750,7 +791,7 @@ export default function App() {
             <input 
               type="number" 
               value={year} 
-              onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
+              onChange={(e) => handleYearChange(parseInt(e.target.value) || new Date().getFullYear())}
               className="w-20 px-2 py-1 border rounded text-sm font-bold text-center"
             />
           </div>
