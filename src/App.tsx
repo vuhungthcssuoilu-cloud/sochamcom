@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2 } from 'lucide-react';
 import { read, utils } from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -82,6 +82,8 @@ export default function App() {
   const [footerYear, setFooterYear] = useState(new Date().getFullYear());
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
@@ -975,9 +977,9 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-stone-100 p-4 font-sans text-gray-900 print:bg-white print:p-0">
+    <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-0 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-4'}`}>
       {/* Controls - Hidden on Print */}
-      <div className="max-w-[1600px] mx-auto mb-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-black/5 print:hidden">
+      <div className={`max-w-[1600px] mx-auto mb-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-indigo-900 flex items-center gap-2">
             <Save className="w-6 h-6" />
@@ -1052,6 +1054,19 @@ export default function App() {
             {isPreviewMode ? 'Thoát xem trước' : 'Xem trước khi in'}
           </button>
           <button 
+            onClick={() => setIsFullScreen(!isFullScreen)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isFullScreen ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+            title={isFullScreen ? 'Thu nhỏ' : 'Phóng to cửa sổ làm việc'}
+          >
+            {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullScreen ? 'Thu nhỏ' : 'Phóng to'}
+          </button>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 ml-2">
+            <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="p-1 hover:bg-white rounded text-xs font-bold">-</button>
+            <span className="text-[10px] font-bold w-10 text-center">{zoomLevel}%</span>
+            <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="p-1 hover:bg-white rounded text-xs font-bold">+</button>
+          </div>
+          <button 
             onClick={handleLogout}
             className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
             title="Đăng xuất"
@@ -1060,8 +1075,8 @@ export default function App() {
           </button>
         </div>
 
-        {/* Configuration Section - Hidden in Preview Mode */}
-        {!isPreviewMode && (
+        {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
+        {(!isPreviewMode && !isFullScreen) && (
           <div className="w-full flex flex-wrap items-center gap-6 mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">Tên lớp:</span>
@@ -1128,22 +1143,30 @@ export default function App() {
       <div className={`transition-all duration-300 ${
         isPreviewMode 
           ? 'fixed inset-0 z-50 overflow-auto bg-gray-900/90 flex items-start justify-center p-8' 
-          : ''
+          : isFullScreen
+            ? 'fixed inset-0 z-40 bg-stone-100 flex flex-col'
+            : ''
       }`}>
-        {/* Close button for preview mode */}
-        {isPreviewMode && (
+        {/* Close button for preview mode or fullscreen */}
+        {(isPreviewMode || isFullScreen) && (
           <button 
-            onClick={() => setIsPreviewMode(false)}
+            onClick={() => {
+              if (isPreviewMode) setIsPreviewMode(false);
+              if (isFullScreen) setIsFullScreen(false);
+            }}
             className="fixed top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-sm z-50 print:hidden"
-            title="Thoát xem trước"
+            title={isPreviewMode ? 'Thoát xem trước' : 'Thoát phóng to'}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         )}
 
-        <div className={`max-w-[1600px] mx-auto bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid ${
-          isPreviewMode ? 'scale-90 origin-top shadow-2xl' : ''
-        }`}>
+        <div 
+          className={`max-w-[1600px] mx-auto bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid ${
+            isPreviewMode ? 'scale-90 origin-top shadow-2xl' : isFullScreen ? 'w-full h-full max-w-none shadow-none rounded-none' : ''
+          }`}
+          style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
+        >
         {/* Header Section */}
         <div className="flex justify-between items-start mb-2 px-2">
           <div className="text-left">
