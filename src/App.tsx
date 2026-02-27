@@ -640,7 +640,7 @@ export default function App() {
       });
 
       // --- Totals Row ---
-      const totalRowValues = ['', 'CỘNG'];
+      const totalRowValues = ['CỘNG', ''];
       days.forEach(d => {
         totalRowValues.push(
           String(calculateDayTotals(d, 'S')),
@@ -654,7 +654,7 @@ export default function App() {
       const totalRow = sheet.addRow(totalRowValues);
       totalRow.font = { name: 'Times New Roman', size: 11, bold: true };
       totalRow.alignment = { vertical: 'middle', horizontal: 'center' };
-      sheet.mergeCells(totalRow.number, 1, totalRow.number, 2); // Merge "CỘNG"
+      sheet.mergeCells(totalRow.number, 1, totalRow.number, 2); // Merge "CỘNG" across STT and Name columns
       totalRow.height = 25;
 
       // --- Borders ---
