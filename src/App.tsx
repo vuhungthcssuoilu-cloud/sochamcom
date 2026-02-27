@@ -519,8 +519,8 @@ export default function App() {
 
       // Row 2 & 3: Headers
       // We need to construct the header structure manually
-      // Row 2: STT, Name, Day Numbers, (Summaries Title)
-      const headerRow2Values = ['STT', 'Họ và tên'];
+      // Row 2: STT, Ngày/Thứ, Day Numbers, (Summaries Title)
+      const headerRow2Values = ['STT', 'Ngày/Thứ'];
       days.forEach(d => {
         headerRow2Values.push(String(d), '', ''); // Merged 3 cells
       });
@@ -530,7 +530,7 @@ export default function App() {
       const headerRow2 = sheet.addRow(headerRow2Values);
       
       // Row 3: Day of Week / Sub-headers
-      const headerRow3Values = ['', '']; // STT, Name are merged vertically
+      const headerRow3Values = ['', '']; // STT, Ngày/Thứ are merged vertically
       days.forEach(d => {
         const dow = getDayOfWeek(d, month, year);
         headerRow3Values.push(dow, '', ''); // Merged 3 cells
@@ -552,6 +552,22 @@ export default function App() {
       sheet.mergeCells(2, 2, 3, 2); // Ngày/Thứ placeholder
       sheet.mergeCells(4, 1, 4, 2); // Họ và tên
 
+      // Diagonal line and text for Ngày/Thứ cell
+      const dayThurCell = sheet.getCell(2, 2);
+      dayThurCell.value = {
+        richText: [
+          { text: '                Ngày\n\nThứ' }
+        ]
+      };
+      dayThurCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+      dayThurCell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+        diagonal: { up: false, down: true, style: 'thin' }
+      };
+
       let colIdx = 3;
       days.forEach(() => {
         sheet.mergeCells(2, colIdx, 2, colIdx + 2); // Day Num
@@ -571,6 +587,20 @@ export default function App() {
         row.font = { name: 'Times New Roman', size: 10, bold: true };
         row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
         row.height = 25;
+
+        // Add background for Sunday columns in headers
+        days.forEach((d, i) => {
+          if (getDayOfWeek(d, month, year) === 'CN') {
+            const startCol = 3 + i * 3;
+            for (let c = startCol; c < startCol + 3; c++) {
+              row.getCell(c).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF3F4F6' } // gray-100
+              };
+            }
+          }
+        });
       });
 
       // --- Data Rows ---
@@ -593,6 +623,20 @@ export default function App() {
         // Name alignment left
         row.getCell(2).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
         row.height = 20;
+
+        // Add background for Sunday columns in data rows
+        days.forEach((d, i) => {
+          if (getDayOfWeek(d, month, year) === 'CN') {
+            const startCol = 3 + i * 3;
+            for (let c = startCol; c < startCol + 3; c++) {
+              row.getCell(c).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF9FAFB' } // gray-50
+              };
+            }
+          }
+        });
       });
 
       // --- Totals Row ---
