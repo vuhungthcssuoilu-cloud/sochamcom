@@ -109,6 +109,12 @@ export default function Login() {
             </button>
           </div>
         </form>
+        
+        <div className="mt-6 text-center text-xs text-gray-500 border-t pt-4">
+          <p className="font-medium">Ứng dụng được phát triển bởi: Vũ Văn Hùng</p>
+          <p>SĐT: 0984 246 993</p>
+          <p>Đơn vị công tác tại trường PTDTBT TH và THCS Suối Lư</p>
+        </div>
       </div>
     </div>
   );
