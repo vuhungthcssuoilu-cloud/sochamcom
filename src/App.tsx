@@ -191,13 +191,31 @@ export default function App() {
         setStudents(data.students || INITIAL_STUDENTS);
         setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
       } else {
-        console.log('No data found for this month, starting fresh or keeping current state.');
-        // Reset to initial state if switching to a new month with no data
-        // But keep school/teacher info if possible? Ideally yes, but for now simple reset or keep previous is safer?
-        // Actually, keeping previous state is BAD if we switch months and see old data.
-        // We should reset students to initial if not found.
-        setStudents(INITIAL_STUDENTS);
-        // Keep other fields as they are likely constant across months
+        // Try to find the most recent month's data to copy the student list and metadata
+        const { data: latestData } = await supabase
+          .from('monthly_sheets')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('year', { ascending: false })
+          .order('month', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestData) {
+          setSchoolName(latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LỪ');
+          setClassName(latestData.class_name || '8C1');
+          setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
+          setLocation(latestData.location || 'Suối Lừ');
+          setStandardMeals(latestData.standard_meals || { S: 14, T1: 14, T2: 12 });
+          // Copy students but clear their meal data for the new month
+          const copiedStudents = (latestData.students || []).map((s: any) => ({
+            ...s,
+            meals: {}
+          }));
+          setStudents(copiedStudents);
+        } else {
+          setStudents(INITIAL_STUDENTS);
+        }
       }
       isDirty.current = false; // Reset dirty flag after fetch
       setLoading(false);
