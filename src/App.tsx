@@ -655,18 +655,18 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tables Container - Side-by-side layout on screen, Stacked on print */}
-        <div className="grid grid-cols-2 gap-0 border-x-[0.5px] border-black relative print:block print:border-none">
-          {/* Blue dashed line separator - Hidden on print */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-blue-500 border-dashed z-10 pointer-events-none print:hidden"></div>
+        {/* Tables Container - Side-by-side layout on large screens, Stacked on mobile/print */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-x-[0.5px] border-black relative print:block print:border-none">
+          {/* Blue dashed line separator - Hidden on mobile and print */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-blue-500 border-dashed z-10 pointer-events-none hidden lg:block print:hidden"></div>
           
           {/* Left Half: Days 1-16 */}
-          <div className="border-r-[0.5px] border-black relative print:border-none print:break-after-page print:w-full print:h-screen">
+          <div className="border-r-[0.5px] border-black relative print:border-none print:break-after-page print:w-full print:h-screen overflow-x-auto">
             {renderTableHalf(firstHalfDays, false)}
           </div>
 
           {/* Right Half: Days 17-End */}
-          <div className="relative print:w-full print:h-screen print:pt-4">
+          <div className="relative print:w-full print:h-screen print:pt-4 overflow-x-auto">
             {renderTableHalf(secondHalfDays, true)}
           </div>
         </div>
