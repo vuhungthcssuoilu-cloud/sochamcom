@@ -348,6 +348,20 @@ export default function App() {
     }));
   };
 
+  const clearDay = (day: number) => {
+    if (!confirm(`Xóa toàn bộ chấm cơm ngày ${day}?`)) return;
+    setStudents(prev => prev.map(s => {
+      const newMeals = { ...s.meals };
+      delete newMeals[day];
+      return { ...s, meals: newMeals };
+    }));
+  };
+
+  const clearMonth = () => {
+    if (!confirm('Bạn có chắc chắn muốn XÓA HẾT dữ liệu chấm cơm của cả tháng này không? Thao tác này không thể hoàn tác.')) return;
+    setStudents(prev => prev.map(s => ({ ...s, meals: {} })));
+  };
+
   const updateStudentName = (id: string, newName: string) => {
     setStudents(prev => prev.map(s => s.id === id ? { ...s, name: newName } : s));
   };
@@ -722,7 +736,16 @@ export default function App() {
               <span className="absolute bottom-1 left-1">Thứ</span>
             </th>
             {days.map(d => (
-              <th key={d} colSpan={3} className="border-[0.5px] border-black text-center py-1 font-normal">{d}</th>
+              <th key={d} colSpan={3} className="border-[0.5px] border-black text-center py-1 font-normal relative group/d">
+                {d}
+                <button 
+                  onClick={() => clearDay(d)}
+                  className="absolute -top-1 -right-1 p-0.5 bg-white text-red-500 opacity-0 group-hover/d:opacity-100 hover:bg-red-50 rounded-full shadow-sm border border-red-100 transition-all print:hidden"
+                  title={`Xóa ngày ${d}`}
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                </button>
+              </th>
             ))}
             {isSecondHalf && (
               <th colSpan={6} className="border-[0.5px] border-black text-center text-[9px] font-bold">Số ngày ăn trong tháng</th>
@@ -934,7 +957,14 @@ export default function App() {
         
         <div className="flex items-center gap-2">
           <button 
-            onClick={handleSave}
+            onClick={clearMonth}
+            className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+            title="Xóa toàn bộ dữ liệu tháng này"
+          >
+            <Trash2 className="w-4 h-4" /> Xóa hết tháng
+          </button>
+          <button 
+            onClick={() => handleSave()}
             disabled={saving}
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
