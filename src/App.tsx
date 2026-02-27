@@ -1142,28 +1142,29 @@ export default function App() {
       {/* Main Sheet */}
       <div className={`transition-all duration-300 ${
         isPreviewMode 
-          ? 'fixed inset-0 z-50 overflow-auto bg-gray-900/90 flex items-start justify-center p-8' 
+          ? 'fixed inset-0 z-50 overflow-auto bg-black/80 backdrop-blur-md flex items-start justify-center p-8' 
           : isFullScreen
-            ? 'fixed inset-0 z-40 bg-stone-100 flex flex-col'
+            ? 'fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-start p-4 overflow-auto'
             : ''
       }`}>
         {/* Close button for preview mode or fullscreen */}
         {(isPreviewMode || isFullScreen) && (
           <button 
             onClick={() => {
-              if (isPreviewMode) setIsPreviewMode(false);
-              if (isFullScreen) setIsFullScreen(false);
+              setIsPreviewMode(false);
+              setIsFullScreen(false);
             }}
-            className="fixed top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-sm z-50 print:hidden"
+            className="fixed top-6 right-6 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-2xl z-50 print:hidden flex items-center gap-2 transition-all hover:scale-105 group"
             title={isPreviewMode ? 'Thoát xem trước' : 'Thoát phóng to'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <Minimize2 className="w-6 h-6" />
+            <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap">Thoát</span>
           </button>
         )}
 
         <div 
-          className={`max-w-[1600px] mx-auto bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid ${
-            isPreviewMode ? 'scale-90 origin-top shadow-2xl' : isFullScreen ? 'w-full h-full max-w-none shadow-none rounded-none' : ''
+          className={`bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 ${
+            isPreviewMode ? 'max-w-[1600px] mx-auto scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-auto' : 'max-w-[1600px] mx-auto'
           }`}
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
         >
