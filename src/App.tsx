@@ -4,8 +4,10 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet } from 'lucide-react';
 import { read, utils } from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { supabase } from './lib/supabase';
 import Login from './components/Login';
 
@@ -326,6 +328,235 @@ export default function App() {
     }
   };
 
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Helper to create a sheet
+    const createSheet = (sheetName: string, days: number[], isSecondHalf: boolean) => {
+      const sheet = workbook.addWorksheet(sheetName, {
+        pageSetup: { 
+          paperSize: 9, // A4
+          orientation: 'landscape',
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0, // Fit to width, but let height grow
+          margins: {
+            left: 0.25, right: 0.25, top: 0.25, bottom: 0.25,
+            header: 0.1, footer: 0.1
+          }
+        }
+      });
+
+      // --- Columns Setup ---
+      // STT (1), Name (1), Days (3 * days.length), Summaries (6 if second half)
+      const cols = [
+        { header: 'STT', key: 'stt', width: 5 },
+        { header: 'Họ và tên', key: 'name', width: 25 },
+      ];
+      
+      days.forEach(d => {
+        cols.push(
+          { header: `${d} (S)`, key: `d${d}_S`, width: 4 },
+          { header: `${d} (T)`, key: `d${d}_T1`, width: 4 },
+          { header: `${d} (T)`, key: `d${d}_T2`, width: 4 }
+        );
+      });
+
+      if (isSecondHalf) {
+        cols.push(
+          { header: 'Tổng S', key: 'total_S', width: 6 },
+          { header: 'Tổng T', key: 'total_T1', width: 6 },
+          { header: 'Tổng T', key: 'total_T2', width: 6 },
+          { header: 'Không S', key: 'u_S', width: 6 },
+          { header: 'Không T', key: 'u_T1', width: 6 },
+          { header: 'Không T', key: 'u_T2', width: 6 }
+        );
+      }
+
+      // We don't use sheet.columns directly because we need complex headers
+      // But we can set widths manually later.
+      
+      // --- Header Rows ---
+      // Row 1: Title
+      const titleRow = sheet.addRow([`SỔ CHẤM CƠM LỚP: ${className} THÁNG ${month + 1}/${year}`]);
+      titleRow.font = { name: 'Times New Roman', size: 14, bold: true };
+      titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.mergeCells(1, 1, 1, cols.length);
+      titleRow.height = 30;
+
+      // Row 2 & 3: Headers
+      // We need to construct the header structure manually
+      // Row 2: STT, Name, Day Numbers, (Summaries Title)
+      const headerRow2Values = ['STT', 'Họ và tên'];
+      days.forEach(d => {
+        headerRow2Values.push(String(d), '', ''); // Merged 3 cells
+      });
+      if (isSecondHalf) {
+        headerRow2Values.push('Số ngày ăn trong tháng', '', '', 'Số ngày không ăn', '', '');
+      }
+      const headerRow2 = sheet.addRow(headerRow2Values);
+      
+      // Row 3: Day of Week / Sub-headers
+      const headerRow3Values = ['', '']; // STT, Name are merged vertically
+      days.forEach(d => {
+        const dow = getDayOfWeek(d, month, year);
+        headerRow3Values.push(dow, '', ''); // Merged 3 cells
+      });
+      if (isSecondHalf) {
+        headerRow3Values.push('S', 'T', 'T', 'S', 'T', 'T');
+      }
+      const headerRow3 = sheet.addRow(headerRow3Values);
+
+      // Row 4: S, T, T labels
+      const row4Vals = ['Họ và tên', '', ...days.flatMap(() => ['S', 'T', 'T'])];
+      if (isSecondHalf) {
+        row4Vals.push('S', 'T', 'T', 'S', 'T', 'T');
+      }
+      const headerRow4 = sheet.addRow(row4Vals);
+
+      // Merges
+      sheet.mergeCells(2, 1, 3, 1); // STT
+      sheet.mergeCells(2, 2, 3, 2); // Ngày/Thứ placeholder
+      sheet.mergeCells(4, 1, 4, 2); // Họ và tên
+
+      let colIdx = 3;
+      days.forEach(() => {
+        sheet.mergeCells(2, colIdx, 2, colIdx + 2); // Day Num
+        sheet.mergeCells(3, colIdx, 3, colIdx + 2); // DOW
+        colIdx += 3;
+      });
+
+      if (isSecondHalf) {
+        sheet.mergeCells(2, colIdx, 2, colIdx + 5); // "Số ngày ăn..."
+        sheet.mergeCells(3, colIdx, 3, colIdx + 2); // "Có báo"
+        sheet.mergeCells(3, colIdx + 3, 3, colIdx + 5); // "Không báo"
+      }
+
+      // Styling Headers
+      [2, 3, 4].forEach(r => {
+        const row = sheet.getRow(r);
+        row.font = { name: 'Times New Roman', size: 10, bold: true };
+        row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        row.height = 25;
+      });
+
+      // --- Data Rows ---
+      students.forEach((student, index) => {
+        const totals = calculateStudentTotals(student);
+        const rowValues = [index + 1, student.name];
+        
+        days.forEach(d => {
+          const meals = student.meals[d];
+          rowValues.push(meals?.S ? "+" : "", meals?.T1 ? "+" : "", meals?.T2 ? "+" : "");
+        });
+
+        if (isSecondHalf) {
+          rowValues.push(totals.S, totals.T1, totals.T2, totals.uS, totals.uT1, totals.uT2);
+        }
+
+        const row = sheet.addRow(rowValues);
+        row.font = { name: 'Times New Roman', size: 11 };
+        row.alignment = { vertical: 'middle', horizontal: 'center' };
+        // Name alignment left
+        row.getCell(2).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        row.height = 20;
+      });
+
+      // --- Totals Row ---
+      const totalRowValues = ['', 'CỘNG'];
+      days.forEach(d => {
+        totalRowValues.push(
+          String(calculateDayTotals(d, 'S')),
+          String(calculateDayTotals(d, 'T1')),
+          String(calculateDayTotals(d, 'T2'))
+        );
+      });
+      if (isSecondHalf) {
+        totalRowValues.push('', '', '', '', '', '');
+      }
+      const totalRow = sheet.addRow(totalRowValues);
+      totalRow.font = { name: 'Times New Roman', size: 11, bold: true };
+      totalRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.mergeCells(totalRow.number, 1, totalRow.number, 2); // Merge "CỘNG"
+      totalRow.height = 25;
+
+      // --- Borders ---
+      // Apply borders to all cells in the table
+      const lastRow = totalRow.number;
+      const lastCol = isSecondHalf ? 2 + days.length * 3 + 6 : 2 + days.length * 3;
+      
+      for (let r = 2; r <= lastRow; r++) {
+        for (let c = 1; c <= lastCol; c++) {
+          const cell = sheet.getCell(r, c);
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        }
+      }
+
+      // --- Footer Info ---
+      if (isSecondHalf) {
+        const footerStartRow = lastRow + 2;
+        
+        // Định mức ăn
+        const quotaRow = sheet.getRow(footerStartRow);
+        quotaRow.getCell(2).value = `Định mức ăn: S: ${standardMeals.S}, T: ${standardMeals.T1}, T: ${standardMeals.T2}`;
+        quotaRow.font = { name: 'Times New Roman', size: 10, italic: true };
+        
+        // Signature
+        const sigRowIdx = footerStartRow;
+        const sigColStart = lastCol - 6;
+        
+        sheet.mergeCells(sigRowIdx, sigColStart, sigRowIdx, lastCol);
+        const dateCell = sheet.getCell(sigRowIdx, sigColStart);
+        dateCell.value = `${location}, ngày ${footerDay} tháng ${footerMonth} năm ${footerYear}`;
+        dateCell.alignment = { horizontal: 'center' };
+        dateCell.font = { name: 'Times New Roman', size: 11, italic: true };
+
+        const roleRowIdx = sigRowIdx + 1;
+        sheet.mergeCells(roleRowIdx, sigColStart, roleRowIdx, lastCol);
+        const roleCell = sheet.getCell(roleRowIdx, sigColStart);
+        roleCell.value = "GIÁO VIÊN CHỦ NHIỆM";
+        roleCell.alignment = { horizontal: 'center' };
+        roleCell.font = { name: 'Times New Roman', size: 11, bold: true };
+
+        const nameRowIdx = roleRowIdx + 4;
+        sheet.mergeCells(nameRowIdx, sigColStart, nameRowIdx, lastCol);
+        const nameCell = sheet.getCell(nameRowIdx, sigColStart);
+        nameCell.value = teacherName;
+        nameCell.alignment = { horizontal: 'center' };
+        nameCell.font = { name: 'Times New Roman', size: 11, bold: true };
+      }
+
+      // --- Column Widths ---
+      sheet.getColumn(1).width = 5; // STT
+      sheet.getColumn(2).width = 25; // Name
+      for (let c = 3; c <= lastCol; c++) {
+        sheet.getColumn(c).width = 4; // S, T, T columns
+      }
+      if (isSecondHalf) {
+        // Summary columns slightly wider
+        for (let c = lastCol - 5; c <= lastCol; c++) {
+          sheet.getColumn(c).width = 6;
+        }
+      }
+    };
+
+    // Create Sheet 1 (Days 1-16)
+    createSheet('Trang 1', firstHalfDays, false);
+    
+    // Create Sheet 2 (Days 17-End)
+    createSheet('Trang 2', secondHalfDays, true);
+
+    // Save
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `So_Cham_Com_${className}_Thang_${month + 1}_${year}.xlsx`);
+  };
+
   // --- Render Helpers ---
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
@@ -441,19 +672,19 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'S')}
                       className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.S ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.S ? 'x' : ''}
+                      {student.meals[d]?.S ? '+' : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T1')}
                       className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T1 ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.T1 ? 'x' : ''}
+                      {student.meals[d]?.T1 ? '+' : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T2')}
                       className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T2 ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.T2 ? 'x' : ''}
+                      {student.meals[d]?.T2 ? '+' : ''}
                     </td>
                   </React.Fragment>
                 ))}
@@ -557,6 +788,12 @@ export default function App() {
             className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Printer className="w-4 h-4" /> In sổ (PDF)
+          </button>
+          <button 
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Xuất Excel
           </button>
           <button 
             onClick={() => setIsPreviewMode(!isPreviewMode)}
