@@ -1193,85 +1193,83 @@ export default function App() {
           <div className="flex items-center gap-2 flex-wrap">
             <button 
               onClick={clearMonth}
-              className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
               title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-5 h-5" />
               <span className="text-[11px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
             </button>
 
             <button 
               onClick={clearAllStudents}
-              className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
               title="Xóa toàn bộ danh sách học sinh"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-5 h-5" />
               <span className="text-[11px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
             </button>
 
             <button 
               onClick={() => handleSave()}
               disabled={saving}
-              className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
-              <span className="text-[11px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : 'Lưu dữ liệu'}</span>
+              <Save className="w-5 h-5" />
+              <span className="text-[11px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
             </button>
 
             <button 
               onClick={addStudent}
-              className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               <span className="text-[11px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
             </button>
 
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-5 h-5" />
               <span className="text-[11px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => window.print()}
-              className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-5 h-5" />
               <span className="text-[11px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
             </button>
 
             <button 
               onClick={handleExportExcel}
-              className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
             >
-              <FileSpreadsheet className="w-4 h-4" />
+              <FileSpreadsheet className="w-5 h-5" />
               <span className="text-[11px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className={`flex flex-col items-center justify-center gap-1 w-24 h-20 rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
+              className={`flex flex-col items-center justify-center gap-1.5 w-20 h-20 rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
             >
-              <Maximize2 className="w-4 h-4" />
-              <span className="text-[11px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : 'Xem trước<br/>khi in'}</span>
+              <Maximize2 className="w-5 h-5" />
+              <span className="text-[11px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
             </button>
 
             <button 
               onClick={() => setIsFullScreen(!isFullScreen)}
-              className={`flex flex-col items-center justify-center gap-1 w-24 h-20 rounded-xl border transition-all shadow-sm ${isFullScreen ? 'bg-blue-600 text-white border-blue-700' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
+              className={`flex flex-col items-center justify-center gap-1.5 w-20 h-20 rounded-xl border transition-all shadow-sm ${isFullScreen ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
             >
-              {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              <span className="text-[11px] font-bold leading-tight text-center">{isFullScreen ? 'Thu nhỏ' : 'Phóng to'}</span>
+              {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              <span className="text-[11px] font-bold leading-tight text-center">{isFullScreen ? 'Thu nhỏ' : <>Phóng<br/>to</>}</span>
             </button>
 
-            <div className="flex flex-col items-center gap-1 ml-2">
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="p-1 hover:bg-white rounded text-xs font-bold">-</button>
-                <span className="text-[10px] font-bold w-10 text-center">{zoomLevel}%</span>
-                <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="p-1 hover:bg-white rounded text-xs font-bold">+</button>
-              </div>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200 p-1 h-12 ml-2 shadow-sm">
+              <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-8 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">-</button>
+              <span className="text-[11px] font-bold w-10 text-center text-slate-700">{zoomLevel}%</span>
+              <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-8 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">+</button>
             </div>
           </div>
         </div>
