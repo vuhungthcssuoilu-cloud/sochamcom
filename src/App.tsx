@@ -1284,8 +1284,8 @@ export default function App() {
             {renderTableHalf(secondHalfDays, true)}
             
             {/* Footer Section - Moved inside the same print container as the second table */}
-            <div className="mt-4 flex justify-end items-end px-4 print:mt-8 print:break-inside-avoid">
-              <div className="text-center w-64 print:break-inside-avoid">
+            <div className="mt-4 flex justify-end items-end px-4 print:mt-4 print:break-inside-avoid print:break-before-avoid">
+              <div className="text-center w-64 print:break-inside-avoid print:break-before-avoid">
                 <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
                   <input 
                     type="text" 
@@ -1316,8 +1316,8 @@ export default function App() {
                     className="border-none focus:ring-0 p-0 w-[40px] text-center bg-transparent italic"
                   />
                 </p>
-                <p className="font-bold uppercase text-[11px]">GIÁO VIÊN CHỦ NHIỆM</p>
-                <div className="h-20"></div>
+                <p className="font-bold uppercase text-[11px] leading-tight">GIÁO VIÊN CHỦ NHIỆM</p>
+                <div className="h-16"></div>
                 <input 
                   type="text" 
                   value={teacherName} 
