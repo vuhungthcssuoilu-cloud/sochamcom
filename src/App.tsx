@@ -1410,7 +1410,7 @@ export default function App() {
       {/* Footer Info */}
       {!isPreviewMode && (
         <div className="max-w-[1600px] mx-auto mt-6 text-center text-gray-500 text-sm print:hidden">
-          <p>© 2026 Hệ thống Quản lý Nội trú - Suối Lừ</p>
+          <p>Sổ chấm cơm dành cho GVCN lớp</p>
           <p className="text-xs mt-1">Hướng dẫn: Click vào ô để chấm cơm (+). Ô trống mặc định là không ăn.</p>
         </div>
       )}
