@@ -85,7 +85,7 @@ export default function Login() {
 
           <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={handleLogin}>
             <div className="flex items-center">
-              <label htmlFor="email-address" className="w-1/3 text-right pr-4 text-sm text-black">Tên đăng nhập:</label>
+              <label htmlFor="email-address" className="w-1/3 text-right pr-4 text-sm text-black">Tài khoản Gmail:</label>
               <div className="w-2/3">
                 <input
                   id="email-address"
@@ -146,7 +146,8 @@ export default function Login() {
                 <button 
                   type="button"
                   onClick={handleSignUp} 
-                  className="text-xs text-blue-600 hover:underline"
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-6 shadow-md transition-colors text-sm"
                 >
                   Đăng ký
                 </button>
