@@ -396,6 +396,45 @@ export default function App() {
     }
   };
 
+  const autoFillMeals = () => {
+    if (!confirm('Bạn có muốn chấm tự động cho tất cả học sinh trong tháng này không? (Sẽ tự động bỏ qua chiều T6, T7 và CN)')) return;
+    
+    setStudents(prev => prev.map(s => {
+      const newMeals: MealData = { ...s.meals };
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dow = getDayOfWeek(day, month, year);
+        
+        // Skip Saturday and Sunday completely
+        if (dow === '7' || dow === 'CN') {
+          continue;
+        }
+        
+        const currentMeals = newMeals[day] || { S: false, T1: false, T2: false };
+        
+        // If Friday, skip T2 (Tối)
+        if (dow === '6') {
+          newMeals[day] = {
+            ...currentMeals,
+            S: true,
+            T1: true,
+            T2: false // Skip Friday evening
+          };
+        } else {
+          // Monday to Thursday: all meals
+          newMeals[day] = {
+            ...currentMeals,
+            S: true,
+            T1: true,
+            T2: true
+          };
+        }
+      }
+      
+      return { ...s, meals: newMeals };
+    }));
+  };
+
   const syncFromPreviousMonth = async () => {
     if (!user) return;
     if (!confirm('Bạn có muốn cập nhật danh sách học sinh từ tháng trước không? Dữ liệu chấm cơm hiện tại của tháng này sẽ được giữ nguyên, chỉ thêm các học sinh mới hoặc cập nhật tên.')) return;
@@ -1207,6 +1246,15 @@ export default function App() {
             >
               <Trash2 className="w-5 h-5" />
               <span className="text-[11px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
+            </button>
+
+            <button 
+              onClick={autoFillMeals}
+              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-100 transition-all shadow-sm group"
+              title="Chấm tự động cả tháng (Trừ chiều T6, T7, CN)"
+            >
+              <ClipboardPaste className="w-5 h-5" />
+              <span className="text-[11px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
             </button>
 
             <button 
