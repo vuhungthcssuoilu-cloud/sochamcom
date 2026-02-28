@@ -1280,58 +1280,58 @@ export default function App() {
           </div>
 
           {/* Right Half: Days 17-End */}
-          <div className="relative print:w-full print:pt-4 overflow-x-auto">
+          <div className="relative print:w-full print:pt-4 overflow-x-auto print:break-inside-avoid-page">
             {renderTableHalf(secondHalfDays, true)}
-          </div>
-        </div>
+            
+            {/* Footer Section - Moved inside the same print container as the second table */}
+            <div className="mt-4 flex justify-between items-end px-4 print:mt-8 print:break-inside-avoid">
+              {/* Định mức ăn info (Print Only) */}
+              <div className="w-40 text-[10px] invisible print:visible">
+                <p><strong>Định mức ăn:</strong></p>
+                <p>S: {standardMeals.S}, T: {standardMeals.T1}, T: {standardMeals.T2}</p>
+              </div>
 
-        {/* Footer Section */}
-        <div className="mt-4 flex justify-between items-end px-4 print:mt-8 print:break-inside-avoid">
-          {/* Định mức ăn info (Print Only) */}
-          <div className="w-40 text-[10px] invisible print:visible">
-            <p><strong>Định mức ăn:</strong></p>
-            <p>S: {standardMeals.S}, T: {standardMeals.T1}, T: {standardMeals.T2}</p>
-          </div>
-
-          <div className="text-center w-64 print:break-inside-avoid">
-            <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
-              <input 
-                type="text" 
-                value={location} 
-                onChange={(e) => setLocation(e.target.value)}
-                className="border-none focus:ring-0 p-0 min-w-[50px] text-right bg-transparent italic"
-                style={{ width: `${Math.max(location.length * 8, 50)}px` }}
-              />
-              , ngày 
-              <input 
-                type="text" 
-                value={footerDay} 
-                onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
-              />
-               tháng 
-              <input 
-                type="text" 
-                value={footerMonth} 
-                onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
-              />
-               năm 
-              <input 
-                type="text" 
-                value={footerYear} 
-                onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                className="border-none focus:ring-0 p-0 w-[40px] text-center bg-transparent italic"
-              />
-            </p>
-            <p className="font-bold uppercase text-[11px]">GIÁO VIÊN CHỦ NHIỆM</p>
-            <div className="h-20"></div>
-            <input 
-              type="text" 
-              value={teacherName} 
-              onChange={(e) => setTeacherName(e.target.value)}
-              className="font-bold text-[11px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
-            />
+              <div className="text-center w-64 print:break-inside-avoid">
+                <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
+                  <input 
+                    type="text" 
+                    value={location} 
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="border-none focus:ring-0 p-0 min-w-[50px] text-right bg-transparent italic"
+                    style={{ width: `${Math.max(location.length * 8, 50)}px` }}
+                  />
+                  , ngày 
+                  <input 
+                    type="text" 
+                    value={footerDay} 
+                    onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
+                  />
+                  tháng 
+                  <input 
+                    type="text" 
+                    value={footerMonth} 
+                    onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
+                  />
+                  năm 
+                  <input 
+                    type="text" 
+                    value={footerYear} 
+                    onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[40px] text-center bg-transparent italic"
+                  />
+                </p>
+                <p className="font-bold uppercase text-[11px]">GIÁO VIÊN CHỦ NHIỆM</p>
+                <div className="h-20"></div>
+                <input 
+                  type="text" 
+                  value={teacherName} 
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  className="font-bold text-[11px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
+                />
+              </div>
+            </div>
           </div>
         </div>
         </div>
