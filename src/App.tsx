@@ -466,40 +466,101 @@ export default function App() {
     try {
       const data = await file.arrayBuffer();
       const workbook = read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-
-      // Assuming names are in the second column (index 1) if there's a header, 
-      // or try to find a column that looks like names.
-      // For simplicity, let's assume the first column contains names if it's a simple list,
-      // or look for a header "Họ và tên".
       
-      let nameColIndex = 0;
+      // Try to find a sheet that has data
+      let jsonData: any[][] = [];
+      for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        if (rows.length > 0) {
+          jsonData = rows;
+          break;
+        }
+      }
+
+      if (jsonData.length === 0) {
+        alert('File Excel không có dữ liệu.');
+        return;
+      }
+
+      let nameColIndex = -1;
       let startRow = 0;
 
-      // Simple heuristic to find header row
-      for (let i = 0; i < Math.min(jsonData.length, 5); i++) {
+      // 1. Try to find a header row
+      const headerKeywords = ['họ và tên', 'họ tên', 'tên học sinh', 'học sinh', 'tên'];
+      for (let i = 0; i < Math.min(jsonData.length, 20); i++) {
         const row = jsonData[i];
-        const nameIdx = row.findIndex((cell: any) => 
+        if (!row) continue;
+        
+        const idx = row.findIndex((cell: any) => 
           typeof cell === 'string' && 
-          (cell.toLowerCase().includes('họ và tên') || cell.toLowerCase().includes('họ tên'))
+          headerKeywords.some(k => cell.toLowerCase().includes(k))
         );
-        if (nameIdx !== -1) {
-          nameColIndex = nameIdx;
+        
+        if (idx !== -1) {
+          nameColIndex = idx;
           startRow = i + 1;
           break;
         }
       }
 
+      // 2. If no header found, look for the first column that looks like names
+      if (nameColIndex === -1) {
+        // Find a column where most entries are strings and not numbers
+        const colStats: { [key: number]: number } = {};
+        for (let i = 0; i < Math.min(jsonData.length, 50); i++) {
+          const row = jsonData[i];
+          if (!row) continue;
+          row.forEach((cell, idx) => {
+            if (typeof cell === 'string' && cell.trim().length > 3 && isNaN(Number(cell))) {
+              colStats[idx] = (colStats[idx] || 0) + 1;
+            }
+          });
+        }
+        
+        // Pick the column with the most "name-like" strings
+        let maxCount = 0;
+        Object.entries(colStats).forEach(([idx, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            nameColIndex = Number(idx);
+          }
+        });
+        
+        // If we found a column, start from the first row that has a string in it
+        if (nameColIndex !== -1) {
+          for (let i = 0; i < jsonData.length; i++) {
+            if (typeof jsonData[i][nameColIndex] === 'string') {
+              startRow = i;
+              break;
+            }
+          }
+        }
+      }
+
+      if (nameColIndex === -1) {
+        alert('Không tìm thấy cột chứa tên học sinh. Vui lòng đảm bảo file có cột "Họ và tên".');
+        return;
+      }
+
       const newStudents: Student[] = [];
+      const skipKeywords = ['stt', 'tổng', 'cộng', 'lớp', 'trường', 'giáo viên', 'năm học', 'tháng'];
+      
       for (let i = startRow; i < jsonData.length; i++) {
         const row = jsonData[i];
-        if (row[nameColIndex]) {
-          newStudents.push({
-            id: generateId(),
-            name: String(row[nameColIndex]).trim(),
-            meals: {}
-          });
+        if (!row) continue;
+        
+        const rawName = row[nameColIndex];
+        if (rawName && typeof rawName === 'string') {
+          const name = rawName.trim();
+          // Basic validation: length > 2 and not a header/footer keyword
+          if (name.length > 2 && !skipKeywords.some(k => name.toLowerCase().includes(k))) {
+            newStudents.push({
+              id: generateId(),
+              name: name,
+              meals: {}
+            });
+          }
         }
       }
 
@@ -512,7 +573,7 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error reading file:', error);
-      alert('Lỗi khi đọc file Excel. Vui lòng thử lại.');
+      alert('Lỗi khi đọc file Excel. Vui lòng kiểm tra định dạng file.');
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
