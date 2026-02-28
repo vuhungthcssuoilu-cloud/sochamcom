@@ -1390,6 +1390,15 @@ export default function App() {
           </div>
         </div>
         </div>
+
+        {/* Hidden File Input for Excel Upload */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept=".xlsx, .xls"
+          className="hidden"
+        />
       </div>
 
       {/* Footer Info */}
