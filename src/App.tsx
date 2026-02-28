@@ -190,18 +190,21 @@ export default function App() {
         setLocation(data.location || 'Suối Lừ');
         setStudents(data.students || INITIAL_STUDENTS);
         setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
+        isDirty.current = false;
       } else {
-        // Try to find the most recent month's data to copy the student list and metadata
+        // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
         const { data: latestData } = await supabase
           .from('monthly_sheets')
           .select('*')
           .eq('user_id', user.id)
+          .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
           .order('year', { ascending: false })
           .order('month', { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (latestData) {
+          console.log(`Copying student list from ${latestData.month + 1}/${latestData.year}`);
           setSchoolName(latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LỪ');
           setClassName(latestData.class_name || '8C1');
           setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
@@ -213,11 +216,12 @@ export default function App() {
             meals: {}
           }));
           setStudents(copiedStudents);
+          isDirty.current = true; // Mark as dirty so it gets saved for the new month
         } else {
           setStudents(INITIAL_STUDENTS);
+          isDirty.current = false;
         }
       }
-      isDirty.current = false; // Reset dirty flag after fetch
       setLoading(false);
     };
 
@@ -389,6 +393,45 @@ export default function App() {
   const removeStudent = (id: string) => {
     if (confirm('Xóa học sinh này?')) {
       setStudents(prev => prev.filter(s => s.id !== id));
+    }
+  };
+
+  const syncFromPreviousMonth = async () => {
+    if (!user) return;
+    if (!confirm('Bạn có muốn cập nhật danh sách học sinh từ tháng trước không? Dữ liệu chấm cơm hiện tại của tháng này sẽ được giữ nguyên, chỉ thêm các học sinh mới hoặc cập nhật tên.')) return;
+
+    const { data: latestData } = await supabase
+      .from('monthly_sheets')
+      .select('*')
+      .eq('user_id', user.id)
+      .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestData && latestData.students) {
+      const prevStudents = latestData.students as Student[];
+      setStudents(prev => {
+        const currentStudents = [...prev];
+        const newStudents = [...currentStudents];
+
+        prevStudents.forEach(ps => {
+          const exists = currentStudents.find(cs => cs.id === ps.id);
+          if (!exists) {
+            newStudents.push({ ...ps, meals: {} });
+          } else {
+            // Update name if changed
+            const idx = newStudents.findIndex(ns => ns.id === ps.id);
+            newStudents[idx] = { ...newStudents[idx], name: ps.name };
+          }
+        });
+
+        return newStudents;
+      });
+      alert('Đã cập nhật danh sách học sinh thành công!');
+    } else {
+      alert('Không tìm thấy dữ liệu tháng trước để cập nhật.');
     }
   };
 
@@ -1015,90 +1058,101 @@ export default function App() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button 
             onClick={clearMonth}
-            className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+            className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
             title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
           >
-            <Trash2 className="w-4 h-4" /> Xóa hết tháng
+            <Trash2 className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
           </button>
+
           <button 
             onClick={clearAllStudents}
-            className="flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors border border-red-300"
+            className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
             title="Xóa toàn bộ danh sách học sinh"
           >
-            <Trash2 className="w-4 h-4" /> Xóa danh sách
+            <Trash2 className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
           </button>
+
           <button 
             onClick={() => handleSave()}
             disabled={saving}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
           >
-            <Save className="w-4 h-4" /> {saving ? 'Đang lưu...' : 'Lưu dữ liệu'}
+            <Save className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : 'Lưu dữ liệu'}</span>
           </button>
+
           <button 
             onClick={addStudent}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
+            className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
           >
-            <Plus className="w-4 h-4" /> Thêm học sinh
+            <Plus className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
           </button>
+
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
           >
-            <Upload className="w-4 h-4" /> Nhập Excel
+            <Upload className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
           </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            accept=".xlsx, .xls" 
-            className="hidden" 
-          />
+
           <button 
             onClick={() => window.print()}
-            className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+            className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
           >
-            <Printer className="w-4 h-4" /> In sổ (PDF)
+            <Printer className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
           </button>
+
           <button 
             onClick={handleExportExcel}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            className="flex flex-col items-center justify-center gap-1 w-24 h-20 bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
           >
-            <FileSpreadsheet className="w-4 h-4" /> Xuất Excel
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
           </button>
+
           <button 
             onClick={() => setIsPreviewMode(!isPreviewMode)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isPreviewMode ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+            className={`flex flex-col items-center justify-center gap-1 w-24 h-20 rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
           >
-            {isPreviewMode ? 'Thoát xem trước' : 'Xem trước khi in'}
+            <Maximize2 className="w-4 h-4" />
+            <span className="text-[11px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : 'Xem trước<br/>khi in'}</span>
           </button>
+
           <button 
             onClick={() => setIsFullScreen(!isFullScreen)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isFullScreen ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
-            title={isFullScreen ? 'Thu nhỏ' : 'Phóng to cửa sổ làm việc'}
+            className={`flex flex-col items-center justify-center gap-1 w-24 h-20 rounded-xl border transition-all shadow-sm ${isFullScreen ? 'bg-blue-600 text-white border-blue-700' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
           >
             {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            {isFullScreen ? 'Thu nhỏ' : 'Phóng to'}
+            <span className="text-[11px] font-bold leading-tight text-center">{isFullScreen ? 'Thu nhỏ' : 'Phóng to'}</span>
           </button>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 ml-2">
-            <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="p-1 hover:bg-white rounded text-xs font-bold">-</button>
-            <span className="text-[10px] font-bold w-10 text-center">{zoomLevel}%</span>
-            <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="p-1 hover:bg-white rounded text-xs font-bold">+</button>
-          </div>
-          
-          <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100 ml-2">
-            <UserIcon className="w-4 h-4" />
-            <span className="text-xs font-bold truncate max-w-[150px]">{user?.email}</span>
+
+          <div className="flex flex-col items-center gap-1 ml-2">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="p-1 hover:bg-white rounded text-xs font-bold">-</button>
+              <span className="text-[10px] font-bold w-10 text-center">{zoomLevel}%</span>
+              <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="p-1 hover:bg-white rounded text-xs font-bold">+</button>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100">
+              <UserIcon className="w-3 h-3" />
+              <span className="text-[9px] font-bold truncate max-w-[80px]">{user?.email}</span>
+            </div>
           </div>
 
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="flex flex-col items-center justify-center gap-1 w-16 h-20 bg-red-600 text-white rounded-xl border border-red-700 hover:bg-red-700 transition-all shadow-sm"
             title="Đăng xuất"
           >
             <LogOut className="w-4 h-4" />
+            <span className="text-[9px] font-bold uppercase">Thoát</span>
           </button>
         </div>
 
@@ -1152,6 +1206,14 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-2 ml-auto">
+            <button 
+              onClick={syncFromPreviousMonth}
+              className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
+              title="Cập nhật danh sách học sinh từ tháng trước"
+            >
+              <ClipboardPaste className="w-4 h-4" />
+              <span className="font-bold">Đồng bộ DS tháng trước</span>
+            </button>
             <button 
               onClick={() => setIsQuotaModalOpen(true)}
               className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
