@@ -890,7 +890,7 @@ export default function App() {
           {/* Header Row 2: Day Numbers */}
           <tr>
             <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal sticky left-0 bg-white z-20">STT</th>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 sticky left-8 bg-white z-20">
+            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 sticky left-8 bg-white z-20 shadow-[1px_0_0_black]">
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <svg className="w-full h-full" preserveAspectRatio="none">
                   <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.5" />
@@ -931,7 +931,7 @@ export default function App() {
           </tr>
           {/* Header Row 4: Name & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20">
+            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20 shadow-[1px_0_0_black]">
               <div className="flex items-center justify-between px-1">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -994,7 +994,7 @@ export default function App() {
             return (
               <tr key={student.id} className="hover:bg-blue-50 group h-6">
                 <td className="border-[0.5px] border-black text-center sticky left-0 bg-white group-hover:bg-blue-50 z-10">{idx + 1}</td>
-                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 bg-white group-hover:bg-blue-50 z-10">
+                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black]">
                   <div className="flex items-center gap-1 h-full">
                     <input 
                       type="text" 
@@ -1073,7 +1073,7 @@ export default function App() {
           </tr>
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 bg-gray-50 z-10">CỘNG</td>
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 bg-gray-50 z-10 shadow-[1px_0_0_black]">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
                 <td className="border-[0.5px] border-black text-center">{calculateDayTotals(d, 'S')}</td>
@@ -1410,7 +1410,7 @@ export default function App() {
       {/* Footer Info */}
       {!isPreviewMode && (
         <div className="max-w-[1600px] mx-auto mt-6 text-center text-gray-500 text-sm print:hidden">
-          <p>Sổ chấm cơm dành cho GVCN lớp- Được viết bởi: Vũ Văn Hùng - SĐT hỗ Trợ: 0984 246 993</p>
+          <p>Sổ chấm cơm dành cho GVCN Lớp</p>
           <p className="text-xs mt-1">Hướng dẫn: Click vào ô để chấm cơm (+). Ô trống mặc định là không ăn.</p>
         </div>
       )}
