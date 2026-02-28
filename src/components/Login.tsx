@@ -28,15 +28,19 @@ export default function Login() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (error) {
       setError(error.message);
+    } else if (data.user && data.session) {
+      // If session is returned, user is logged in automatically
+      setError('Đăng ký thành công! Đang đăng nhập...');
     } else {
-      setError('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.');
+      // If no session, email confirmation might be required by Supabase settings
+      setError('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản trước khi đăng nhập.');
     }
     setLoading(false);
   };
