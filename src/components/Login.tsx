@@ -42,7 +42,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden pb-24">
       {/* Background pattern similar to the original if needed, but we'll keep it simple gray */}
       
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-300 relative z-10">
@@ -84,62 +84,62 @@ export default function Login() {
           </div>
 
           <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={handleLogin}>
-            <div className="flex items-center">
-              <label htmlFor="email-address" className="w-1/3 text-right pr-4 text-sm text-black">Tài khoản Gmail:</label>
-              <div className="w-2/3">
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <label htmlFor="email-address" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Tài khoản Gmail:</label>
+              <div className="w-full sm:w-2/3">
                 <input
                   id="email-address"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
-                  className="w-full border border-gray-400 px-2 py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
             
-            <div className="flex items-center">
-              <label htmlFor="password" className="w-1/3 text-right pr-4 text-sm text-black">Mật khẩu:</label>
-              <div className="w-2/3">
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <label htmlFor="password" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Mật khẩu:</label>
+              <div className="w-full sm:w-2/3">
                 <input
                   id="password"
                   name="password"
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="w-full border border-gray-400 px-2 py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="flex items-center">
-              <div className="w-1/3"></div>
-              <div className="w-2/3 flex items-center">
-                <input type="checkbox" id="remember" className="mr-2 cursor-pointer" />
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <div className="hidden sm:block sm:w-1/3"></div>
+              <div className="w-full sm:w-2/3 flex items-center">
+                <input type="checkbox" id="remember" className="mr-2 cursor-pointer w-4 h-4 sm:w-auto sm:h-auto" />
                 <label htmlFor="remember" className="text-sm text-black cursor-pointer">Nhớ mật khẩu</label>
               </div>
             </div>
 
             {error && (
-              <div className="flex items-center mt-2">
-                <div className="w-1/3"></div>
-                <div className="w-2/3 text-red-600 text-xs font-medium">
+              <div className="flex flex-col sm:flex-row sm:items-center mt-2">
+                <div className="hidden sm:block sm:w-1/3"></div>
+                <div className="w-full sm:w-2/3 text-red-600 text-xs font-medium">
                   {error}
                 </div>
               </div>
             )}
             
-            <div className="flex items-center mt-6 pt-4">
-              <div className="w-1/3"></div>
-              <div className="w-2/3 flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center mt-6 pt-4">
+              <div className="hidden sm:block sm:w-1/3"></div>
+              <div className="w-full sm:w-2/3 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-[#A0522D] hover:bg-[#8B4513] text-white font-bold py-1.5 px-6 shadow-md transition-colors text-sm"
+                  className="w-full sm:w-auto bg-[#A0522D] hover:bg-[#8B4513] text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
                 >
                   {loading ? 'Đang xử lý...' : 'Đăng nhập'}
                 </button>
@@ -147,7 +147,7 @@ export default function Login() {
                   type="button"
                   onClick={handleSignUp} 
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-6 shadow-md transition-colors text-sm"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
                 >
                   Đăng ký
                 </button>
