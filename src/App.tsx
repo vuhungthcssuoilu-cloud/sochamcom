@@ -1086,9 +1086,59 @@ export default function App() {
             )}
           </tr>
         </tbody>
+        {isSecondHalf && (
+          <tfoot className="print:table-footer-group">
+            <tr className="no-print-border border-none print:break-inside-avoid">
+              <td colSpan={days.length * 3 + 2 + 6} className="border-none !border-transparent pt-8 pb-4">
+                <div className="flex justify-end pr-8">
+                  <div className="text-center w-64 print:break-inside-avoid">
+                    <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
+                      <input 
+                        type="text" 
+                        value={location} 
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="border-none focus:ring-0 p-0 min-w-[50px] text-right bg-transparent italic"
+                        style={{ width: `${Math.max(location.length * 8, 50)}px` }}
+                      />
+                      , ngày 
+                      <input 
+                        type="text" 
+                        value={footerDay} 
+                        onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                        className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
+                      />
+                      tháng 
+                      <input 
+                        type="text" 
+                        value={footerMonth} 
+                        onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                        className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
+                      />
+                      năm 
+                      <input 
+                        type="text" 
+                        value={footerYear} 
+                        onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                        className="border-none focus:ring-0 p-0 w-[40px] text-center bg-transparent italic"
+                      />
+                    </p>
+                    <p className="font-bold uppercase text-[11px] leading-tight">GIÁO VIÊN CHỦ NHIỆM</p>
+                    <div className="h-16"></div>
+                    <input 
+                      type="text" 
+                      value={teacherName} 
+                      onChange={(e) => setTeacherName(e.target.value)}
+                      className="font-bold text-[11px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
+                    />
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tfoot>
+        )}
       </table>
       {/* Watermark-like Page Label */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] text-8xl font-bold select-none">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] text-8xl font-bold select-none print:hidden">
         Page {isSecondHalf ? '2' : '1'}
       </div>
     </div>
@@ -1341,52 +1391,8 @@ export default function App() {
           </div>
 
           {/* Right Half: Days 17-End */}
-          <div className="relative print:w-full print:pt-4 overflow-x-auto print:break-inside-avoid-page">
+          <div className="relative print:w-full print:pt-4 overflow-x-auto">
             {renderTableHalf(secondHalfDays, true)}
-            
-            {/* Footer Section - Moved inside the same print container as the second table */}
-            <div className="mt-4 flex justify-end items-end px-4 print:mt-4 print:break-inside-avoid print:break-before-avoid">
-              <div className="text-center w-64 print:break-inside-avoid print:break-before-avoid">
-                <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
-                  <input 
-                    type="text" 
-                    value={location} 
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="border-none focus:ring-0 p-0 min-w-[50px] text-right bg-transparent italic"
-                    style={{ width: `${Math.max(location.length * 8, 50)}px` }}
-                  />
-                  , ngày 
-                  <input 
-                    type="text" 
-                    value={footerDay} 
-                    onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                    className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
-                  />
-                  tháng 
-                  <input 
-                    type="text" 
-                    value={footerMonth} 
-                    onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                    className="border-none focus:ring-0 p-0 w-[30px] text-center bg-transparent italic"
-                  />
-                  năm 
-                  <input 
-                    type="text" 
-                    value={footerYear} 
-                    onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                    className="border-none focus:ring-0 p-0 w-[40px] text-center bg-transparent italic"
-                  />
-                </p>
-                <p className="font-bold uppercase text-[11px] leading-tight">GIÁO VIÊN CHỦ NHIỆM</p>
-                <div className="h-16"></div>
-                <input 
-                  type="text" 
-                  value={teacherName} 
-                  onChange={(e) => setTeacherName(e.target.value)}
-                  className="font-bold text-[11px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
-                />
-              </div>
-            </div>
           </div>
         </div>
         </div>
