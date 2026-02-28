@@ -1286,14 +1286,14 @@ export default function App() {
         </div>
 
         {/* Footer Section */}
-        <div className="mt-4 flex justify-between items-end px-4 print:mt-8">
+        <div className="mt-4 flex justify-between items-end px-4 print:mt-8 print:break-inside-avoid">
           {/* Định mức ăn info (Print Only) */}
           <div className="w-40 text-[10px] invisible print:visible">
             <p><strong>Định mức ăn:</strong></p>
             <p>S: {standardMeals.S}, T: {standardMeals.T1}, T: {standardMeals.T2}</p>
           </div>
 
-          <div className="text-center w-64">
+          <div className="text-center w-64 print:break-inside-avoid">
             <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
               <input 
                 type="text" 

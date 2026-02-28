@@ -54,7 +54,7 @@ export default function Login() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <input type="hidden" name="remember" value="true" />
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="rounded-xl shadow-sm -space-y-px overflow-hidden border border-gray-200">
             <div>
               <label htmlFor="email-address" className="sr-only">Email address</label>
               <input
@@ -63,7 +63,7 @@ export default function Login() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-4 py-3 border-b border-gray-200 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -77,7 +77,7 @@ export default function Login() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-4 py-3 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -86,16 +86,20 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm text-center">
+            <div className="text-red-500 text-sm text-center bg-red-50 py-2 rounded-lg border border-red-100">
               {error}
             </div>
           )}
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             <div className="text-sm">
-              <a href="#" onClick={handleSignUp} className="font-medium text-indigo-600 hover:text-indigo-500">
+              <button 
+                type="button"
+                onClick={handleSignUp} 
+                className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
+              >
                 Chưa có tài khoản? Đăng ký ngay
-              </a>
+              </button>
             </div>
           </div>
 
@@ -103,7 +107,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
             >
               {loading ? 'Đang xử lý...' : 'Đăng nhập'}
             </button>
