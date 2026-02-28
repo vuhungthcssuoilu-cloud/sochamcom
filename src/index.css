@@ -30,7 +30,11 @@
   }
 
   th, td {
-    border: 0.5pt solid black !important;
+    border: 0.5pt solid black;
+  }
+
+  .no-print-border, .no-print-border th, .no-print-border td {
+    border: none !important;
   }
 
   /* Ensure the table fits on one page if possible */
@@ -51,6 +55,11 @@
   @page {
     size: A4 landscape;
     margin: 5mm;
+  }
+
+  /* Prevent tfoot from repeating on every page */
+  tfoot {
+    display: table-row-group;
   }
 
   /* Hide scrollbars in print */
