@@ -42,83 +42,124 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Đăng nhập vào Sổ Chấm Cơm
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Hệ thống quản lý nội trú
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <input type="hidden" name="remember" value="true" />
-          <div className="rounded-xl shadow-sm -space-y-px overflow-hidden border border-gray-200">
-            <div>
-              <label htmlFor="email-address" className="sr-only">Email address</label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none relative block w-full px-4 py-3 border-b border-gray-200 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none relative block w-full px-4 py-3 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="text-red-500 text-sm text-center bg-red-50 py-2 rounded-lg border border-red-100">
-              {error}
-            </div>
-          )}
-
-          <div className="flex items-center justify-center">
-            <div className="text-sm">
-              <button 
-                type="button"
-                onClick={handleSignUp} 
-                className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
-              >
-                Chưa có tài khoản? Đăng ký ngay
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
-            >
-              {loading ? 'Đang xử lý...' : 'Đăng nhập'}
-            </button>
-          </div>
-        </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background pattern similar to the original if needed, but we'll keep it simple gray */}
+      
+      <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-300 relative z-10">
         
-        <div className="mt-6 text-center text-xs text-gray-500 border-t pt-4">
-          <p className="font-medium">Ứng dụng được phát triển bởi: Vũ Văn Hùng</p>
-          <p>SĐT: 0984 246 993</p>
-          <p>Đơn vị công tác tại trường PTDTBT TH và THCS Suối Lư</p>
+        {/* Header Section */}
+        <div className="relative h-28 sm:h-32 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden bg-gradient-to-r from-[#fff8e1] via-[#ffe082] to-[#ffca28]">
+          {/* Landscape image on the right */}
+          <div 
+            className="absolute inset-y-0 right-0 w-2/3 opacity-60 mix-blend-multiply" 
+            style={{ 
+              backgroundImage: "url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80')", 
+              backgroundSize: 'cover', 
+              backgroundPosition: 'center',
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 40%)',
+              maskImage: 'linear-gradient(to right, transparent, black 40%)'
+            }}
+          ></div>
+          
+          {/* Text */}
+          <div className="relative z-10 text-center flex flex-col items-center justify-center w-full px-4">
+            <h2 className="text-lg sm:text-xl font-bold text-[#8B4513] uppercase tracking-wide" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
+              Hệ thống quản lý nội trú
+            </h2>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-[#8B4513] uppercase tracking-wider mt-1" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
+              Sổ Chấm Cơm
+            </h1>
+          </div>
         </div>
+
+        {/* Form Section */}
+        <div className="p-8 sm:p-12 relative">
+          {/* Yellow wave at bottom right */}
+          <div className="absolute bottom-0 right-0 w-full h-full overflow-hidden pointer-events-none z-0">
+            <svg className="absolute bottom-0 right-0 w-3/4 h-48 sm:h-64" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path d="M100,100 L100,0 C60,80 20,90 0,100 Z" fill="#fef08a" opacity="0.6" />
+              <path d="M100,100 L100,20 C50,80 10,95 0,100 Z" fill="#fde047" opacity="0.8" />
+              <path d="M100,100 L100,40 C40,80 5,95 0,100 Z" fill="#eab308" opacity="0.9" />
+            </svg>
+          </div>
+
+          <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={handleLogin}>
+            <div className="flex items-center">
+              <label htmlFor="email-address" className="w-1/3 text-right pr-4 text-sm text-black">Tên đăng nhập:</label>
+              <div className="w-2/3">
+                <input
+                  id="email-address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="w-full border border-gray-400 px-2 py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <label htmlFor="password" className="w-1/3 text-right pr-4 text-sm text-black">Mật khẩu:</label>
+              <div className="w-2/3">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  className="w-full border border-gray-400 px-2 py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              <div className="w-1/3"></div>
+              <div className="w-2/3 flex items-center">
+                <input type="checkbox" id="remember" className="mr-2 cursor-pointer" />
+                <label htmlFor="remember" className="text-sm text-black cursor-pointer">Nhớ mật khẩu</label>
+              </div>
+            </div>
+
+            {error && (
+              <div className="flex items-center mt-2">
+                <div className="w-1/3"></div>
+                <div className="w-2/3 text-red-600 text-xs font-medium">
+                  {error}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center mt-6 pt-4">
+              <div className="w-1/3"></div>
+              <div className="w-2/3 flex items-center gap-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-[#A0522D] hover:bg-[#8B4513] text-white font-bold py-1.5 px-6 shadow-md transition-colors text-sm"
+                >
+                  {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleSignUp} 
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Đăng ký
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      {/* Footer info */}
+      <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500">
+        <p className="font-medium">Ứng dụng được phát triển bởi: Vũ Văn Hùng</p>
+        <p>SĐT: 0984 246 993 - Đơn vị công tác tại trường PTDTBT TH và THCS Suối Lư</p>
       </div>
     </div>
   );
