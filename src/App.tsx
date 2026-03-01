@@ -1368,11 +1368,11 @@ export default function App() {
 
         {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full flex flex-wrap items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-200">
+          <div className="w-full flex items-center justify-between mt-4 pt-4 border-t border-gray-200 overflow-x-auto pb-2">
             {/* Left Side: Inputs */}
-            <div className="flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-6 shrink-0 pr-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Tên lớp:</span>
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Tên lớp:</span>
                 <input 
                   type="text" 
                   value={className} 
@@ -1382,7 +1382,7 @@ export default function App() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Giáo viên chủ nhiệm:</span>
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Giáo viên chủ nhiệm:</span>
                 <input 
                   type="text" 
                   value={teacherName} 
@@ -1392,7 +1392,7 @@ export default function App() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Ngày ký:</span>
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Ngày ký:</span>
                 <div className="flex items-center gap-1">
                   <input 
                     type="number" 
@@ -1419,9 +1419,9 @@ export default function App() {
             </div>
             
             {/* Right Side: Buttons */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-3 shrink-0">
               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
-                <span className="text-sm font-medium text-gray-700">Ký hiệu chấm:</span>
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Ký hiệu chấm:</span>
                 <select 
                   value={markSymbol} 
                   onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x')}
@@ -1433,17 +1433,17 @@ export default function App() {
               </div>
               <button 
                 onClick={syncFromPreviousMonth}
-                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
+                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm whitespace-nowrap"
                 title="Cập nhật danh sách học sinh từ tháng trước"
               >
                 <ClipboardPaste className="w-4 h-4" />
-                <span className="font-bold">Đồng bộ DS tháng trước</span>
+                <span className="font-bold text-sm">Đồng bộ DS tháng trước</span>
               </button>
               <button 
                 onClick={() => setIsQuotaModalOpen(true)}
-                className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                className="flex items-center gap-2 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
               >
-                <span className="font-bold">Định mức ăn</span>
+                <span className="font-bold text-sm">Định mức ăn</span>
                 <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
                   S:{standardMeals.S} | T:{standardMeals.T1} | T:{standardMeals.T2}
                 </span>
