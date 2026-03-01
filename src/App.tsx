@@ -79,6 +79,7 @@ export default function App() {
   const [markSymbol, setMarkSymbol] = useState<'x' | '+'>('+'); // New state for mark symbol
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Computed ---
@@ -105,13 +106,25 @@ export default function App() {
 
   useEffect(() => {
     // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session error:', error);
+        // If there's an error (like invalid refresh token), clear the session
+        supabase.auth.signOut();
+      }
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Unexpected session error:', err);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      } else {
+        setUser(session?.user ?? null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -940,7 +953,13 @@ export default function App() {
               <span className="absolute bottom-1 left-1">Thứ</span>
             </th>
             {days.map(d => (
-              <th key={d} colSpan={3} className="border-[0.5px] border-black text-center py-1 font-normal relative group/d">
+              <th 
+                key={d} 
+                colSpan={3} 
+                onMouseEnter={() => setHoveredDay(d)}
+                onMouseLeave={() => setHoveredDay(null)}
+                className={`border-[0.5px] border-black text-center py-1 font-normal relative group/d ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+              >
                 {d}
                 <button 
                   onClick={() => clearDay(d)}
@@ -958,7 +977,13 @@ export default function App() {
           {/* Header Row 3: Day of Week */}
           <tr>
             {days.map(d => (
-              <th key={d} colSpan={3} className={`border-[0.5px] border-black text-center py-1 font-normal ${getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-100' : ''}`}>
+              <th 
+                key={d} 
+                colSpan={3} 
+                onMouseEnter={() => setHoveredDay(d)}
+                onMouseLeave={() => setHoveredDay(null)}
+                className={`border-[0.5px] border-black text-center py-1 font-normal ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-100' : '')}`}
+              >
                 {getDayOfWeek(d, month, year)}
               </th>
             ))}
@@ -987,7 +1012,11 @@ export default function App() {
             </th>
             {days.map(d => (
               <React.Fragment key={d}>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] relative group/h">
+                <th 
+                  onMouseEnter={() => setHoveredDay(d)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                >
                   S
                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
                     <button onClick={() => fillColumn(d, 'S')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
@@ -996,7 +1025,11 @@ export default function App() {
                     <button onClick={() => clearColumn(d, 'S')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
                   </div>
                 </th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] relative group/h">
+                <th 
+                  onMouseEnter={() => setHoveredDay(d)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                >
                   T
                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
                     <button onClick={() => fillColumn(d, 'T1')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
@@ -1005,7 +1038,11 @@ export default function App() {
                     <button onClick={() => clearColumn(d, 'T1')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
                   </div>
                 </th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] relative group/h">
+                <th 
+                  onMouseEnter={() => setHoveredDay(d)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                >
                   T
                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
                     <button onClick={() => fillColumn(d, 'T2')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
@@ -1073,19 +1110,25 @@ export default function App() {
                   <React.Fragment key={d}>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'S')}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.S ? 'font-bold bg-gray-50' : ''}`}
+                      onMouseEnter={() => setHoveredDay(d)}
+                      onMouseLeave={() => setHoveredDay(null)}
+                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.S ? 'bg-gray-50' : '')}`}
                     >
                       {student.meals[d]?.S ? markSymbol : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T1')}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T1 ? 'font-bold bg-gray-50' : ''}`}
+                      onMouseEnter={() => setHoveredDay(d)}
+                      onMouseLeave={() => setHoveredDay(null)}
+                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T1 ? 'bg-gray-50' : '')}`}
                     >
                       {student.meals[d]?.T1 ? markSymbol : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T2')}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T2 ? 'font-bold bg-gray-50' : ''}`}
+                      onMouseEnter={() => setHoveredDay(d)}
+                      onMouseLeave={() => setHoveredDay(null)}
+                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T2 ? 'bg-gray-50' : '')}`}
                     >
                       {student.meals[d]?.T2 ? markSymbol : ''}
                     </td>
@@ -1325,84 +1368,88 @@ export default function App() {
 
         {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full flex flex-wrap items-center gap-6 mt-4 pt-4 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Tên lớp:</span>
-            <input 
-              type="text" 
-              value={className} 
-              onChange={(e) => setClassName(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm w-24 focus:outline-none focus:border-indigo-500 font-bold"
-              placeholder="8C1"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Giáo viên chủ nhiệm:</span>
-            <input 
-              type="text" 
-              value={teacherName} 
-              onChange={(e) => setTeacherName(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm w-56 focus:outline-none focus:border-indigo-500"
-              placeholder="Nhập tên GVCN"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Ngày ký:</span>
-            <div className="flex items-center gap-1">
-              <input 
-                type="number" 
-                value={footerDay} 
-                onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                className="border border-gray-300 rounded px-2 py-1.5 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
-              />
-              <span className="text-gray-400">/</span>
-              <input 
-                type="number" 
-                value={footerMonth} 
-                onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                className="border border-gray-300 rounded px-2 py-1.5 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
-              />
-              <span className="text-gray-400">/</span>
-              <input 
-                type="number" 
-                value={footerYear} 
-                onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                className="border border-gray-300 rounded px-2 py-1.5 text-sm w-16 text-center focus:outline-none focus:border-indigo-500"
-              />
+          <div className="w-full flex flex-col gap-4 mt-4 pt-4 border-t border-gray-200">
+            {/* Top Row: Inputs */}
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Tên lớp:</span>
+                <input 
+                  type="text" 
+                  value={className} 
+                  onChange={(e) => setClassName(e.target.value)}
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-24 focus:outline-none focus:border-indigo-500 font-bold"
+                  placeholder="8C1"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Giáo viên chủ nhiệm:</span>
+                <input 
+                  type="text" 
+                  value={teacherName} 
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-56 focus:outline-none focus:border-indigo-500"
+                  placeholder="Nhập tên GVCN"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Ngày ký:</span>
+                <div className="flex items-center gap-1">
+                  <input 
+                    type="number" 
+                    value={footerDay} 
+                    onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                    className="border border-gray-300 rounded px-2 py-1.5 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
+                  />
+                  <span className="text-gray-400">/</span>
+                  <input 
+                    type="number" 
+                    value={footerMonth} 
+                    onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                    className="border border-gray-300 rounded px-2 py-1.5 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
+                  />
+                  <span className="text-gray-400">/</span>
+                  <input 
+                    type="number" 
+                    value={footerYear} 
+                    onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                    className="border border-gray-300 rounded px-2 py-1.5 text-sm w-16 text-center focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-2 ml-auto">
-            <div className="flex items-center gap-2 mr-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
-              <span className="text-sm font-medium text-gray-700">Ký hiệu chấm:</span>
-              <select 
-                value={markSymbol} 
-                onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x')}
-                className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer"
+            
+            {/* Bottom Row: Buttons */}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex items-center gap-2 mr-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
+                <span className="text-sm font-medium text-gray-700">Ký hiệu chấm:</span>
+                <select 
+                  value={markSymbol} 
+                  onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x')}
+                  className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer"
+                >
+                  <option value="+">Dấu cộng (+)</option>
+                  <option value="x">Dấu nhân (x)</option>
+                </select>
+              </div>
+              <button 
+                onClick={syncFromPreviousMonth}
+                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
+                title="Cập nhật danh sách học sinh từ tháng trước"
               >
-                <option value="+">Dấu cộng (+)</option>
-                <option value="x">Dấu nhân (x)</option>
-              </select>
+                <ClipboardPaste className="w-4 h-4" />
+                <span className="font-bold">Đồng bộ DS tháng trước</span>
+              </button>
+              <button 
+                onClick={() => setIsQuotaModalOpen(true)}
+                className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+              >
+                <span className="font-bold">Định mức ăn</span>
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
+                  S:{standardMeals.S} | T:{standardMeals.T1} | T:{standardMeals.T2}
+                </span>
+              </button>
             </div>
-            <button 
-              onClick={syncFromPreviousMonth}
-              className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
-              title="Cập nhật danh sách học sinh từ tháng trước"
-            >
-              <ClipboardPaste className="w-4 h-4" />
-              <span className="font-bold">Đồng bộ DS tháng trước</span>
-            </button>
-            <button 
-              onClick={() => setIsQuotaModalOpen(true)}
-              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
-            >
-              <span className="font-bold">Định mức ăn</span>
-              <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
-                S:{standardMeals.S} | T:{standardMeals.T1} | T:{standardMeals.T2}
-              </span>
-            </button>
           </div>
-        </div>
         )}
       </div>
 
