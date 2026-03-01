@@ -76,6 +76,7 @@ export default function App() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [markSymbol, setMarkSymbol] = useState<'x' | '+'>('+'); // New state for mark symbol
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1074,19 +1075,19 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'S')}
                       className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.S ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.S ? '+' : ''}
+                      {student.meals[d]?.S ? markSymbol : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T1')}
                       className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T1 ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.T1 ? '+' : ''}
+                      {student.meals[d]?.T1 ? markSymbol : ''}
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T2')}
                       className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T2 ? 'font-bold bg-gray-50' : ''}`}
                     >
-                      {student.meals[d]?.T2 ? '+' : ''}
+                      {student.meals[d]?.T2 ? markSymbol : ''}
                     </td>
                   </React.Fragment>
                 ))}
@@ -1372,6 +1373,17 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2 mr-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
+              <span className="text-sm font-medium text-gray-700">Ký hiệu chấm:</span>
+              <select 
+                value={markSymbol} 
+                onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x')}
+                className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer"
+              >
+                <option value="+">Dấu cộng (+)</option>
+                <option value="x">Dấu nhân (x)</option>
+              </select>
+            </div>
             <button 
               onClick={syncFromPreviousMonth}
               className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm"
@@ -1476,8 +1488,8 @@ export default function App() {
             <div className="space-y-3">
               <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-50 h-full">
                 <h4 className="font-bold text-blue-900 mb-2">1. Chấm thủ công từng buổi</h4>
-                <p className="mb-2">• <strong>Đánh dấu có ăn:</strong> Click chuột trái vào ô tương ứng (S: Sáng, T: Trưa, T: Tối) của học sinh. Ô sẽ hiện dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">+</span>.</p>
-                <p>• <strong>Xóa đánh dấu (không ăn):</strong> Click chuột trái thêm lần nữa vào ô đã có dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">+</span> để xóa (ô trở về trống).</p>
+                <p className="mb-2">• <strong>Đánh dấu có ăn:</strong> Click chuột trái vào ô tương ứng (S: Sáng, T: Trưa, T: Tối) của học sinh. Ô sẽ hiện dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">{markSymbol}</span>.</p>
+                <p>• <strong>Xóa đánh dấu (không ăn):</strong> Click chuột trái thêm lần nữa vào ô đã có dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">{markSymbol}</span> để xóa (ô trở về trống).</p>
               </div>
             </div>
 
