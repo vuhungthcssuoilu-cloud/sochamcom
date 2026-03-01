@@ -1368,8 +1368,8 @@ export default function App() {
 
         {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full flex flex-col gap-4 mt-4 pt-4 border-t border-gray-200">
-            {/* Top Row: Inputs */}
+          <div className="w-full flex flex-wrap items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-200">
+            {/* Left Side: Inputs */}
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-700">Tên lớp:</span>
@@ -1418,14 +1418,14 @@ export default function App() {
               </div>
             </div>
             
-            {/* Bottom Row: Buttons */}
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="flex items-center gap-2 mr-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
+            {/* Right Side: Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
                 <span className="text-sm font-medium text-gray-700">Ký hiệu chấm:</span>
                 <select 
                   value={markSymbol} 
                   onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x')}
-                  className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer"
+                  className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0"
                 >
                   <option value="+">Dấu cộng (+)</option>
                   <option value="x">Dấu nhân (x)</option>
