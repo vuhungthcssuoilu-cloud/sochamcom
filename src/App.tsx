@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info } from 'lucide-react';
 import { read, utils } from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -1462,11 +1462,58 @@ export default function App() {
         />
       </div>
 
-      {/* Footer Info */}
+      {/* Footer Info / Instructions */}
       {!isPreviewMode && (
-        <div className="max-w-[1600px] mx-auto mt-6 text-center text-gray-500 text-sm print:hidden">
-          <p>Sổ chấm cơm dành cho GVCN Lớp</p>
-          <p className="text-xs mt-1">Hướng dẫn: Click vào ô để chấm cơm (+). Ô trống mặc định là không ăn.</p>
+        <div className="max-w-[1600px] mx-auto mt-6 bg-white rounded-xl shadow-sm border border-blue-100 p-6 print:hidden">
+          <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+            <span className="bg-blue-100 text-blue-700 p-1.5 rounded-lg">
+              <Info className="w-5 h-5" />
+            </span>
+            Hướng dẫn chi tiết cách chấm cơm
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-700">
+            <div className="space-y-3">
+              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-50 h-full">
+                <h4 className="font-bold text-blue-900 mb-2">1. Chấm thủ công từng buổi</h4>
+                <p className="mb-2">• <strong>Đánh dấu có ăn:</strong> Click chuột trái vào ô tương ứng (S: Sáng, T: Trưa, T: Tối) của học sinh. Ô sẽ hiện dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">+</span>.</p>
+                <p>• <strong>Xóa đánh dấu (không ăn):</strong> Click chuột trái thêm lần nữa vào ô đã có dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">+</span> để xóa (ô trở về trống).</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-emerald-50/50 p-4 rounded-lg border border-emerald-50 h-full">
+                <h4 className="font-bold text-emerald-900 mb-2">2. Thao tác nhanh cho CẢ LỚP (Theo cột)</h4>
+                <p className="mb-2">Rê chuột vào tiêu đề cột buổi (S, T, T) của một ngày, một menu nhỏ sẽ hiện ra:</p>
+                <ul className="space-y-2 ml-2">
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Plus className="w-3.5 h-3.5 text-emerald-600" /></span> <strong>Chọn tất cả:</strong> Chấm ăn cho toàn bộ học sinh trong buổi đó.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Trash2 className="w-3.5 h-3.5 text-red-600" /></span> <strong>Xóa tất cả:</strong> Xóa chấm cơm của toàn bộ học sinh trong buổi đó.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Copy className="w-3.5 h-3.5 text-indigo-600" /></span> <strong>Sao chép:</strong> Copy dữ liệu của cột hiện tại.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><ClipboardPaste className="w-3.5 h-3.5 text-orange-600" /></span> <strong>Dán:</strong> Dán dữ liệu vừa copy vào cột này.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-50 h-full">
+                <h4 className="font-bold text-purple-900 mb-2">3. Thao tác nhanh cho MỘT HỌC SINH (Theo hàng)</h4>
+                <p className="mb-2">Rê chuột vào tên của một học sinh, các nút công cụ sẽ hiện ra bên phải tên:</p>
+                <ul className="space-y-2 ml-2">
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Copy className="w-3.5 h-3.5 text-indigo-600" /></span> <strong>Sao chép:</strong> Copy toàn bộ dữ liệu chấm cơm cả tháng của học sinh này.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><ClipboardPaste className="w-3.5 h-3.5 text-orange-600" /></span> <strong>Dán:</strong> Dán dữ liệu đã copy cho học sinh này.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><ClipboardPaste className="w-3.5 h-3.5 text-orange-600" /></span> <strong>Dán cho tất cả:</strong> (Nút dán trên tiêu đề "Họ và tên") Dán mẫu đã copy cho toàn bộ lớp.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-red-50/50 p-4 rounded-lg border border-red-50 h-full">
+                <h4 className="font-bold text-red-900 mb-2">4. Xóa dữ liệu nhanh</h4>
+                <p className="mb-3">• <strong>Xóa cả ngày:</strong> Rê chuột vào số ngày (1, 2, 3...) trên tiêu đề, bấm biểu tượng <span className="bg-white p-1 rounded shadow-sm inline-flex align-middle mx-1"><Trash2 className="w-3.5 h-3.5 text-red-600" /></span> để xóa toàn bộ dữ liệu của ngày đó.</p>
+                <p>• <strong>Xóa học sinh:</strong> Rê chuột vào tên học sinh, bấm biểu tượng <span className="bg-white p-1 rounded shadow-sm inline-flex align-middle mx-1"><Trash2 className="w-3.5 h-3.5 text-red-600" /></span> để xóa học sinh khỏi danh sách.</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
