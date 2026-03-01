@@ -109,21 +109,33 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Session error:', error);
-        // If there's an error (like invalid refresh token), clear the session
-        supabase.auth.signOut();
+        // If there's a refresh token error, we need to clear the local session completely
+        if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('refresh_token_not_found')) {
+          // Manually clear any supabase related items from localStorage to be safe
+          Object.keys(localStorage).forEach(key => {
+            if (key.includes('supabase.auth.token')) {
+              localStorage.removeItem(key);
+            }
+          });
+        }
+        supabase.auth.signOut().catch(() => {
+          // If signOut fails, at least we clear the local user state
+          setUser(null);
+        });
       }
       setUser(session?.user ?? null);
       setLoading(false);
     }).catch(err => {
       console.error('Unexpected session error:', err);
+      setUser(null);
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || event === 'USER_UPDATED' && !session) {
         setUser(null);
-      } else {
-        setUser(session?.user ?? null);
+      } else if (session) {
+        setUser(session.user);
       }
     });
 
@@ -1230,7 +1242,7 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-0 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-4'}`}>
       {/* Controls - Hidden on Print */}
-      <div className={`max-w-[1600px] mx-auto mb-6 bg-white rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
+      <div className={`w-full mb-6 bg-white rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
         {/* Top bar of control panel for User Info */}
         <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100 bg-indigo-50/50 rounded-t-xl">
@@ -1478,7 +1490,7 @@ export default function App() {
 
         <div 
           className={`bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 ${
-            isPreviewMode ? 'max-w-[1600px] mx-auto scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-auto' : 'max-w-[1600px] mx-auto'
+            isPreviewMode ? 'w-full scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-auto' : 'w-full'
           }`}
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
         >
@@ -1523,7 +1535,7 @@ export default function App() {
 
       {/* Footer Info / Instructions */}
       {!isPreviewMode && (
-        <div className="max-w-[1600px] mx-auto mt-6 bg-white rounded-xl shadow-sm border border-blue-100 p-6 print:hidden">
+        <div className="w-full mt-6 bg-white rounded-xl shadow-sm border border-blue-100 p-6 print:hidden">
           <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
             <span className="bg-blue-100 text-blue-700 p-1.5 rounded-lg">
               <Info className="w-5 h-5" />
@@ -1545,7 +1557,7 @@ export default function App() {
                 <h4 className="font-bold text-emerald-900 mb-2">2. Thao tác nhanh cho CẢ LỚP (Theo cột)</h4>
                 <p className="mb-2">Rê chuột vào tiêu đề cột buổi (S, T, T) của một ngày, một menu nhỏ sẽ hiện ra:</p>
                 <ul className="space-y-2 ml-2">
-                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Plus className="w-3.5 h-3.5 text-emerald-600" /></span> <strong>Chọn tất cả:</strong> Chấm ăn cho toàn bộ học sinh trong buổi đó.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Plus className="w-3.5 h-3.5 text-emerald-600" /></span> <strong>Chọn tất cả:</strong> Chấm cơm cho toàn bộ học sinh trong buổi đó.</li>
                   <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Trash2 className="w-3.5 h-3.5 text-red-600" /></span> <strong>Xóa tất cả:</strong> Xóa chấm cơm của toàn bộ học sinh trong buổi đó.</li>
                   <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Copy className="w-3.5 h-3.5 text-indigo-600" /></span> <strong>Sao chép:</strong> Copy dữ liệu của cột hiện tại.</li>
                   <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><ClipboardPaste className="w-3.5 h-3.5 text-orange-600" /></span> <strong>Dán:</strong> Dán dữ liệu vừa copy vào cột này.</li>
