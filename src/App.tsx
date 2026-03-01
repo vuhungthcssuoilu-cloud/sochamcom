@@ -76,7 +76,7 @@ export default function App() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
-  const [markSymbol, setMarkSymbol] = useState<'x' | '+'>('+'); // New state for mark symbol
+  const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
@@ -795,7 +795,7 @@ export default function App() {
         
         days.forEach(d => {
           const meals = student.meals[d];
-          rowValues.push(meals?.S ? "+" : "", meals?.T1 ? "+" : "", meals?.T2 ? "+" : "");
+          rowValues.push(meals?.S ? markSymbol : "", meals?.T1 ? markSymbol : "", meals?.T2 ? markSymbol : "");
         });
 
         if (isSecondHalf) {
@@ -1436,11 +1436,12 @@ export default function App() {
                 <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Ký hiệu chấm:</span>
                 <select 
                   value={markSymbol} 
-                  onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x')}
+                  onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
                   className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0"
                 >
                   <option value="+">Dấu cộng (+)</option>
                   <option value="x">Dấu nhân (x)</option>
+                  <option value="1">Số một (1)</option>
                 </select>
               </div>
               <button 
