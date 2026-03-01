@@ -62,8 +62,8 @@ export default function App() {
 
   const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LỪ');
   const [className, setClassName] = useState('8C1');
-  const [month, setMonth] = useState(1); // 0-indexed (Feb = 1)
-  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(new Date().getMonth()); // 0-indexed
+  const [year, setYear] = useState(new Date().getFullYear());
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [location, setLocation] = useState('Suối Lừ');
   const [teacherName, setTeacherName] = useState('Vũ Văn Hùng');
