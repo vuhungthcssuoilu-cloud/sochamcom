@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function Login() {
@@ -6,6 +6,23 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Captcha state
+  const [captchaQuestion, setCaptchaQuestion] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState(0);
+  const [userCaptchaInput, setUserCaptchaInput] = useState('');
+
+  const generateCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    setCaptchaQuestion(`${num1} + ${num2}`);
+    setCaptchaAnswer(num1 + num2);
+    setUserCaptchaInput('');
+  };
+
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +42,18 @@ export default function Login() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      setError('Vui lòng nhập email và mật khẩu.');
+      return;
+    }
+
+    if (parseInt(userCaptchaInput) !== captchaAnswer) {
+      setError('Mã xác nhận không đúng. Vui lòng thử lại.');
+      generateCaptcha();
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -35,12 +64,14 @@ export default function Login() {
 
     if (error) {
       setError(error.message);
+      generateCaptcha();
     } else if (data.user && data.session) {
       // If session is returned, user is logged in automatically
       setError('Đăng ký thành công! Đang đăng nhập...');
     } else {
       // If no session, email confirmation might be required by Supabase settings
       setError('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản trước khi đăng nhập.');
+      generateCaptcha();
     }
     setLoading(false);
   };
@@ -126,6 +157,33 @@ export default function Login() {
                 <input type="checkbox" id="remember" className="mr-2 cursor-pointer w-4 h-4 sm:w-auto sm:h-auto" />
                 <label htmlFor="remember" className="text-sm text-black cursor-pointer">Nhớ mật khẩu</label>
               </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center mt-2">
+              <label htmlFor="captcha" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">
+                Xác nhận ({captchaQuestion} = ?):
+              </label>
+              <div className="w-full sm:w-2/3 flex items-center gap-2">
+                <input
+                  id="captcha"
+                  type="text"
+                  className="w-20 border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                  value={userCaptchaInput}
+                  onChange={(e) => setUserCaptchaInput(e.target.value)}
+                  placeholder="Kết quả"
+                />
+                <button 
+                  type="button" 
+                  onClick={generateCaptcha}
+                  className="text-xs text-blue-600 hover:text-blue-800 underline whitespace-nowrap"
+                >
+                  Đổi mã
+                </button>
+                <span className="text-xs text-gray-500 italic ml-1 hidden sm:inline">(Chỉ dùng khi Đăng ký)</span>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:hidden">
+               <div className="w-full text-xs text-gray-500 italic">(Mã xác nhận chỉ dùng khi Đăng ký)</div>
             </div>
 
             {error && (
