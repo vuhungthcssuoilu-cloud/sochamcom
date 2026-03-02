@@ -35,7 +35,11 @@ export default function Login() {
     });
 
     if (error) {
-      setError(error.message);
+      if (error.message.includes('Email not confirmed')) {
+        setError('Tài khoản chưa được xác nhận. Vui lòng kiểm tra email hoặc tắt "Confirm email" trong Supabase.');
+      } else {
+        setError(error.message);
+      }
     }
     setLoading(false);
   };
@@ -65,12 +69,21 @@ export default function Login() {
     if (error) {
       setError(error.message);
       generateCaptcha();
-    } else if (data.user && data.session) {
+    } else if (data.session) {
       // If session is returned, user is logged in automatically
       setError('Đăng ký thành công! Đang đăng nhập...');
     } else {
-      // If no session, email confirmation might be required by Supabase settings
-      setError('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản trước khi đăng nhập.');
+      // Try to sign in immediately just in case email confirmation is off but session wasn't returned
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (signInError) {
+        setError('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản. (Lưu ý: Nếu bạn là Admin, hãy tắt "Confirm email" trong cài đặt Supabase để đăng nhập ngay).');
+      } else {
+        setError('Đăng ký thành công! Đang đăng nhập...');
+      }
       generateCaptcha();
     }
     setLoading(false);
