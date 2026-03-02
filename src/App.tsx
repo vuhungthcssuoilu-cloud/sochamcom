@@ -77,7 +77,10 @@ export default function App() {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
-  const [faviconUrl, setFaviconUrl] = useState<string>('/favicon.ico');
+  const [faviconUrl, setFaviconUrl] = useState<string>(() => {
+    // Try to load from localStorage for instant display on refresh
+    return localStorage.getItem('app_favicon_url') || '/favicon.ico';
+  });
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
@@ -146,15 +149,31 @@ export default function App() {
 
   // Favicon update effect
   useEffect(() => {
-    const link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
-    if (link) {
+    // Update tab title to match user's preference shown in image
+    document.title = "Chấm ăn học sinh nội trú";
+
+    const updateFavicon = () => {
+      // Save to localStorage for persistence across loads
+      localStorage.setItem('app_favicon_url', faviconUrl);
+
+      // Remove all existing favicon links to avoid conflicts
+      const existingLinks = document.querySelectorAll("link[rel*='icon']");
+      existingLinks.forEach(link => link.parentNode?.removeChild(link));
+
+      // Add new favicon links (both standard and shortcut icon for better compatibility)
+      const link = document.createElement('link');
+      link.type = 'image/x-icon';
+      link.rel = 'shortcut icon';
       link.href = faviconUrl;
-    } else {
-      const newLink = document.createElement('link');
-      newLink.rel = 'icon';
-      newLink.href = faviconUrl;
-      document.head.appendChild(newLink);
-    }
+      document.getElementsByTagName('head')[0].appendChild(link);
+      
+      const linkIcon = document.createElement('link');
+      linkIcon.rel = 'icon';
+      linkIcon.href = faviconUrl;
+      document.getElementsByTagName('head')[0].appendChild(linkIcon);
+    };
+
+    updateFavicon();
   }, [faviconUrl]);
 
   const handleFaviconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1465,6 +1484,9 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Favicon:</span>
                 <div className="flex items-center gap-1">
+                  <div className="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded overflow-hidden shrink-0 shadow-sm">
+                    <img src={faviconUrl} alt="" className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
+                  </div>
                   <input 
                     type="text" 
                     value={faviconUrl.startsWith('data:') ? 'Dữ liệu ảnh (Base64)' : faviconUrl} 
