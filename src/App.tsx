@@ -202,7 +202,7 @@ export default function App() {
       isDirty.current = false; // Reset dirty flag after successful save
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, faviconUrl]);
 
   // Auto-save effect
   useEffect(() => {
