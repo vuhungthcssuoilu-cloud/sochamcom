@@ -77,10 +77,12 @@ export default function App() {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
+  const [faviconUrl, setFaviconUrl] = useState<string>('/favicon.ico');
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
 
   // --- Computed ---
   const daysInMonth = useMemo(() => getDaysInMonth(month, year), [month, year]);
@@ -142,6 +144,35 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Favicon update effect
+  useEffect(() => {
+    const link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+    if (link) {
+      link.href = faviconUrl;
+    } else {
+      const newLink = document.createElement('link');
+      newLink.rel = 'icon';
+      newLink.href = faviconUrl;
+      document.head.appendChild(newLink);
+    }
+  }, [faviconUrl]);
+
+  const handleFaviconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit for base64 storage
+        alert('File quá lớn! Vui lòng chọn file dưới 1MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setFaviconUrl(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Save function
   const handleSave = useCallback(async (silent = false) => {
     if (!user) return;
@@ -159,6 +190,7 @@ export default function App() {
         location,
         students,
         standard_meals: standardMeals,
+        favicon_url: faviconUrl,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,month,year' });
 
@@ -181,14 +213,14 @@ export default function App() {
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(timer);
-  }, [students, className, teacherName, schoolName, location, standardMeals, handleSave, loading]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, handleSave, loading]);
 
   // Mark as dirty when data changes
   useEffect(() => {
     if (!loading) {
       isDirty.current = true;
     }
-  }, [students, className, teacherName, schoolName, location, standardMeals]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl]);
 
 
   // Fetch data when user, month, or year changes
@@ -216,6 +248,7 @@ export default function App() {
         setLocation(data.location || 'Suối Lừ');
         setStudents(data.students || INITIAL_STUDENTS);
         setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
+        if (data.favicon_url) setFaviconUrl(data.favicon_url);
         isDirty.current = false;
       } else {
         // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
@@ -236,6 +269,7 @@ export default function App() {
           setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
           setLocation(latestData.location || 'Suối Lừ');
           setStandardMeals(latestData.standard_meals || { S: 14, T1: 14, T2: 12 });
+          if (latestData.favicon_url) setFaviconUrl(latestData.favicon_url);
           // Copy students but clear their meal data for the new month
           const copiedStudents = (latestData.students || []).map((s: any) => ({
             ...s,
@@ -1426,6 +1460,42 @@ export default function App() {
                     onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
                     className="border border-gray-300 rounded px-2 py-1.5 text-sm w-16 text-center focus:outline-none focus:border-indigo-500"
                   />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Favicon:</span>
+                <div className="flex items-center gap-1">
+                  <input 
+                    type="text" 
+                    value={faviconUrl.startsWith('data:') ? 'Dữ liệu ảnh (Base64)' : faviconUrl} 
+                    onChange={(e) => setFaviconUrl(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:border-indigo-500"
+                    placeholder="URL hoặc tải file"
+                    readOnly={faviconUrl.startsWith('data:')}
+                  />
+                  <input 
+                    type="file" 
+                    ref={faviconInputRef}
+                    onChange={handleFaviconFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button 
+                    onClick={() => faviconInputRef.current?.click()}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1.5 rounded border border-gray-300 text-xs font-bold transition-colors"
+                    title="Tải ảnh từ máy tính"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                  </button>
+                  {faviconUrl.startsWith('data:') && (
+                    <button 
+                      onClick={() => setFaviconUrl('/favicon.ico')}
+                      className="text-red-500 hover:text-red-700 p-1"
+                      title="Xóa ảnh đã tải"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
