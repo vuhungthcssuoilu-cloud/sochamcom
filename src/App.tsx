@@ -1478,45 +1478,6 @@ export default function App() {
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Favicon:</span>
-                <div className="flex items-center gap-1">
-                  <div className="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded overflow-hidden shrink-0 shadow-sm">
-                    <img src={faviconUrl} alt="" className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
-                  </div>
-                  <input 
-                    type="text" 
-                    value={faviconUrl.startsWith('data:') ? 'Dữ liệu ảnh (Base64)' : faviconUrl} 
-                    onChange={(e) => setFaviconUrl(e.target.value)}
-                    className="border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:border-indigo-500"
-                    placeholder="URL hoặc tải file"
-                    readOnly={faviconUrl.startsWith('data:')}
-                  />
-                  <input 
-                    type="file" 
-                    ref={faviconInputRef}
-                    onChange={handleFaviconFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <button 
-                    onClick={() => faviconInputRef.current?.click()}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1.5 rounded border border-gray-300 text-xs font-bold transition-colors"
-                    title="Tải ảnh từ máy tính"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                  </button>
-                  {faviconUrl.startsWith('data:') && (
-                    <button 
-                      onClick={() => setFaviconUrl('/favicon.ico')}
-                      className="text-red-500 hover:text-red-700 p-1"
-                      title="Xóa ảnh đã tải"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
             
             {/* Right Side: Buttons */}
