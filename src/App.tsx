@@ -974,9 +974,9 @@ export default function App() {
           className="font-bold text-xs uppercase border-none focus:ring-0 p-0 w-[300px] bg-transparent"
         />
       </div>
-      <table className="w-full border-collapse text-[10px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full">
+      <table className="w-full border-collapse text-[10px] print:text-[12px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full">
         <colgroup>
-          <col className="w-8" /><col className="w-40 print:w-60" />
+          <col className="w-8" /><col className="w-40 print:w-44" />
           {days.map(d => (
             <React.Fragment key={d}>
               <col className="w-[32px] print:w-[20px]" /><col className="w-[32px] print:w-[20px]" /><col className="w-[32px] print:w-[20px]" />
@@ -993,12 +993,12 @@ export default function App() {
           {/* Header Row 1: STT, Diagonal, Title */}
           <tr>
             <th rowSpan={3} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:relative bg-white z-20 w-8">STT</th>
-            <th rowSpan={3} className="border-[0.5px] border-black text-center relative sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-60 overflow-hidden">
+            <th rowSpan={3} className="border-[0.5px] border-black text-center relative sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-44 overflow-hidden">
               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.5" />
               </svg>
-              <span className="absolute top-2 right-4 text-[10px] font-normal">Ngày</span>
-              <span className="absolute bottom-2 left-4 text-[10px] font-normal">Thứ</span>
+              <span className="absolute top-2 right-2 text-[10px] print:text-[11px] font-normal">Ngày</span>
+              <span className="absolute bottom-2 left-2 text-[10px] print:text-[11px] font-normal">Thứ</span>
             </th>
             <th colSpan={days.length * 3 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black p-2 text-center font-bold uppercase text-sm">
               SỔ CHẤM CƠM LỚP: 
@@ -1059,7 +1059,7 @@ export default function App() {
           <tr>
             <th className="border-[0.5px] border-black sticky left-0 print:relative bg-white z-20 h-6"></th>
             <th className="border-[0.5px] border-black text-center font-bold py-1 sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-6">
-              <div className="flex items-center justify-center px-1 w-full h-full">
+              <div className="flex items-center justify-center px-1 w-full h-full print:text-[12px]">
                 <span>Họ và tên</span>
                 {clipboard && (
                   <button 
@@ -1169,7 +1169,7 @@ export default function App() {
                       type="text" 
                       value={student.name} 
                       onChange={(e) => updateStudentName(student.id, e.target.value)}
-                      className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-[10px] h-full min-w-0"
+                      className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-[10px] print:text-[12px] h-full min-w-0"
                     />
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
                       <button
