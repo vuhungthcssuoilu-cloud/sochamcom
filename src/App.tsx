@@ -60,12 +60,12 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LỪ');
+  const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LƯ');
   const [className, setClassName] = useState('8C1');
   const [month, setMonth] = useState(new Date().getMonth()); // 0-indexed
   const [year, setYear] = useState(new Date().getFullYear());
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
-  const [location, setLocation] = useState('Suối Lừ');
+  const [location, setLocation] = useState('Suối Lư');
   const [teacherName, setTeacherName] = useState('Vũ Văn Hùng');
   const [standardMeals, setStandardMeals] = useState({ S: 14, T1: 14, T2: 12 });
   const [footerDay, setFooterDay] = useState(new Date().getDate());
@@ -278,10 +278,21 @@ export default function App() {
       }
 
       if (data) {
-        setSchoolName(data.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LỪ');
+        let fetchedSchoolName = data.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+        let fetchedLocation = data.location || 'Suối Lư';
+        
+        // Auto-correct typo if found
+        if (fetchedSchoolName.includes('SUỐI LỪ')) {
+          fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
+        }
+        if (fetchedLocation.includes('Suối Lừ')) {
+          fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
+        }
+
+        setSchoolName(fetchedSchoolName);
         setClassName(data.class_name || '8C1');
         setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
-        setLocation(data.location || 'Suối Lừ');
+        setLocation(fetchedLocation);
         setStudents(data.students || INITIAL_STUDENTS);
         setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
         isDirty.current = false;
@@ -299,10 +310,21 @@ export default function App() {
 
         if (latestData) {
           console.log(`Copying student list from ${latestData.month + 1}/${latestData.year}`);
-          setSchoolName(latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LỪ');
+          let fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+          let fetchedLocation = latestData.location || 'Suối Lư';
+
+          // Auto-correct typo if found
+          if (fetchedSchoolName.includes('SUỐI LỪ')) {
+            fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
+          }
+          if (fetchedLocation.includes('Suối Lừ')) {
+            fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
+          }
+
+          setSchoolName(fetchedSchoolName);
           setClassName(latestData.class_name || '8C1');
           setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
-          setLocation(latestData.location || 'Suối Lừ');
+          setLocation(fetchedLocation);
           setStandardMeals(latestData.standard_meals || { S: 14, T1: 14, T2: 12 });
           // Copy students but clear their meal data for the new month
           const copiedStudents = (latestData.students || []).map((s: any) => ({
