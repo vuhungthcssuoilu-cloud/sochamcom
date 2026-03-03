@@ -972,8 +972,8 @@ export default function App() {
   // --- Render Helpers ---
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
-    <div className="bg-white relative w-full overflow-x-auto">
-      <table className="w-full border-collapse text-[10px] leading-none border-[0.5px] border-black table-fixed min-w-max">
+    <div className="bg-white relative w-full overflow-x-auto print:overflow-visible">
+      <table className="w-full border-collapse text-[10px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full">
         <colgroup>
           <col className="w-8" /><col className="w-40 print:w-60" />
           {days.map(d => (
@@ -1004,8 +1004,8 @@ export default function App() {
           </tr>
           {/* Header Row 2: Day Numbers */}
           <tr>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal sticky left-0 bg-white z-20">STT</th>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 print:h-10 sticky left-8 bg-white z-20 shadow-[1px_0_0_black]">
+            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:static bg-white z-20">STT</th>
+            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 print:h-10 sticky left-8 print:static bg-white z-20 shadow-[1px_0_0_black] print:shadow-none">
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <svg className="w-full h-full" preserveAspectRatio="none">
                   <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.5" />
@@ -1058,7 +1058,7 @@ export default function App() {
           </tr>
           {/* Header Row 4: Name & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20 shadow-[1px_0_0_black] relative h-20 print:h-8">
+            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 print:static bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-20 print:h-8">
               <div className="flex items-center justify-center px-1 w-full h-full">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -1135,12 +1135,24 @@ export default function App() {
             ))}
             {isSecondHalf && (
               <>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">S</th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">S</th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                  <div className="flex items-center justify-center h-full w-full leading-none">S</div>
+                </th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                  <div className="flex items-center justify-center h-full w-full leading-none">S</div>
+                </th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
               </>
             )}
           </tr>
@@ -1150,8 +1162,8 @@ export default function App() {
             const totals = calculateStudentTotals(student);
             return (
               <tr key={student.id} className="hover:bg-blue-50 group h-6">
-                <td className="border-[0.5px] border-black text-center sticky left-0 bg-white group-hover:bg-blue-50 z-10">{idx + 1}</td>
-                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black]">
+                <td className="border-[0.5px] border-black text-center sticky left-0 print:static bg-white group-hover:bg-blue-50 z-10">{idx + 1}</td>
+                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:static bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none">
                   <div className="flex items-center gap-1 h-full">
                     <input 
                       type="text" 
@@ -1222,12 +1234,24 @@ export default function App() {
                 ))}
                 {isSecondHalf && (
                   <>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium">{totals.S}</td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium">{totals.T1}</td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium">{totals.T2}</td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500">{totals.uS}</td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500">{totals.uT1}</td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500">{totals.uT2}</td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-6">
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.S}</div>
+                    </td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-6">
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.T1}</div>
+                    </td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-6">
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.T2}</div>
+                    </td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-6">
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.uS}</div>
+                    </td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-6">
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT1}</div>
+                    </td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-6">
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT2}</div>
+                    </td>
                   </>
                 )}
               </tr>
@@ -1235,19 +1259,25 @@ export default function App() {
           })}
           {/* Add Student Row */}
           <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
-            <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 bg-white z-10">+</td>
-            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 bg-white z-10">
+            <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:static bg-white z-10">+</td>
+            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:static bg-white z-10">
               Thêm học sinh mới...
             </td>
           </tr>
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 bg-gray-50 z-10 shadow-[1px_0_0_black]">CỘNG</td>
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:static bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
-                <td className="border-[0.5px] border-black text-center align-middle">{calculateDayTotals(d, 'S')}</td>
-                <td className="border-[0.5px] border-black text-center align-middle">{calculateDayTotals(d, 'T1')}</td>
-                <td className="border-[0.5px] border-black text-center align-middle">{calculateDayTotals(d, 'T2')}</td>
+                <td className="border-[0.5px] border-black text-center align-middle h-6">
+                  <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'S')}</div>
+                </td>
+                <td className="border-[0.5px] border-black text-center align-middle h-6">
+                  <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'T1')}</div>
+                </td>
+                <td className="border-[0.5px] border-black text-center align-middle h-6">
+                  <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'T2')}</div>
+                </td>
               </React.Fragment>
             ))}
             {isSecondHalf && (
@@ -1314,7 +1344,7 @@ export default function App() {
   );
 
   return (
-    <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-0 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-4'}`}>
+    <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-4'}`}>
       {/* Controls - Hidden on Print */}
       <div className={`w-full mb-6 bg-white rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
