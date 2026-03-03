@@ -1080,7 +1080,7 @@ export default function App() {
                   className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
                   S
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 opacity-0 group-hover/h:opacity-100 bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden after:absolute after:top-full after:left-0 after:right-0 after:h-4 after:content-['']">
                     <button onClick={() => fillColumn(d, 'S')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
                     <button onClick={() => copyColumn(d, 'S')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
                     {columnClipboard && <button onClick={() => pasteColumn(d, 'S')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
@@ -1093,7 +1093,7 @@ export default function App() {
                   className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
                   T
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 opacity-0 group-hover/h:opacity-100 bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden after:absolute after:top-full after:left-0 after:right-0 after:h-4 after:content-['']">
                     <button onClick={() => fillColumn(d, 'T1')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
                     <button onClick={() => copyColumn(d, 'T1')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
                     {columnClipboard && <button onClick={() => pasteColumn(d, 'T1')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
@@ -1106,7 +1106,7 @@ export default function App() {
                   className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
                   T
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 opacity-0 group-hover/h:opacity-100 bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden after:absolute after:top-full after:left-0 after:right-0 after:h-4 after:content-['']">
                     <button onClick={() => fillColumn(d, 'T2')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
                     <button onClick={() => copyColumn(d, 'T2')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
                     {columnClipboard && <button onClick={() => pasteColumn(d, 'T2')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
