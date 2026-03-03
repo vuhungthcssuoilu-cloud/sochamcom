@@ -1004,13 +1004,8 @@ export default function App() {
           </tr>
           {/* Header Row 2: Day Numbers */}
           <tr>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:static bg-white z-20">STT</th>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 print:h-10 sticky left-8 print:static bg-white z-20 shadow-[1px_0_0_black] print:shadow-none">
-              <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                <svg className="w-full h-full" preserveAspectRatio="none">
-                  <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.5" />
-                </svg>
-              </div>
+            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:relative bg-white z-20">STT</th>
+            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 print:h-10 sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none">
               <span className="absolute top-1 right-1">Ngày</span>
               <span className="absolute bottom-1 left-1">Thứ</span>
             </th>
@@ -1058,7 +1053,7 @@ export default function App() {
           </tr>
           {/* Header Row 4: Name & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 print:static bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-20 print:h-8">
+            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-20 print:h-8">
               <div className="flex items-center justify-center px-1 w-full h-full">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -1162,8 +1157,8 @@ export default function App() {
             const totals = calculateStudentTotals(student);
             return (
               <tr key={student.id} className="hover:bg-blue-50 group h-6">
-                <td className="border-[0.5px] border-black text-center sticky left-0 print:static bg-white group-hover:bg-blue-50 z-10">{idx + 1}</td>
-                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:static bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none">
+                <td className="border-[0.5px] border-black text-center sticky left-0 print:relative bg-white group-hover:bg-blue-50 z-10">{idx + 1}</td>
+                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:relative bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none">
                   <div className="flex items-center gap-1 h-full">
                     <input 
                       type="text" 
@@ -1259,14 +1254,14 @@ export default function App() {
           })}
           {/* Add Student Row */}
           <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
-            <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:static bg-white z-10">+</td>
-            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:static bg-white z-10">
+            <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:relative bg-white z-10">+</td>
+            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:relative bg-white z-10">
               Thêm học sinh mới...
             </td>
           </tr>
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:static bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
                 <td className="border-[0.5px] border-black text-center align-middle h-6">
@@ -1612,17 +1607,17 @@ export default function App() {
         </div>
 
         {/* Tables Container - Side-by-side layout on large screens, Stacked on mobile/print */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-x-[0.5px] border-black relative print:block print:border-none">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-x-[0.5px] border-black relative print:block">
           {/* Blue dashed line separator - Hidden on mobile and print */}
           <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-blue-500 border-dashed z-10 pointer-events-none hidden lg:block print:hidden"></div>
           
           {/* Left Half: Days 1-16 */}
-          <div className="border-r-[0.5px] border-black relative print:border-none print:break-after-page print:w-full overflow-x-auto">
+          <div className="border-r-[0.5px] border-black relative print:border-black print:border-[0.5px] print:mb-8 print:break-after-page print:w-full overflow-x-auto print:overflow-visible">
             {renderTableHalf(firstHalfDays, false)}
           </div>
 
           {/* Right Half: Days 17-End */}
-          <div className="relative print:w-full print:pt-4 overflow-x-auto">
+          <div className="relative print:border-black print:border-[0.5px] print:w-full print:pt-4 overflow-x-auto print:overflow-visible">
             {renderTableHalf(secondHalfDays, true)}
           </div>
         </div>
