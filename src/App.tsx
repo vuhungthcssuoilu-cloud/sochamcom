@@ -115,14 +115,24 @@ export default function App() {
       if (error) {
         console.error('Session error:', error);
         // If there's a refresh token error, we need to clear the local session completely
-        if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('refresh_token_not_found')) {
+        const isRefreshTokenError = 
+          error.message?.includes('Refresh Token Not Found') || 
+          error.message?.includes('refresh_token_not_found') ||
+          error.message?.includes('Invalid Refresh Token');
+
+        if (isRefreshTokenError) {
           // Manually clear any supabase related items from localStorage to be safe
           Object.keys(localStorage).forEach(key => {
-            if (key.includes('supabase.auth.token')) {
+            if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
               localStorage.removeItem(key);
             }
           });
+          // Force clear user state and stop loading
+          setUser(null);
+          setLoading(false);
+          return;
         }
+        
         supabase.auth.signOut().catch(() => {
           // If signOut fails, at least we clear the local user state
           setUser(null);
@@ -132,6 +142,14 @@ export default function App() {
       setLoading(false);
     }).catch(err => {
       console.error('Unexpected session error:', err);
+      // If it's the specific refresh token error, clear everything
+      if (err.message?.includes('Refresh Token Not Found') || err.message?.includes('Invalid Refresh Token')) {
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
       setUser(null);
       setLoading(false);
     });
@@ -699,7 +717,6 @@ export default function App() {
   const handleExportExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     
-    // Helper to create a sheet
     const createSheet = (sheetName: string, days: number[], isSecondHalf: boolean) => {
       const sheet = workbook.addWorksheet(sheetName, {
         pageSetup: { 
@@ -707,86 +724,49 @@ export default function App() {
           orientation: 'landscape',
           fitToPage: true,
           fitToWidth: 1,
-          fitToHeight: 0, // Fit to width, but let height grow
+          fitToHeight: 0,
           margins: {
-            left: 0.25, right: 0.25, top: 0.25, bottom: 0.25,
-            header: 0.1, footer: 0.1
+            left: 0.2, right: 0.2, top: 0.2, bottom: 0.2,
+            header: 0, footer: 0
           }
         }
       });
 
-      // --- Columns Setup ---
-      // STT (1), Name (1), Days (3 * days.length), Summaries (6 if second half)
-      const cols = [
-        { header: 'STT', key: 'stt', width: 5 },
-        { header: 'Họ và tên', key: 'name', width: 25 },
-      ];
+      const lastColIdx = 2 + days.length * 3 + (isSecondHalf ? 6 : 0);
+
+      // Row 1: School Name
+      const schoolRow = sheet.addRow([schoolName]);
+      schoolRow.font = { name: 'Times New Roman', size: 11, bold: true };
+      sheet.mergeCells(1, 1, 1, 5);
+
+      // Row 2: Title
+      const titleRow = sheet.addRow(['', '', `SỔ CHẤM CƠM LỚP: ${className} THÁNG ${month + 1}/${year}`]);
+      titleRow.getCell(3).font = { name: 'Times New Roman', size: 14, bold: true };
+      titleRow.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.mergeCells(2, 3, 2, lastColIdx);
+      titleRow.height = 30;
+
+      // Row 3: Day Numbers
+      const row3Vals = ['STT', 'Ngày', ...days.flatMap(d => [String(d), '', ''])];
+      if (isSecondHalf) row3Vals.push('Số ngày ăn trong tháng', '', '', '', '', '');
+      const row3 = sheet.addRow(row3Vals);
+
+      // Row 4: Day of Week
+      const row4Vals = ['', 'Thứ', ...days.flatMap(d => [getDayOfWeek(d, month, year), '', ''])];
+      if (isSecondHalf) row4Vals.push('Số ngày báo ăn', '', '', 'Số ngày không báo ăn', '', '');
+      const row4 = sheet.addRow(row4Vals);
+
+      // Row 5: Họ và tên & S, T, T
+      const row5Vals = ['', 'Họ và tên', ...days.flatMap(() => ['S', 'T', 'T'])];
+      if (isSecondHalf) row5Vals.push('S', 'T', 'T', 'S', 'T', 'T');
+      const row5 = sheet.addRow(row5Vals);
+
+      // Merges based on image
+      sheet.mergeCells(3, 1, 5, 1); // STT spans 3 rows (3, 4, 5)
+      sheet.mergeCells(3, 2, 4, 2); // Diagonal cell spans 2 rows (3, 4)
       
-      days.forEach(d => {
-        cols.push(
-          { header: `${d} (S)`, key: `d${d}_S`, width: 4 },
-          { header: `${d} (T)`, key: `d${d}_T1`, width: 4 },
-          { header: `${d} (T)`, key: `d${d}_T2`, width: 4 }
-        );
-      });
-
-      if (isSecondHalf) {
-        cols.push(
-          { header: 'Tổng S', key: 'total_S', width: 6 },
-          { header: 'Tổng T', key: 'total_T1', width: 6 },
-          { header: 'Tổng T', key: 'total_T2', width: 6 },
-          { header: 'Không S', key: 'u_S', width: 6 },
-          { header: 'Không T', key: 'u_T1', width: 6 },
-          { header: 'Không T', key: 'u_T2', width: 6 }
-        );
-      }
-
-      // We don't use sheet.columns directly because we need complex headers
-      // But we can set widths manually later.
-      
-      // --- Header Rows ---
-      // Row 1: Title
-      const headerRow1Values = ['STT', 'Ngày\n\nThứ', `SỔ CHẤM CƠM LỚP: ${className} THÁNG ${month + 1}/${year}`];
-      const headerRow1 = sheet.addRow(headerRow1Values);
-      headerRow1.getCell(3).font = { name: 'Times New Roman', size: 14, bold: true };
-      headerRow1.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
-      sheet.mergeCells(1, 3, 1, cols.length);
-      headerRow1.height = 30;
-
-      // Row 2: Day Numbers
-      const headerRow2Values = ['', '']; // STT, Diagonal are merged
-      days.forEach(d => {
-        headerRow2Values.push(String(d), '', ''); // Merged 3 cells
-      });
-      if (isSecondHalf) {
-        headerRow2Values.push('Số ngày ăn trong tháng', '', '', '', '', '');
-      }
-      const headerRow2 = sheet.addRow(headerRow2Values);
-      
-      // Row 3: Day of Week
-      const headerRow3Values = ['', '']; // STT, Diagonal are merged
-      days.forEach(d => {
-        const dow = getDayOfWeek(d, month, year);
-        headerRow3Values.push(dow, '', ''); // Merged 3 cells
-      });
-      if (isSecondHalf) {
-        headerRow3Values.push('Số ngày báo ăn', '', '', 'Số ngày không báo ăn', '', '');
-      }
-      const headerRow3 = sheet.addRow(headerRow3Values);
-
-      // Row 4: Họ và tên, S, T, T labels
-      const row4Vals = ['', 'Họ và tên', ...days.flatMap(() => ['S', 'T', 'T'])];
-      if (isSecondHalf) {
-        row4Vals.push('S', 'T', 'T', 'S', 'T', 'T');
-      }
-      const headerRow4 = sheet.addRow(row4Vals);
-
-      // Merges
-      sheet.mergeCells(1, 1, 3, 1); // STT
-      sheet.mergeCells(1, 2, 3, 2); // Diagonal
-
-      // Diagonal line and text for Diagonal cell
-      const diagonalCell = sheet.getCell(1, 2);
+      // Diagonal line for cell B3:B4
+      const diagonalCell = sheet.getCell(3, 2);
       diagonalCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       diagonalCell.border = {
         top: { style: 'thin' },
@@ -795,28 +775,34 @@ export default function App() {
         right: { style: 'thin' },
         diagonal: { up: false, down: true, style: 'thin' }
       };
+      diagonalCell.value = {
+        'richText': [
+          {'text': 'Ngày', 'font': {'size': 10, 'name': 'Times New Roman'}},
+          {'text': '\n\n\n'},
+          {'text': 'Thứ', 'font': {'size': 10, 'name': 'Times New Roman'}}
+        ]
+      };
 
       let colIdx = 3;
       days.forEach(() => {
-        sheet.mergeCells(2, colIdx, 2, colIdx + 2); // Day Num
-        sheet.mergeCells(3, colIdx, 3, colIdx + 2); // DOW
+        sheet.mergeCells(3, colIdx, 3, colIdx + 2); // Day Num
+        sheet.mergeCells(4, colIdx, 4, colIdx + 2); // DOW
         colIdx += 3;
       });
 
       if (isSecondHalf) {
-        sheet.mergeCells(2, colIdx, 2, colIdx + 5); // "Số ngày ăn..."
-        sheet.mergeCells(3, colIdx, 3, colIdx + 2); // "Có báo"
-        sheet.mergeCells(3, colIdx + 3, 3, colIdx + 5); // "Không báo"
+        sheet.mergeCells(3, colIdx, 3, colIdx + 5); // "Số ngày ăn..."
+        sheet.mergeCells(4, colIdx, 4, colIdx + 2); // "Có báo"
+        sheet.mergeCells(4, colIdx + 3, 4, colIdx + 5); // "Không báo"
       }
 
-      // Styling Headers
-      [2, 3, 4].forEach(r => {
+      // Styling Headers (Rows 3, 4, 5)
+      [3, 4, 5].forEach(r => {
         const row = sheet.getRow(r);
-        row.font = { name: 'Times New Roman', size: 10, bold: true };
+        row.font = { name: 'Times New Roman', size: 11, bold: true };
         row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
         row.height = 25;
 
-        // Add background for Sunday columns in headers
         days.forEach((d, i) => {
           if (getDayOfWeek(d, month, year) === 'CN') {
             const startCol = 3 + i * 3;
@@ -824,7 +810,7 @@ export default function App() {
               row.getCell(c).fill = {
                 type: 'pattern',
                 pattern: 'solid',
-                fgColor: { argb: 'FFF3F4F6' } // gray-100
+                fgColor: { argb: 'FFF3F4F6' }
               };
             }
           }
@@ -848,11 +834,9 @@ export default function App() {
         const row = sheet.addRow(rowValues);
         row.font = { name: 'Times New Roman', size: 11 };
         row.alignment = { vertical: 'middle', horizontal: 'center' };
-        // Name alignment left
         row.getCell(2).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-        row.height = 20;
+        row.height = 22;
 
-        // Add background for Sunday columns in data rows
         days.forEach((d, i) => {
           if (getDayOfWeek(d, month, year) === 'CN') {
             const startCol = 3 + i * 3;
@@ -860,7 +844,7 @@ export default function App() {
               row.getCell(c).fill = {
                 type: 'pattern',
                 pattern: 'solid',
-                fgColor: { argb: 'FFF9FAFB' } // gray-50
+                fgColor: { argb: 'FFF9FAFB' }
               };
             }
           }
@@ -871,27 +855,22 @@ export default function App() {
       const totalRowValues = ['CỘNG', ''];
       days.forEach(d => {
         totalRowValues.push(
-          String(calculateDayTotals(d, 'S')),
-          String(calculateDayTotals(d, 'T1')),
-          String(calculateDayTotals(d, 'T2'))
+          calculateDayTotals(d, 'S'),
+          calculateDayTotals(d, 'T1'),
+          calculateDayTotals(d, 'T2')
         );
       });
-      if (isSecondHalf) {
-        totalRowValues.push('', '', '', '', '', '');
-      }
+      if (isSecondHalf) totalRowValues.push('', '', '', '', '', '');
       const totalRow = sheet.addRow(totalRowValues);
       totalRow.font = { name: 'Times New Roman', size: 11, bold: true };
       totalRow.alignment = { vertical: 'middle', horizontal: 'center' };
-      sheet.mergeCells(totalRow.number, 1, totalRow.number, 2); // Merge "CỘNG" across STT and Name columns
+      sheet.mergeCells(totalRow.number, 1, totalRow.number, 2);
       totalRow.height = 25;
 
-      // --- Borders ---
-      // Apply borders to all cells in the table
-      const lastRow = totalRow.number;
-      const lastCol = isSecondHalf ? 2 + days.length * 3 + 6 : 2 + days.length * 3;
-      
-      for (let r = 2; r <= lastRow; r++) {
-        for (let c = 1; c <= lastCol; c++) {
+      // Borders
+      const lastRowIdx = totalRow.number;
+      for (let r = 3; r <= lastRowIdx; r++) {
+        for (let c = 1; c <= lastColIdx; c++) {
           const cell = sheet.getCell(r, c);
           cell.border = {
             top: { style: 'thin' },
@@ -902,61 +881,52 @@ export default function App() {
         }
       }
 
-      // --- Footer Info ---
+      // Footer
       if (isSecondHalf) {
-        const footerStartRow = lastRow + 2;
-        
-        // Định mức ăn
+        const footerStartRow = lastRowIdx + 2;
         const quotaRow = sheet.getRow(footerStartRow);
         quotaRow.getCell(2).value = `Định mức ăn: S: ${standardMeals.S}, T: ${standardMeals.T1}, T: ${standardMeals.T2}`;
-        quotaRow.font = { name: 'Times New Roman', size: 10, italic: true };
+        quotaRow.font = { name: 'Times New Roman', size: 11, italic: true };
         
-        // Signature
         const sigRowIdx = footerStartRow;
-        const sigColStart = lastCol - 6;
-        
-        sheet.mergeCells(sigRowIdx, sigColStart, sigRowIdx, lastCol);
+        const sigColStart = lastColIdx - 8;
+        sheet.mergeCells(sigRowIdx, sigColStart, sigRowIdx, lastColIdx);
         const dateCell = sheet.getCell(sigRowIdx, sigColStart);
         dateCell.value = `${location}, ngày ${footerDay} tháng ${footerMonth} năm ${footerYear}`;
         dateCell.alignment = { horizontal: 'center' };
         dateCell.font = { name: 'Times New Roman', size: 11, italic: true };
 
         const roleRowIdx = sigRowIdx + 1;
-        sheet.mergeCells(roleRowIdx, sigColStart, roleRowIdx, lastCol);
+        sheet.mergeCells(roleRowIdx, sigColStart, roleRowIdx, lastColIdx);
         const roleCell = sheet.getCell(roleRowIdx, sigColStart);
         roleCell.value = "GIÁO VIÊN CHỦ NHIỆM";
         roleCell.alignment = { horizontal: 'center' };
         roleCell.font = { name: 'Times New Roman', size: 11, bold: true };
 
-        const nameRowIdx = roleRowIdx + 4;
-        sheet.mergeCells(nameRowIdx, sigColStart, nameRowIdx, lastCol);
+        const nameRowIdx = roleRowIdx + 5;
+        sheet.mergeCells(nameRowIdx, sigColStart, nameRowIdx, lastColIdx);
         const nameCell = sheet.getCell(nameRowIdx, sigColStart);
         nameCell.value = teacherName;
         nameCell.alignment = { horizontal: 'center' };
         nameCell.font = { name: 'Times New Roman', size: 11, bold: true };
       }
 
-      // --- Column Widths ---
-      sheet.getColumn(1).width = 5; // STT
+      // Column Widths
+      sheet.getColumn(1).width = 4; // STT
       sheet.getColumn(2).width = 25; // Name
-      for (let c = 3; c <= lastCol; c++) {
-        sheet.getColumn(c).width = 7; // S, T, T columns
+      for (let c = 3; c <= lastColIdx; c++) {
+        sheet.getColumn(c).width = 3.2;
       }
       if (isSecondHalf) {
-        // Summary columns slightly wider
-        for (let c = lastCol - 5; c <= lastCol; c++) {
-          sheet.getColumn(c).width = 8;
+        for (let c = lastColIdx - 5; c <= lastColIdx; c++) {
+          sheet.getColumn(c).width = 5;
         }
       }
     };
 
-    // Create Sheet 1 (Days 1-16)
     createSheet('Trang 1', firstHalfDays, false);
-    
-    // Create Sheet 2 (Days 17-End)
     createSheet('Trang 2', secondHalfDays, true);
 
-    // Save
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `So_Cham_Com_${className}_Thang_${month + 1}_${year}.xlsx`);
