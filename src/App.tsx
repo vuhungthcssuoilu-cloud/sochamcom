@@ -1266,8 +1266,7 @@ export default function App() {
           </tr>
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td className="border-[0.5px] border-black text-center uppercase sticky left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">Thứ</td>
-            <td className="border-[0.5px] border-black text-center uppercase sticky left-8 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
                 <td className="border-[0.5px] border-black text-center align-middle h-6">
