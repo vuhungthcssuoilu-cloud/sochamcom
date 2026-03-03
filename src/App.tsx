@@ -1079,7 +1079,7 @@ export default function App() {
                   onMouseLeave={() => setHoveredDay(null)}
                   className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 print:h-8 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  <div className="flex flex-col h-full items-center justify-between py-1.5 print:py-0.5">
+                  <div className="flex flex-col h-full items-center justify-between print:justify-center py-1.5 print:py-0">
                     <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
                       <button onClick={() => fillColumn(d, 'S')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Sáng"><Plus className="w-2.5 h-2.5" /></button>
                       <button onClick={() => copyColumn(d, 'S')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Sáng"><Copy className="w-2.5 h-2.5" /></button>
@@ -1090,7 +1090,7 @@ export default function App() {
                       )}
                       <button onClick={() => clearColumn(d, 'S')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Sáng"><Trash2 className="w-2.5 h-2.5" /></button>
                     </div>
-                    <span className="font-bold text-[9px] mt-auto print:mt-0">S</span>
+                    <span className="font-bold text-[9px] mt-auto print:mt-0 print:leading-none">S</span>
                   </div>
                 </th>
                 <th 
@@ -1098,7 +1098,7 @@ export default function App() {
                   onMouseLeave={() => setHoveredDay(null)}
                   className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 print:h-8 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  <div className="flex flex-col h-full items-center justify-between py-1.5 print:py-0.5">
+                  <div className="flex flex-col h-full items-center justify-between print:justify-center py-1.5 print:py-0">
                     <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
                       <button onClick={() => fillColumn(d, 'T1')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Trưa"><Plus className="w-2.5 h-2.5" /></button>
                       <button onClick={() => copyColumn(d, 'T1')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Trưa"><Copy className="w-2.5 h-2.5" /></button>
@@ -1109,7 +1109,7 @@ export default function App() {
                       )}
                       <button onClick={() => clearColumn(d, 'T1')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Trưa"><Trash2 className="w-2.5 h-2.5" /></button>
                     </div>
-                    <span className="font-bold text-[9px] mt-auto print:mt-0">T</span>
+                    <span className="font-bold text-[9px] mt-auto print:mt-0 print:leading-none">T</span>
                   </div>
                 </th>
                 <th 
@@ -1117,7 +1117,7 @@ export default function App() {
                   onMouseLeave={() => setHoveredDay(null)}
                   className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 print:h-8 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  <div className="flex flex-col h-full items-center justify-between py-1.5 print:py-0.5">
+                  <div className="flex flex-col h-full items-center justify-between print:justify-center py-1.5 print:py-0">
                     <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
                       <button onClick={() => fillColumn(d, 'T2')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Tối"><Plus className="w-2.5 h-2.5" /></button>
                       <button onClick={() => copyColumn(d, 'T2')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Tối"><Copy className="w-2.5 h-2.5" /></button>
@@ -1128,19 +1128,19 @@ export default function App() {
                       )}
                       <button onClick={() => clearColumn(d, 'T2')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Tối"><Trash2 className="w-2.5 h-2.5" /></button>
                     </div>
-                    <span className="font-bold text-[9px] mt-auto print:mt-0">T</span>
+                    <span className="font-bold text-[9px] mt-auto print:mt-0 print:leading-none">T</span>
                   </div>
                 </th>
               </React.Fragment>
             ))}
             {isSecondHalf && (
               <>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] h-20 print:h-8">S</th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] h-20 print:h-8">T</th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] h-20 print:h-8">T</th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] h-20 print:h-8">S</th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] h-20 print:h-8">T</th>
-                <th className="border-[0.5px] border-black text-center font-normal text-[8px] h-20 print:h-8">T</th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">S</th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">S</th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">T</th>
               </>
             )}
           </tr>
@@ -1192,36 +1192,42 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'S')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.S ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-6 ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.S ? 'bg-gray-50' : '')}`}
                     >
-                      {student.meals[d]?.S ? markSymbol : ''}
+                      <div className="flex items-center justify-center h-full w-full leading-none">
+                        {student.meals[d]?.S ? markSymbol : ''}
+                      </div>
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T1')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T1 ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-6 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T1 ? 'bg-gray-50' : '')}`}
                     >
-                      {student.meals[d]?.T1 ? markSymbol : ''}
+                      <div className="flex items-center justify-center h-full w-full leading-none">
+                        {student.meals[d]?.T1 ? markSymbol : ''}
+                      </div>
                     </td>
                     <td 
                       onClick={() => toggleMeal(student.id, d, 'T2')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center cursor-pointer select-none ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T2 ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-6 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T2 ? 'bg-gray-50' : '')}`}
                     >
-                      {student.meals[d]?.T2 ? markSymbol : ''}
+                      <div className="flex items-center justify-center h-full w-full leading-none">
+                        {student.meals[d]?.T2 ? markSymbol : ''}
+                      </div>
                     </td>
                   </React.Fragment>
                 ))}
                 {isSecondHalf && (
                   <>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50 font-medium">{totals.S}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50 font-medium">{totals.T1}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50 font-medium">{totals.T2}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50 text-gray-500">{totals.uS}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50 text-gray-500">{totals.uT1}</td>
-                    <td className="border-[0.5px] border-black text-center bg-gray-50 text-gray-500">{totals.uT2}</td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium">{totals.S}</td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium">{totals.T1}</td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium">{totals.T2}</td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500">{totals.uS}</td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500">{totals.uT1}</td>
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500">{totals.uT2}</td>
                   </>
                 )}
               </tr>
@@ -1239,9 +1245,9 @@ export default function App() {
             <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 bg-gray-50 z-10 shadow-[1px_0_0_black]">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
-                <td className="border-[0.5px] border-black text-center">{calculateDayTotals(d, 'S')}</td>
-                <td className="border-[0.5px] border-black text-center">{calculateDayTotals(d, 'T1')}</td>
-                <td className="border-[0.5px] border-black text-center">{calculateDayTotals(d, 'T2')}</td>
+                <td className="border-[0.5px] border-black text-center align-middle">{calculateDayTotals(d, 'S')}</td>
+                <td className="border-[0.5px] border-black text-center align-middle">{calculateDayTotals(d, 'T1')}</td>
+                <td className="border-[0.5px] border-black text-center align-middle">{calculateDayTotals(d, 'T2')}</td>
               </React.Fragment>
             ))}
             {isSecondHalf && (
