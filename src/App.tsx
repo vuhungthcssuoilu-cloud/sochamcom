@@ -775,7 +775,7 @@ export default function App() {
       const headerRow3 = sheet.addRow(headerRow3Values);
 
       // Row 4: Họ và tên, S, T, T labels
-      const row4Vals = ['Họ và tên', '', ...days.flatMap(() => ['S', 'T', 'T'])];
+      const row4Vals = ['', 'Họ và tên', ...days.flatMap(() => ['S', 'T', 'T'])];
       if (isSecondHalf) {
         row4Vals.push('S', 'T', 'T', 'S', 'T', 'T');
       }
@@ -784,7 +784,6 @@ export default function App() {
       // Merges
       sheet.mergeCells(1, 1, 3, 1); // STT
       sheet.mergeCells(1, 2, 3, 2); // Diagonal
-      sheet.mergeCells(4, 1, 4, 2); // Họ và tên
 
       // Diagonal line and text for Diagonal cell
       const diagonalCell = sheet.getCell(1, 2);
@@ -1058,7 +1057,8 @@ export default function App() {
           </tr>
           {/* Header Row 4: Họ và tên & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-6">
+            <th className="border-[0.5px] border-black sticky left-0 print:relative bg-white z-20 h-6"></th>
+            <th className="border-[0.5px] border-black text-center font-bold py-1 sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-6">
               <div className="flex items-center justify-center px-1 w-full h-full">
                 <span>Họ và tên</span>
                 {clipboard && (
