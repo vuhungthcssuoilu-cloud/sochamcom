@@ -57,13 +57,20 @@ const INITIAL_STUDENTS: Student[] = [];
 export default function App() {
   // --- State ---
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isDataFetching, setIsDataFetching] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LƯ');
   const [className, setClassName] = useState('8C1');
-  const [month, setMonth] = useState(new Date().getMonth()); // 0-indexed
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(() => {
+    const saved = localStorage.getItem('app_current_month');
+    return saved !== null ? parseInt(saved) : new Date().getMonth();
+  });
+  const [year, setYear] = useState(() => {
+    const saved = localStorage.getItem('app_current_year');
+    return saved !== null ? parseInt(saved) : new Date().getFullYear();
+  });
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [location, setLocation] = useState('Suối Lư');
   const [teacherName, setTeacherName] = useState('Vũ Văn Hùng');
@@ -129,7 +136,7 @@ export default function App() {
           });
           // Force clear user state and stop loading
           setUser(null);
-          setLoading(false);
+          setIsInitializing(false);
           return;
         }
         
@@ -139,7 +146,7 @@ export default function App() {
         });
       }
       setUser(session?.user ?? null);
-      setLoading(false);
+      setIsInitializing(false);
     }).catch(err => {
       console.error('Unexpected session error:', err);
       // If it's the specific refresh token error, clear everything
@@ -151,19 +158,28 @@ export default function App() {
         });
       }
       setUser(null);
-      setLoading(false);
+      setIsInitializing(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || event === 'USER_UPDATED' && !session) {
+      if (event === 'SIGNED_OUT') {
         setUser(null);
-      } else if (session) {
-        setUser(session.user);
+      } else if (session?.user) {
+        setUser((prevUser: any) => {
+          if (prevUser?.id === session.user.id) return prevUser;
+          return session.user;
+        });
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Persist month/year changes
+  useEffect(() => {
+    localStorage.setItem('app_current_month', month.toString());
+    localStorage.setItem('app_current_year', year.toString());
+  }, [month, year]);
 
   // Favicon update effect
   useEffect(() => {
@@ -242,21 +258,21 @@ export default function App() {
 
   // Auto-save effect
   useEffect(() => {
-    if (loading || !isDirty.current) return;
+    if (isInitializing || isDataFetching || !isDirty.current) return;
 
     const timer = setTimeout(() => {
       handleSave(true);
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(timer);
-  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, handleSave, loading]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, handleSave, isInitializing, isDataFetching]);
 
   // Mark as dirty when data changes
   useEffect(() => {
-    if (!loading) {
+    if (!isInitializing && !isDataFetching) {
       isDirty.current = true;
     }
-  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, isInitializing, isDataFetching]);
 
 
   // Fetch data when user, month, or year changes
@@ -264,55 +280,24 @@ export default function App() {
     if (!user) return;
 
     const fetchData = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('monthly_sheets')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('month', month)
-        .eq('year', year)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "Row not found"
-        console.error('Error fetching data:', error);
-      }
-
-      if (data) {
-        let fetchedSchoolName = data.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-        let fetchedLocation = data.location || 'Suối Lư';
-        
-        // Auto-correct typo if found
-        if (fetchedSchoolName.includes('SUỐI LỪ')) {
-          fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
-        }
-        if (fetchedLocation.includes('Suối Lừ')) {
-          fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
-        }
-
-        setSchoolName(fetchedSchoolName);
-        setClassName(data.class_name || '8C1');
-        setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
-        setLocation(fetchedLocation);
-        setStudents(data.students || INITIAL_STUDENTS);
-        setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
-        isDirty.current = false;
-      } else {
-        // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
-        const { data: latestData } = await supabase
+      setIsDataFetching(true);
+      try {
+        const { data, error } = await supabase
           .from('monthly_sheets')
           .select('*')
           .eq('user_id', user.id)
-          .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
-          .order('year', { ascending: false })
-          .order('month', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .eq('month', month)
+          .eq('year', year)
+          .single();
 
-        if (latestData) {
-          console.log(`Copying student list from ${latestData.month + 1}/${latestData.year}`);
-          let fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-          let fetchedLocation = latestData.location || 'Suối Lư';
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "Row not found"
+          console.error('Error fetching data:', error);
+        }
 
+        if (data) {
+          let fetchedSchoolName = data.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+          let fetchedLocation = data.location || 'Suối Lư';
+          
           // Auto-correct typo if found
           if (fetchedSchoolName.includes('SUỐI LỪ')) {
             fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
@@ -322,23 +307,57 @@ export default function App() {
           }
 
           setSchoolName(fetchedSchoolName);
-          setClassName(latestData.class_name || '8C1');
-          setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
+          setClassName(data.class_name || '8C1');
+          setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
           setLocation(fetchedLocation);
-          setStandardMeals(latestData.standard_meals || { S: 14, T1: 14, T2: 12 });
-          // Copy students but clear their meal data for the new month
-          const copiedStudents = (latestData.students || []).map((s: any) => ({
-            ...s,
-            meals: {}
-          }));
-          setStudents(copiedStudents);
-          isDirty.current = true; // Mark as dirty so it gets saved for the new month
-        } else {
-          setStudents(INITIAL_STUDENTS);
+          setStudents(data.students || INITIAL_STUDENTS);
+          setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
           isDirty.current = false;
+        } else {
+          // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
+          const { data: latestData } = await supabase
+            .from('monthly_sheets')
+            .select('*')
+            .eq('user_id', user.id)
+            .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
+            .order('year', { ascending: false })
+            .order('month', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (latestData) {
+            console.log(`Copying student list from ${latestData.month + 1}/${latestData.year}`);
+            let fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+            let fetchedLocation = latestData.location || 'Suối Lư';
+
+            // Auto-correct typo if found
+            if (fetchedSchoolName.includes('SUỐI LỪ')) {
+              fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
+            }
+            if (fetchedLocation.includes('Suối Lừ')) {
+              fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
+            }
+
+            setSchoolName(fetchedSchoolName);
+            setClassName(latestData.class_name || '8C1');
+            setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
+            setLocation(fetchedLocation);
+            setStandardMeals(latestData.standard_meals || { S: 14, T1: 14, T2: 12 });
+            // Copy students but clear their meal data for the new month
+            const copiedStudents = (latestData.students || []).map((s: any) => ({
+              ...s,
+              meals: {}
+            }));
+            setStudents(copiedStudents);
+            isDirty.current = true; // Mark as dirty so it gets saved for the new month
+          } else {
+            setStudents(INITIAL_STUDENTS);
+            isDirty.current = false;
+          }
         }
+      } finally {
+        setIsDataFetching(false);
       }
-      setLoading(false);
     };
 
     fetchData();
@@ -351,7 +370,7 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
-  if (loading) {
+  if (isInitializing) {
     return <div className="min-h-screen flex items-center justify-center">Đang tải...</div>;
   }
 
@@ -1365,10 +1384,16 @@ export default function App() {
               <Save className="w-6 h-6" />
               Sổ Chấm Cơm
             </h1>
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center bg-gray-100 rounded-lg p-1 relative">
               <button onClick={prevMonth} className="p-1 hover:bg-white rounded"><ChevronLeft className="w-4 h-4" /></button>
               <span className="px-3 font-medium min-w-[100px] text-center">Tháng {month + 1} / {year}</span>
               <button onClick={nextMonth} className="p-1 hover:bg-white rounded"><ChevronRight className="w-4 h-4" /></button>
+              {isDataFetching && (
+                <div className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Năm:</span>
