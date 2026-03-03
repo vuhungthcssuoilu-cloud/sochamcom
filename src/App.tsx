@@ -746,16 +746,15 @@ export default function App() {
       
       // --- Header Rows ---
       // Row 1: Title
-      const titleRow = sheet.addRow([`SỔ CHẤM CƠM LỚP: ${className} THÁNG ${month + 1}/${year}`]);
-      titleRow.font = { name: 'Times New Roman', size: 14, bold: true };
-      titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
-      sheet.mergeCells(1, 1, 1, cols.length);
-      titleRow.height = 30;
+      const headerRow1Values = ['STT', 'Ngày\n\nThứ', `SỔ CHẤM CƠM LỚP: ${className} THÁNG ${month + 1}/${year}`];
+      const headerRow1 = sheet.addRow(headerRow1Values);
+      headerRow1.getCell(3).font = { name: 'Times New Roman', size: 14, bold: true };
+      headerRow1.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.mergeCells(1, 3, 1, cols.length);
+      headerRow1.height = 30;
 
-      // Row 2 & 3: Headers
-      // We need to construct the header structure manually
-      // Row 2: STT, Ngày/Thứ, Day Numbers, (Summaries Title)
-      const headerRow2Values = ['STT', 'Ngày/Thứ'];
+      // Row 2: Day Numbers
+      const headerRow2Values = ['', '']; // STT, Diagonal are merged
       days.forEach(d => {
         headerRow2Values.push(String(d), '', ''); // Merged 3 cells
       });
@@ -764,8 +763,8 @@ export default function App() {
       }
       const headerRow2 = sheet.addRow(headerRow2Values);
       
-      // Row 3: Day of Week / Sub-headers
-      const headerRow3Values = ['', '']; // STT, Ngày/Thứ are merged vertically
+      // Row 3: Day of Week
+      const headerRow3Values = ['', '']; // STT, Diagonal are merged
       days.forEach(d => {
         const dow = getDayOfWeek(d, month, year);
         headerRow3Values.push(dow, '', ''); // Merged 3 cells
@@ -775,7 +774,7 @@ export default function App() {
       }
       const headerRow3 = sheet.addRow(headerRow3Values);
 
-      // Row 4: S, T, T labels
+      // Row 4: Họ và tên, S, T, T labels
       const row4Vals = ['Họ và tên', '', ...days.flatMap(() => ['S', 'T', 'T'])];
       if (isSecondHalf) {
         row4Vals.push('S', 'T', 'T', 'S', 'T', 'T');
@@ -783,19 +782,14 @@ export default function App() {
       const headerRow4 = sheet.addRow(row4Vals);
 
       // Merges
-      sheet.mergeCells(2, 1, 3, 1); // STT
-      sheet.mergeCells(2, 2, 3, 2); // Ngày/Thứ placeholder
+      sheet.mergeCells(1, 1, 3, 1); // STT
+      sheet.mergeCells(1, 2, 3, 2); // Diagonal
       sheet.mergeCells(4, 1, 4, 2); // Họ và tên
 
-      // Diagonal line and text for Ngày/Thứ cell
-      const dayThurCell = sheet.getCell(2, 2);
-      dayThurCell.value = {
-        richText: [
-          { text: '                Ngày\n\nThứ' }
-        ]
-      };
-      dayThurCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
-      dayThurCell.border = {
+      // Diagonal line and text for Diagonal cell
+      const diagonalCell = sheet.getCell(1, 2);
+      diagonalCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      diagonalCell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
         bottom: { style: 'thin' },
@@ -972,7 +966,15 @@ export default function App() {
   // --- Render Helpers ---
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
-    <div className="bg-white relative w-full overflow-x-auto print:overflow-visible">
+    <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col">
+      <div className="text-left mb-2 px-2 print:px-0 hidden print:block">
+        <input 
+          type="text" 
+          value={schoolName} 
+          onChange={(e) => setSchoolName(e.target.value)}
+          className="font-bold text-xs uppercase border-none focus:ring-0 p-0 w-[300px] bg-transparent"
+        />
+      </div>
       <table className="w-full border-collapse text-[10px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full">
         <colgroup>
           <col className="w-8" /><col className="w-40 print:w-60" />
@@ -989,9 +991,17 @@ export default function App() {
           )}
         </colgroup>
         <thead>
-          {/* Header Row 1: Title */}
+          {/* Header Row 1: STT, Diagonal, Title */}
           <tr>
-            <th colSpan={days.length * 3 + 2 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black p-2 text-center font-bold uppercase text-sm">
+            <th rowSpan={3} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:relative bg-white z-20 w-8">STT</th>
+            <th rowSpan={3} className="border-[0.5px] border-black text-center relative sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-60 overflow-hidden">
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="0.5" />
+              </svg>
+              <span className="absolute top-2 right-4 text-[10px] font-normal">Ngày</span>
+              <span className="absolute bottom-2 left-4 text-[10px] font-normal">Thứ</span>
+            </th>
+            <th colSpan={days.length * 3 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black p-2 text-center font-bold uppercase text-sm">
               SỔ CHẤM CƠM LỚP: 
               <input 
                 type="text" 
@@ -1004,11 +1014,6 @@ export default function App() {
           </tr>
           {/* Header Row 2: Day Numbers */}
           <tr>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:relative bg-white z-20">STT</th>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center relative h-16 print:h-10 sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none">
-              <span className="absolute top-1 right-1">Ngày</span>
-              <span className="absolute bottom-1 left-1">Thứ</span>
-            </th>
             {days.map(d => (
               <th 
                 key={d} 
@@ -1051,15 +1056,15 @@ export default function App() {
               </>
             )}
           </tr>
-          {/* Header Row 4: Name & Meal Labels */}
+          {/* Header Row 4: Họ và tên & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-20 print:h-8">
+            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-6">
               <div className="flex items-center justify-center px-1 w-full h-full">
                 <span>Họ và tên</span>
                 {clipboard && (
                   <button 
                     onClick={pasteToAll}
-                    className="absolute right-1 p-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 print:hidden"
+                    className="absolute right-1 p-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 print:hidden z-30"
                     title="Dán mẫu cho tất cả học sinh"
                   >
                     <ClipboardPaste className="w-3 h-3" />
@@ -1072,80 +1077,80 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 print:h-8 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-6 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  <div className="flex flex-col h-full items-center justify-between print:justify-center py-1.5 print:py-0">
-                    <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
-                      <button onClick={() => fillColumn(d, 'S')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Sáng"><Plus className="w-2.5 h-2.5" /></button>
-                      <button onClick={() => copyColumn(d, 'S')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Sáng"><Copy className="w-2.5 h-2.5" /></button>
+                  <div className="flex flex-col h-full items-center justify-center">
+                    <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
+                      <button onClick={() => fillColumn(d, 'S')} className="hover:bg-emerald-50 text-emerald-600 rounded transition-colors flex items-center justify-center" title="Chọn tất cả Sáng"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'S')} className="hover:bg-indigo-50 text-indigo-600 rounded transition-colors flex items-center justify-center" title="Sao chép cột Sáng"><Copy className="w-2.5 h-2.5" /></button>
                       {columnClipboard ? (
-                        <button onClick={() => pasteColumn(d, 'S')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded transition-colors" title="Dán cột Sáng"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                        <button onClick={() => pasteColumn(d, 'S')} className="hover:bg-orange-50 text-orange-600 rounded transition-colors flex items-center justify-center" title="Dán cột Sáng"><ClipboardPaste className="w-2.5 h-2.5" /></button>
                       ) : (
-                        <div className="w-3.5 h-3.5"></div>
+                        <div></div>
                       )}
-                      <button onClick={() => clearColumn(d, 'S')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Sáng"><Trash2 className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => clearColumn(d, 'S')} className="hover:bg-red-50 text-red-600 rounded transition-colors flex items-center justify-center" title="Xóa tất cả Sáng"><Trash2 className="w-2.5 h-2.5" /></button>
                     </div>
-                    <span className="font-bold text-[9px] mt-auto print:mt-0 print:leading-none">S</span>
+                    <span className="font-bold text-[9px] leading-none">S</span>
                   </div>
                 </th>
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 print:h-8 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-6 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  <div className="flex flex-col h-full items-center justify-between print:justify-center py-1.5 print:py-0">
-                    <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
-                      <button onClick={() => fillColumn(d, 'T1')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Trưa"><Plus className="w-2.5 h-2.5" /></button>
-                      <button onClick={() => copyColumn(d, 'T1')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Trưa"><Copy className="w-2.5 h-2.5" /></button>
+                  <div className="flex flex-col h-full items-center justify-center">
+                    <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
+                      <button onClick={() => fillColumn(d, 'T1')} className="hover:bg-emerald-50 text-emerald-600 rounded transition-colors flex items-center justify-center" title="Chọn tất cả Trưa"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'T1')} className="hover:bg-indigo-50 text-indigo-600 rounded transition-colors flex items-center justify-center" title="Sao chép cột Trưa"><Copy className="w-2.5 h-2.5" /></button>
                       {columnClipboard ? (
-                        <button onClick={() => pasteColumn(d, 'T1')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded transition-colors" title="Dán cột Trưa"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                        <button onClick={() => pasteColumn(d, 'T1')} className="hover:bg-orange-50 text-orange-600 rounded transition-colors flex items-center justify-center" title="Dán cột Trưa"><ClipboardPaste className="w-2.5 h-2.5" /></button>
                       ) : (
-                        <div className="w-3.5 h-3.5"></div>
+                        <div></div>
                       )}
-                      <button onClick={() => clearColumn(d, 'T1')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Trưa"><Trash2 className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => clearColumn(d, 'T1')} className="hover:bg-red-50 text-red-600 rounded transition-colors flex items-center justify-center" title="Xóa tất cả Trưa"><Trash2 className="w-2.5 h-2.5" /></button>
                     </div>
-                    <span className="font-bold text-[9px] mt-auto print:mt-0 print:leading-none">T</span>
+                    <span className="font-bold text-[9px] leading-none">T</span>
                   </div>
                 </th>
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 print:h-8 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-6 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  <div className="flex flex-col h-full items-center justify-between print:justify-center py-1.5 print:py-0">
-                    <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
-                      <button onClick={() => fillColumn(d, 'T2')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Tối"><Plus className="w-2.5 h-2.5" /></button>
-                      <button onClick={() => copyColumn(d, 'T2')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Tối"><Copy className="w-2.5 h-2.5" /></button>
+                  <div className="flex flex-col h-full items-center justify-center">
+                    <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
+                      <button onClick={() => fillColumn(d, 'T2')} className="hover:bg-emerald-50 text-emerald-600 rounded transition-colors flex items-center justify-center" title="Chọn tất cả Tối"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'T2')} className="hover:bg-indigo-50 text-indigo-600 rounded transition-colors flex items-center justify-center" title="Sao chép cột Tối"><Copy className="w-2.5 h-2.5" /></button>
                       {columnClipboard ? (
-                        <button onClick={() => pasteColumn(d, 'T2')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded transition-colors" title="Dán cột Tối"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                        <button onClick={() => pasteColumn(d, 'T2')} className="hover:bg-orange-50 text-orange-600 rounded transition-colors flex items-center justify-center" title="Dán cột Tối"><ClipboardPaste className="w-2.5 h-2.5" /></button>
                       ) : (
-                        <div className="w-3.5 h-3.5"></div>
+                        <div></div>
                       )}
-                      <button onClick={() => clearColumn(d, 'T2')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Tối"><Trash2 className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => clearColumn(d, 'T2')} className="hover:bg-red-50 text-red-600 rounded transition-colors flex items-center justify-center" title="Xóa tất cả Tối"><Trash2 className="w-2.5 h-2.5" /></button>
                     </div>
-                    <span className="font-bold text-[9px] mt-auto print:mt-0 print:leading-none">T</span>
+                    <span className="font-bold text-[9px] leading-none">T</span>
                   </div>
                 </th>
               </React.Fragment>
             ))}
             {isSecondHalf && (
               <>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
                   <div className="flex items-center justify-center h-full w-full leading-none">S</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
                   <div className="flex items-center justify-center h-full w-full leading-none">S</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-20 print:h-8">
+                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
               </>
@@ -1261,7 +1266,8 @@ export default function App() {
           </tr>
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
+            <td className="border-[0.5px] border-black text-center uppercase sticky left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">Thứ</td>
+            <td className="border-[0.5px] border-black text-center uppercase sticky left-8 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
                 <td className="border-[0.5px] border-black text-center align-middle h-6">
@@ -1283,7 +1289,7 @@ export default function App() {
         {isSecondHalf && (
           <tfoot className="print:table-footer-group">
             <tr className="no-print-border border-none print:break-inside-avoid">
-              <td colSpan={days.length * 3 + 2 + 6} className="border-none !border-transparent pt-8 pb-4">
+              <td colSpan={days.length * 3 + 2 + 6} className="border-0 pt-8 pb-4">
                 <div className="flex justify-end pr-8">
                   <div className="text-center w-64 print:break-inside-avoid">
                     <p className="italic text-[11px] mb-1 flex items-center justify-center gap-0.5">
@@ -1595,7 +1601,7 @@ export default function App() {
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
         >
         {/* Header Section */}
-        <div className="flex justify-between items-start mb-2 px-2">
+        <div className="flex justify-between items-start mb-2 px-2 print:hidden">
           <div className="text-left">
             <input 
               type="text" 
