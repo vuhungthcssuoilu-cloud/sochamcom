@@ -1058,13 +1058,13 @@ export default function App() {
           </tr>
           {/* Header Row 4: Name & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20 shadow-[1px_0_0_black]">
-              <div className="flex items-center justify-between px-1">
+            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20 shadow-[1px_0_0_black] relative">
+              <div className="flex items-center justify-center px-1 w-full h-full">
                 <span>Họ và tên</span>
                 {clipboard && (
                   <button 
                     onClick={pasteToAll}
-                    className="p-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 print:hidden"
+                    className="absolute right-1 p-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 print:hidden"
                     title="Dán mẫu cho tất cả học sinh"
                   >
                     <ClipboardPaste className="w-3 h-3" />
