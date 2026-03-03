@@ -74,7 +74,7 @@ export default function App() {
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [location, setLocation] = useState('Suối Lư');
   const [teacherName, setTeacherName] = useState('Vũ Văn Hùng');
-  const [standardMeals, setStandardMeals] = useState({ S: 14, T1: 14, T2: 12 });
+  const [standardMeals, setStandardMeals] = useState({ S: 0, T1: 0, T2: 0 });
   const [footerDay, setFooterDay] = useState(new Date().getDate());
   const [footerMonth, setFooterMonth] = useState(new Date().getMonth() + 1);
   const [footerYear, setFooterYear] = useState(new Date().getFullYear());
@@ -324,7 +324,7 @@ export default function App() {
           setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
           setLocation(fetchedLocation);
           setStudents(data.students || INITIAL_STUDENTS);
-          setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
+          setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
           isDirty.current = false;
         } else {
           // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
@@ -355,7 +355,7 @@ export default function App() {
             setClassName(latestData.class_name || '8C1');
             setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
             setLocation(fetchedLocation);
-            setStandardMeals(latestData.standard_meals || { S: 14, T1: 14, T2: 12 });
+            setStandardMeals(latestData.standard_meals || { S: 0, T1: 0, T2: 0 });
             // Copy students but clear their meal data for the new month
             const copiedStudents = (latestData.students || []).map((s: any) => ({
               ...s,
