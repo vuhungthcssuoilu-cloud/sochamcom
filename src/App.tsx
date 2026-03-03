@@ -947,12 +947,12 @@ export default function App() {
       sheet.getColumn(1).width = 5; // STT
       sheet.getColumn(2).width = 25; // Name
       for (let c = 3; c <= lastCol; c++) {
-        sheet.getColumn(c).width = 4; // S, T, T columns
+        sheet.getColumn(c).width = 7; // S, T, T columns
       }
       if (isSecondHalf) {
         // Summary columns slightly wider
         for (let c = lastCol - 5; c <= lastCol; c++) {
-          sheet.getColumn(c).width = 6;
+          sheet.getColumn(c).width = 8;
         }
       }
     };
@@ -978,13 +978,13 @@ export default function App() {
           <col className="w-8" /><col className="w-40" />
           {days.map(d => (
             <React.Fragment key={d}>
-              <col className="w-[18px]" /><col className="w-[18px]" /><col className="w-[18px]" />
+              <col className="w-[32px]" /><col className="w-[32px]" /><col className="w-[32px]" />
             </React.Fragment>
           ))}
           {isSecondHalf && (
             <>
-              <col className="w-[20px]" /><col className="w-[20px]" /><col className="w-[20px]" />
-              <col className="w-[20px]" /><col className="w-[20px]" /><col className="w-[20px]" />
+              <col className="w-[32px]" /><col className="w-[32px]" /><col className="w-[32px]" />
+              <col className="w-[32px]" /><col className="w-[32px]" /><col className="w-[32px]" />
             </>
           )}
         </colgroup>
@@ -1058,7 +1058,7 @@ export default function App() {
           </tr>
           {/* Header Row 4: Name & Meal Labels */}
           <tr>
-            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20 shadow-[1px_0_0_black] relative">
+            <th colSpan={2} className="border-[0.5px] border-black text-center font-bold py-1 sticky left-0 bg-white z-20 shadow-[1px_0_0_black] relative h-20">
               <div className="flex items-center justify-center px-1 w-full h-full">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -1077,40 +1077,58 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  S
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 opacity-0 group-hover/h:opacity-100 bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden after:absolute after:top-full after:left-0 after:right-0 after:h-4 after:content-['']">
-                    <button onClick={() => fillColumn(d, 'S')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
-                    <button onClick={() => copyColumn(d, 'S')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
-                    {columnClipboard && <button onClick={() => pasteColumn(d, 'S')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
-                    <button onClick={() => clearColumn(d, 'S')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
+                  <div className="flex flex-col h-full items-center justify-between py-1.5">
+                    <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
+                      <button onClick={() => fillColumn(d, 'S')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Sáng"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'S')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Sáng"><Copy className="w-2.5 h-2.5" /></button>
+                      {columnClipboard ? (
+                        <button onClick={() => pasteColumn(d, 'S')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded transition-colors" title="Dán cột Sáng"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                      ) : (
+                        <div className="w-3.5 h-3.5"></div>
+                      )}
+                      <button onClick={() => clearColumn(d, 'S')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Sáng"><Trash2 className="w-2.5 h-2.5" /></button>
+                    </div>
+                    <span className="font-bold text-[9px] mt-auto">S</span>
                   </div>
                 </th>
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  T
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 opacity-0 group-hover/h:opacity-100 bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden after:absolute after:top-full after:left-0 after:right-0 after:h-4 after:content-['']">
-                    <button onClick={() => fillColumn(d, 'T1')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
-                    <button onClick={() => copyColumn(d, 'T1')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
-                    {columnClipboard && <button onClick={() => pasteColumn(d, 'T1')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
-                    <button onClick={() => clearColumn(d, 'T1')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
+                  <div className="flex flex-col h-full items-center justify-between py-1.5">
+                    <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
+                      <button onClick={() => fillColumn(d, 'T1')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Trưa"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'T1')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Trưa"><Copy className="w-2.5 h-2.5" /></button>
+                      {columnClipboard ? (
+                        <button onClick={() => pasteColumn(d, 'T1')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded transition-colors" title="Dán cột Trưa"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                      ) : (
+                        <div className="w-3.5 h-3.5"></div>
+                      )}
+                      <button onClick={() => clearColumn(d, 'T1')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Trưa"><Trash2 className="w-2.5 h-2.5" /></button>
+                    </div>
+                    <span className="font-bold text-[9px] mt-auto">T</span>
                   </div>
                 </th>
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-20 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
                 >
-                  T
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 opacity-0 group-hover/h:opacity-100 bg-white border border-gray-200 p-0.5 rounded shadow-sm z-30 print:hidden after:absolute after:top-full after:left-0 after:right-0 after:h-4 after:content-['']">
-                    <button onClick={() => fillColumn(d, 'T2')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded" title="Chọn tất cả"><Plus className="w-2.5 h-2.5" /></button>
-                    <button onClick={() => copyColumn(d, 'T2')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded" title="Sao chép cột"><Copy className="w-2.5 h-2.5" /></button>
-                    {columnClipboard && <button onClick={() => pasteColumn(d, 'T2')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded" title="Dán cột"><ClipboardPaste className="w-2.5 h-2.5" /></button>}
-                    <button onClick={() => clearColumn(d, 'T2')} className="p-0.5 hover:bg-red-50 text-red-600 rounded" title="Xóa tất cả"><Trash2 className="w-2.5 h-2.5" /></button>
+                  <div className="flex flex-col h-full items-center justify-between py-1.5">
+                    <div className="grid grid-cols-2 gap-0.5 opacity-40 group-hover/h:opacity-100 transition-opacity print:hidden">
+                      <button onClick={() => fillColumn(d, 'T2')} className="p-0.5 hover:bg-emerald-50 text-emerald-600 rounded transition-colors" title="Chọn tất cả Tối"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'T2')} className="p-0.5 hover:bg-indigo-50 text-indigo-600 rounded transition-colors" title="Sao chép cột Tối"><Copy className="w-2.5 h-2.5" /></button>
+                      {columnClipboard ? (
+                        <button onClick={() => pasteColumn(d, 'T2')} className="p-0.5 hover:bg-orange-50 text-orange-600 rounded transition-colors" title="Dán cột Tối"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                      ) : (
+                        <div className="w-3.5 h-3.5"></div>
+                      )}
+                      <button onClick={() => clearColumn(d, 'T2')} className="p-0.5 hover:bg-red-50 text-red-600 rounded transition-colors" title="Xóa tất cả Tối"><Trash2 className="w-2.5 h-2.5" /></button>
+                    </div>
+                    <span className="font-bold text-[9px] mt-auto">T</span>
                   </div>
                 </th>
               </React.Fragment>
