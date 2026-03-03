@@ -187,6 +187,7 @@ export default function App() {
     if (user && !isInitializing && !hasShownInitialAlert.current) {
       // Small delay to ensure UI is ready and not jarring
       const timer = setTimeout(() => {
+        setStandardMeals({ S: 0, T1: 0, T2: 0 }); // Force reset to 0 on login
         setIsQuotaModalOpen(true);
         hasShownInitialAlert.current = true;
       }, 1000);
@@ -324,7 +325,15 @@ export default function App() {
           setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
           setLocation(fetchedLocation);
           setStudents(data.students || INITIAL_STUDENTS);
-          setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
+          
+          // If this is the first load of the session, force quotas to 0 as requested
+          // Otherwise (switching months), load the saved values
+          if (!hasShownInitialAlert.current) {
+            setStandardMeals({ S: 0, T1: 0, T2: 0 });
+          } else {
+            setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
+          }
+          
           isDirty.current = false;
         } else {
           // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
