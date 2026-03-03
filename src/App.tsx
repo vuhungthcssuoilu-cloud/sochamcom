@@ -209,13 +209,12 @@ export default function App() {
         location,
         students,
         standard_meals: standardMeals,
-        favicon_url: faviconUrl,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,month,year' });
 
     if (error) {
       console.error('Error saving data:', error);
-      if (!silent) alert('Lỗi khi lưu dữ liệu!');
+      if (!silent) alert(`Lỗi khi lưu dữ liệu! Chi tiết: ${error.message}`);
     } else {
       if (!silent) alert('Đã lưu dữ liệu thành công!');
       isDirty.current = false; // Reset dirty flag after successful save
@@ -267,7 +266,6 @@ export default function App() {
         setLocation(data.location || 'Suối Lừ');
         setStudents(data.students || INITIAL_STUDENTS);
         setStandardMeals(data.standard_meals || { S: 14, T1: 14, T2: 12 });
-        if (data.favicon_url) setFaviconUrl(data.favicon_url);
         isDirty.current = false;
       } else {
         // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
@@ -288,7 +286,6 @@ export default function App() {
           setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
           setLocation(latestData.location || 'Suối Lừ');
           setStandardMeals(latestData.standard_meals || { S: 14, T1: 14, T2: 12 });
-          if (latestData.favicon_url) setFaviconUrl(latestData.favicon_url);
           // Copy students but clear their meal data for the new month
           const copiedStudents = (latestData.students || []).map((s: any) => ({
             ...s,
