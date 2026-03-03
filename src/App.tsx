@@ -979,21 +979,21 @@ export default function App() {
           <col className="w-8 print:w-[30px]" /><col className="w-40 print:w-[180px]" />
           {days.map(d => (
             <React.Fragment key={d}>
-              <col className="w-[32px] print:w-[22px]" /><col className="w-[32px] print:w-[22px]" /><col className="w-[32px] print:w-[22px]" />
+              <col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" />
             </React.Fragment>
           ))}
           {isSecondHalf && (
             <>
-              <col className="w-[32px] print:w-[22px]" /><col className="w-[32px] print:w-[22px]" /><col className="w-[32px] print:w-[22px]" />
-              <col className="w-[32px] print:w-[22px]" /><col className="w-[32px] print:w-[22px]" /><col className="w-[32px] print:w-[22px]" />
+              <col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" />
+              <col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" />
             </>
           )}
         </colgroup>
         <thead>
           {/* Header Row 1: STT, Diagonal, Title */}
           <tr>
-            <th rowSpan={3} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:relative bg-white z-20 w-8 print:w-[30px]">STT</th>
-            <th rowSpan={3} className="border-[0.5px] border-black text-center relative sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] overflow-hidden">
+            <th rowSpan={3} className="border-[0.5px] border-black text-center font-normal sticky left-0 print:left-0 print:relative bg-white z-20 w-8 print:w-[30px]">STT</th>
+            <th rowSpan={3} className="border-[0.5px] border-black text-center relative sticky left-8 print:left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] overflow-hidden">
               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="1" />
               </svg>
@@ -1057,8 +1057,8 @@ export default function App() {
           </tr>
           {/* Header Row 4: Họ và tên & Meal Labels */}
           <tr>
-            <th className="border-[0.5px] border-black sticky left-0 print:relative bg-white z-20 h-6 w-8 print:w-[30px]"></th>
-            <th className="border-[0.5px] border-black text-center font-bold py-1 sticky left-8 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-6 w-40 print:w-[180px]">
+            <th className="border-[0.5px] border-black sticky left-0 print:left-0 print:relative bg-white z-20 h-6 w-8 print:w-[30px]"></th>
+            <th className="border-[0.5px] border-black text-center font-bold py-1 sticky left-8 print:left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-6 w-40 print:w-[180px]">
               <div className="flex items-center justify-center px-1 w-full h-full print:text-[13px]">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -1162,8 +1162,8 @@ export default function App() {
             const totals = calculateStudentTotals(student);
             return (
               <tr key={student.id} className="hover:bg-blue-50 group h-6">
-                <td className="border-[0.5px] border-black text-center sticky left-0 print:relative bg-white group-hover:bg-blue-50 z-10 w-8 print:w-[30px]">{idx + 1}</td>
-                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:relative bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px]">
+                <td className="border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 w-8 print:w-[30px]">{idx + 1}</td>
+                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px]">
                   <div className="flex items-center gap-1 h-full">
                     <input 
                       type="text" 
@@ -1266,7 +1266,7 @@ export default function App() {
           </tr>
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
                 <td className="border-[0.5px] border-black text-center align-middle h-6">
