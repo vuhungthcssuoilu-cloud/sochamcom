@@ -91,7 +91,6 @@ export default function App() {
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
-  const [showQuotaAlert, setShowQuotaAlert] = useState(false);
   const hasShownInitialAlert = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +187,7 @@ export default function App() {
     if (user && !isInitializing && !hasShownInitialAlert.current) {
       // Small delay to ensure UI is ready and not jarring
       const timer = setTimeout(() => {
-        setShowQuotaAlert(true);
+        setIsQuotaModalOpen(true);
         hasShownInitialAlert.current = true;
       }, 1000);
       return () => clearTimeout(timer);
@@ -1370,41 +1369,6 @@ export default function App() {
 
   return (
     <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-4'}`}>
-      {/* Quota Warning Alert - Shown after login */}
-      {showQuotaAlert && !isFullScreen && (
-        <div className="w-full max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-500 print:hidden">
-          <div className="flex items-center gap-3">
-            <div className="bg-amber-100 p-2 rounded-lg">
-              <Info className="w-5 h-5 text-amber-700" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-amber-900">Cảnh báo: Cấu hình định mức ăn</h4>
-              <p className="text-xs text-amber-800">
-                Chào mừng bạn đã đăng nhập thành công! Vui lòng kiểm tra và cấu hình lại <strong>Định mức ngày ăn</strong> cho tháng {month + 1}/{year} này để hệ thống tính toán số buổi thừa/thiếu chính xác nhất.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 ml-4">
-            <button 
-              onClick={() => {
-                setShowQuotaAlert(false);
-                setIsQuotaModalOpen(true);
-              }}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap"
-            >
-              Cấu hình ngay
-            </button>
-            <button 
-              onClick={() => setShowQuotaAlert(false)}
-              className="p-1.5 text-amber-400 hover:text-amber-600 hover:bg-amber-100 rounded-full transition-colors"
-              title="Đóng thông báo"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Controls - Hidden on Print */}
       <div className={`w-full mb-6 bg-white rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
@@ -1761,9 +1725,20 @@ export default function App() {
 
       {/* Meal Quota Modal */}
       {isQuotaModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:hidden">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-80 max-w-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 uppercase text-center border-b pb-2">Cấu hình Định mức ăn</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:hidden p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-96 max-w-full animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4 border-b pb-2">
+              <h3 className="text-lg font-bold text-gray-900 uppercase">Định mức ăn tháng {month + 1}</h3>
+              <button onClick={() => setIsQuotaModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-6">
+              <p className="text-xs text-blue-800 leading-relaxed">
+                <strong>Lưu ý:</strong> Vui lòng kiểm tra và nhập đúng định mức ngày ăn của tháng này để hệ thống tính toán chính xác.
+              </p>
+            </div>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between">
