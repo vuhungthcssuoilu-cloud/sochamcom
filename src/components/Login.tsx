@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function Login() {
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
   // Captcha state
   const [captchaQuestion, setCaptchaQuestion] = useState('');
@@ -27,8 +29,21 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      setError('Vui lòng nhập email và mật khẩu.');
+      return;
+    }
+
+    if (parseInt(userCaptchaInput) !== captchaAnswer) {
+      setError('Mã xác nhận không đúng. Vui lòng thử lại.');
+      generateCaptcha();
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setSuccessMsg(null);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -39,8 +54,9 @@ export default function Login() {
       if (error.message.includes('Email not confirmed')) {
         setError('Tài khoản chưa được xác nhận. Vui lòng kiểm tra email hoặc tắt "Confirm email" trong Supabase.');
       } else {
-        setError(error.message);
+        setError('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
       }
+      generateCaptcha();
     }
     setLoading(false);
   };
@@ -61,6 +77,7 @@ export default function Login() {
 
     setLoading(true);
     setError(null);
+    setSuccessMsg(null);
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -75,21 +92,11 @@ export default function Login() {
     if (error) {
       setError(error.message);
       generateCaptcha();
-    } else if (data.session) {
-      // If session is returned, user is logged in automatically
-      setError('Đăng ký thành công! Đang đăng nhập...');
     } else {
-      // Try to sign in immediately just in case email confirmation is off but session wasn't returned
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (signInError) {
-        setError('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản. (Lưu ý: Nếu bạn là Admin, hãy tắt "Confirm email" trong cài đặt Supabase để đăng nhập ngay).');
-      } else {
-        setError('Đăng ký thành công! Đang đăng nhập...');
-      }
+      setSuccessMsg('Đăng ký thành công! Vui lòng đăng nhập.');
+      setIsRegisterMode(false);
+      setPassword('');
+      setUserCaptchaInput('');
       generateCaptcha();
     }
     setLoading(false);
@@ -137,21 +144,24 @@ export default function Login() {
             </svg>
           </div>
 
-          <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={handleLogin}>
-            <div className="flex flex-col sm:flex-row sm:items-center">
-              <label htmlFor="full-name" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Họ và tên:</label>
-              <div className="w-full sm:w-2/3">
-                <input
-                  id="full-name"
-                  name="fullName"
-                  type="text"
-                  className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Chỉ cần khi Đăng ký"
-                />
+          <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={isRegisterMode ? handleSignUp : handleLogin}>
+            {isRegisterMode && (
+              <div className="flex flex-col sm:flex-row sm:items-center">
+                <label htmlFor="full-name" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Họ và tên:</label>
+                <div className="w-full sm:w-2/3">
+                  <input
+                    id="full-name"
+                    name="fullName"
+                    type="text"
+                    required={isRegisterMode}
+                    className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Nhập họ và tên"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex flex-col sm:flex-row sm:items-center">
               <label htmlFor="email-address" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Tài khoản Gmail:</label>
@@ -201,6 +211,7 @@ export default function Login() {
                 <input
                   id="captcha"
                   type="text"
+                  required
                   className="w-20 border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
                   value={userCaptchaInput}
                   onChange={(e) => setUserCaptchaInput(e.target.value)}
@@ -213,11 +224,7 @@ export default function Login() {
                 >
                   Đổi mã
                 </button>
-                <span className="text-xs text-gray-500 italic ml-1 hidden sm:inline">(Chỉ dùng khi Đăng ký)</span>
               </div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:hidden">
-               <div className="w-full text-xs text-gray-500 italic">(Mã xác nhận chỉ dùng khi Đăng ký)</div>
             </div>
 
             {error && (
@@ -228,25 +235,65 @@ export default function Login() {
                 </div>
               </div>
             )}
+
+            {successMsg && (
+              <div className="flex flex-col sm:flex-row sm:items-center mt-2">
+                <div className="hidden sm:block sm:w-1/3"></div>
+                <div className="w-full sm:w-2/3 text-emerald-600 text-xs font-medium">
+                  {successMsg}
+                </div>
+              </div>
+            )}
             
             <div className="flex flex-col sm:flex-row sm:items-center mt-6 pt-4">
               <div className="hidden sm:block sm:w-1/3"></div>
               <div className="w-full sm:w-2/3 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full sm:w-auto bg-[#A0522D] hover:bg-[#8B4513] text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
-                >
-                  {loading ? 'Đang xử lý...' : 'Đăng nhập'}
-                </button>
-                <button 
-                  type="button"
-                  onClick={handleSignUp} 
-                  disabled={loading}
-                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
-                >
-                  Đăng ký
-                </button>
+                {isRegisterMode ? (
+                  <>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
+                    >
+                      {loading ? 'Đang xử lý...' : 'Đăng ký'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setIsRegisterMode(false);
+                        setError(null);
+                        generateCaptcha();
+                      }} 
+                      disabled={loading}
+                      className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
+                    >
+                      Quay lại
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full sm:w-auto bg-[#A0522D] hover:bg-[#8B4513] text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
+                    >
+                      {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setIsRegisterMode(true);
+                        setError(null);
+                        setSuccessMsg(null);
+                        generateCaptcha();
+                      }} 
+                      disabled={loading}
+                      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
+                    >
+                      Đăng ký
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </form>
