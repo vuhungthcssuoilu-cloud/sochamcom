@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Settings } from 'lucide-react';
+import { Settings, Upload } from 'lucide-react';
 
 export default function Login() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -10,9 +10,35 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [bgImage, setBgImage] = useState(() => {
-    return localStorage.getItem('loginBgImage') || 'https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80';
-  });
+  const [bgImage, setBgImage] = useState('https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Fetch global background image setting on load
+  useEffect(() => {
+    const fetchBgImage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', 'login_bg_image')
+          .single();
+          
+        if (data && data.setting_value) {
+          setBgImage(data.setting_value);
+        } else {
+          // Fallback to local storage if DB fails or not set
+          const localBg = localStorage.getItem('loginBgImage');
+          if (localBg) setBgImage(localBg);
+        }
+      } catch (err) {
+        console.error('Error fetching background image:', err);
+        const localBg = localStorage.getItem('loginBgImage');
+        if (localBg) setBgImage(localBg);
+      }
+    };
+    
+    fetchBgImage();
+  }, []);
   
   // Captcha state
   const [captchaQuestion, setCaptchaQuestion] = useState('');
@@ -106,16 +132,57 @@ export default function Login() {
     setLoading(false);
   };
 
-  const handleConfigImage = () => {
-    const newUrl = window.prompt('Nhập đường dẫn (URL) hình ảnh mới:', bgImage);
+  const saveBgImageToDb = async (url: string) => {
+    try {
+      // Try to update first
+      const { data, error } = await supabase
+        .from('app_settings')
+        .update({ setting_value: url })
+        .eq('setting_key', 'login_bg_image')
+        .select();
+        
+      // If no rows updated, it means the key doesn't exist, so insert it
+      if (!data || data.length === 0) {
+        await supabase
+          .from('app_settings')
+          .insert([{ setting_key: 'login_bg_image', setting_value: url }]);
+      }
+    } catch (err) {
+      console.error('Error saving background image to DB:', err);
+    }
+  };
+
+  const handleConfigImage = async () => {
+    const newUrl = window.prompt('Nhập đường dẫn (URL) hình ảnh mới (hoặc để trống để quay về mặc định):', bgImage);
     if (newUrl !== null && newUrl.trim() !== '') {
-      setBgImage(newUrl.trim());
-      localStorage.setItem('loginBgImage', newUrl.trim());
+      const url = newUrl.trim();
+      setBgImage(url);
+      localStorage.setItem('loginBgImage', url);
+      await saveBgImageToDb(url);
     } else if (newUrl === '') {
       // Reset to default if empty
       const defaultImg = 'https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80';
       setBgImage(defaultImg);
       localStorage.removeItem('loginBgImage');
+      await saveBgImageToDb(defaultImg);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        alert('File quá lớn! Vui lòng chọn file dưới 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        setBgImage(base64);
+        localStorage.setItem('loginBgImage', base64);
+        await saveBgImageToDb(base64);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -152,14 +219,31 @@ export default function Login() {
 
           {/* Config Image Button for specific user */}
           {email === 'vuhung@db.edu.vn' && (
-            <button
-              type="button"
-              onClick={handleConfigImage}
-              className="absolute top-2 right-2 z-20 bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-all opacity-50 hover:opacity-100"
-              title="Cấu hình hình ảnh nền"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
+            <div className="absolute top-2 right-2 z-20 flex gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-all opacity-50 hover:opacity-100"
+                title="Tải ảnh lên từ máy tính"
+              >
+                <Upload className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleConfigImage}
+                className="bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-all opacity-50 hover:opacity-100"
+                title="Nhập URL hình ảnh nền"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
           )}
         </div>
 
