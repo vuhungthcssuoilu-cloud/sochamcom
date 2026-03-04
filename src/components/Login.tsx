@@ -5,6 +5,7 @@ import { Settings, Upload } from 'lucide-react';
 export default function Login() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,8 +92,15 @@ export default function Login() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !fullName) {
-      setError('Vui lòng nhập họ tên, email và mật khẩu để đăng ký.');
+    if (!email || !password || !fullName || !phoneNumber) {
+      setError('Vui lòng nhập đầy đủ họ tên, số điện thoại, email và mật khẩu.');
+      return;
+    }
+
+    // Basic Vietnam phone number validation (10 digits, starts with 0)
+    const phoneRegex = /^(0[3|5|7|8|9])[0-9]{8}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      setError('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (10 số, bắt đầu bằng 03, 05, 07, 08, 09).');
       return;
     }
 
@@ -112,6 +120,7 @@ export default function Login() {
       options: {
         data: {
           full_name: fullName,
+          phone_number: phoneNumber,
         }
       }
     });
@@ -124,6 +133,7 @@ export default function Login() {
       setIsRegisterMode(false);
       setPassword('');
       setUserCaptchaInput('');
+      setPhoneNumber('');
       generateCaptcha();
     }
     setLoading(false);
@@ -269,21 +279,38 @@ export default function Login() {
 
           <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={isRegisterMode ? handleSignUp : handleLogin}>
             {isRegisterMode && (
-              <div className="flex flex-col sm:flex-row sm:items-center">
-                <label htmlFor="full-name" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Họ và tên:</label>
-                <div className="w-full sm:w-2/3">
-                  <input
-                    id="full-name"
-                    name="fullName"
-                    type="text"
-                    required={isRegisterMode}
-                    className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Nhập họ và tên"
-                  />
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <label htmlFor="full-name" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Họ và tên:</label>
+                  <div className="w-full sm:w-2/3">
+                    <input
+                      id="full-name"
+                      name="fullName"
+                      type="text"
+                      required={isRegisterMode}
+                      className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Nhập họ và tên"
+                    />
+                  </div>
                 </div>
-              </div>
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <label htmlFor="phone-number" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Số điện thoại:</label>
+                  <div className="w-full sm:w-2/3">
+                    <input
+                      id="phone-number"
+                      name="phoneNumber"
+                      type="tel"
+                      required={isRegisterMode}
+                      className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="VD: 0984246993"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center">
