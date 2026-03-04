@@ -141,14 +141,26 @@ export default function Login() {
         .eq('setting_key', 'login_bg_image')
         .select();
         
+      if (error) {
+        console.error('Error updating background image:', error);
+        alert('Lỗi khi lưu ảnh lên hệ thống. Vui lòng kiểm tra lại cơ sở dữ liệu Supabase (bảng app_settings).');
+        return;
+      }
+        
       // If no rows updated, it means the key doesn't exist, so insert it
       if (!data || data.length === 0) {
-        await supabase
+        const { error: insertError } = await supabase
           .from('app_settings')
           .insert([{ setting_key: 'login_bg_image', setting_value: url }]);
+          
+        if (insertError) {
+          console.error('Error inserting background image:', insertError);
+          alert('Lỗi khi lưu ảnh lên hệ thống. Vui lòng kiểm tra lại cơ sở dữ liệu Supabase (bảng app_settings).');
+        }
       }
     } catch (err) {
       console.error('Error saving background image to DB:', err);
+      alert('Lỗi kết nối khi lưu ảnh lên hệ thống.');
     }
   };
 
