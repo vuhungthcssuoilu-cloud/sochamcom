@@ -109,25 +109,26 @@ export default function Login() {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-300 relative z-10">
         
         {/* Header Section */}
-        <div className="relative h-28 sm:h-32 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden bg-gradient-to-r from-[#fff8e1] via-[#ffe082] to-[#ffca28]">
-          {/* Landscape image on the right */}
+        <div className="relative h-32 sm:h-40 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden bg-blue-50">
+          {/* Background Image - Using a reliable Unsplash image of beautiful blossoms resembling Hoa Ban to prevent loading errors */}
           <div 
-            className="absolute inset-y-0 right-0 w-2/3 opacity-60 mix-blend-multiply" 
+            className="absolute inset-0 w-full h-full" 
             style={{ 
-              backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Bauhinia_variegata_flower.jpg/800px-Bauhinia_variegata_flower.jpg')", 
+              backgroundImage: "url('https://images.unsplash.com/photo-1522684487319-f574cd5937cf?auto=format&fit=crop&w=1200&q=80')", 
               backgroundSize: 'cover', 
-              backgroundPosition: 'center',
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 40%)',
-              maskImage: 'linear-gradient(to right, transparent, black 40%)'
+              backgroundPosition: 'center 40%',
             }}
           ></div>
           
+          {/* Light overlay to ensure text is readable but image is very clear */}
+          <div className="absolute inset-0 bg-white/20"></div>
+          
           {/* Text */}
           <div className="relative z-10 text-center flex flex-col items-center justify-center w-full px-4">
-            <h2 className="text-lg sm:text-xl font-bold text-[#8B4513] uppercase tracking-wide" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
+            <h2 className="text-lg sm:text-xl font-bold text-[#8B4513] uppercase tracking-wide" style={{ textShadow: '2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff, 0px 4px 4px rgba(0,0,0,0.3)' }}>
               Hệ thống quản lý nội trú
             </h2>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#8B4513] uppercase tracking-wider mt-1" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-[#8B4513] uppercase tracking-wider mt-1" style={{ textShadow: '2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff, 0px 4px 4px rgba(0,0,0,0.3)' }}>
               Sổ Chấm Cơm
             </h1>
           </div>
