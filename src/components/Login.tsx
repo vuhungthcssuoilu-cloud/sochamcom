@@ -114,13 +114,16 @@ export default function Login() {
     setError(null);
     setSuccessMsg(null);
 
+    // Format phone number to E.164 format (+84...)
+    const formattedPhone = '+84' + phoneNumber.substring(1);
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
-          phone_number: phoneNumber,
+          phone: formattedPhone,
         }
       }
     });
