@@ -1387,7 +1387,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-indigo-700 bg-white px-3 py-1 rounded-full shadow-sm border border-indigo-100">
               <UserIcon className="w-4 h-4" />
-              <span className="text-sm font-bold">{user?.email}</span>
+              <span className="text-sm font-bold">{user?.user_metadata?.full_name || user?.email}</span>
             </div>
             <button 
               onClick={handleLogout}
