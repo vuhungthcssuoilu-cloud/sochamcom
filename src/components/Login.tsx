@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { Settings } from 'lucide-react';
 
 export default function Login() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -9,6 +10,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [bgImage, setBgImage] = useState(() => {
+    return localStorage.getItem('loginBgImage') || 'https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80';
+  });
   
   // Captcha state
   const [captchaQuestion, setCaptchaQuestion] = useState('');
@@ -102,6 +106,19 @@ export default function Login() {
     setLoading(false);
   };
 
+  const handleConfigImage = () => {
+    const newUrl = window.prompt('Nhập đường dẫn (URL) hình ảnh mới:', bgImage);
+    if (newUrl !== null && newUrl.trim() !== '') {
+      setBgImage(newUrl.trim());
+      localStorage.setItem('loginBgImage', newUrl.trim());
+    } else if (newUrl === '') {
+      // Reset to default if empty
+      const defaultImg = 'https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80';
+      setBgImage(defaultImg);
+      localStorage.removeItem('loginBgImage');
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden pb-24">
       {/* Background pattern similar to the original if needed, but we'll keep it simple gray */}
@@ -109,29 +126,41 @@ export default function Login() {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-300 relative z-10">
         
         {/* Header Section */}
-        <div className="relative h-32 sm:h-40 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden bg-blue-50">
-          {/* Background Image - Using a reliable Unsplash image of beautiful blossoms resembling Hoa Ban to prevent loading errors */}
+        <div className="relative h-32 sm:h-40 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden bg-[#fef08a] group">
+          {/* Background Image - Hoa Ban Dien Bien */}
           <div 
-            className="absolute inset-0 w-full h-full" 
+            className="absolute inset-0 w-full h-full opacity-90" 
             style={{ 
-              backgroundImage: "url('https://images.unsplash.com/photo-1522684487319-f574cd5937cf?auto=format&fit=crop&w=1200&q=80')", 
+              backgroundImage: `url('${bgImage}')`, 
               backgroundSize: 'cover', 
-              backgroundPosition: 'center 40%',
+              backgroundPosition: 'center 30%',
             }}
           ></div>
           
-          {/* Light overlay to ensure text is readable but image is very clear */}
-          <div className="absolute inset-0 bg-white/20"></div>
+          {/* Gradient overlay to match the original warm tone */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#fff8e1]/80 via-[#ffe082]/60 to-transparent"></div>
           
           {/* Text */}
           <div className="relative z-10 text-center flex flex-col items-center justify-center w-full px-4">
-            <h2 className="text-lg sm:text-xl font-bold text-[#8B4513] uppercase tracking-wide" style={{ textShadow: '2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff, 0px 4px 4px rgba(0,0,0,0.3)' }}>
+            <h2 className="text-lg sm:text-xl font-bold text-[#8B4513] uppercase tracking-wide" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
               Hệ thống quản lý nội trú
             </h2>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#8B4513] uppercase tracking-wider mt-1" style={{ textShadow: '2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff, 0px 4px 4px rgba(0,0,0,0.3)' }}>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-[#8B4513] uppercase tracking-wider mt-1" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
               Sổ Chấm Cơm
             </h1>
           </div>
+
+          {/* Config Image Button for specific user */}
+          {email === 'vuhung@db.edu.vn' && (
+            <button
+              type="button"
+              onClick={handleConfigImage}
+              className="absolute top-2 right-2 z-20 bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-all opacity-50 hover:opacity-100"
+              title="Cấu hình hình ảnh nền"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Form Section */}
