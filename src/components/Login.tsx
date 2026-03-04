@@ -10,7 +10,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [bgImage, setBgImage] = useState('https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80');
+  const [bgImage, setBgImage] = useState(() => {
+    return localStorage.getItem('loginBgImage') || 'https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80';
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch global background image setting on load
@@ -25,15 +27,10 @@ export default function Login() {
           
         if (data && data.setting_value) {
           setBgImage(data.setting_value);
-        } else {
-          // Fallback to local storage if DB fails or not set
-          const localBg = localStorage.getItem('loginBgImage');
-          if (localBg) setBgImage(localBg);
+          localStorage.setItem('loginBgImage', data.setting_value);
         }
       } catch (err) {
         console.error('Error fetching background image:', err);
-        const localBg = localStorage.getItem('loginBgImage');
-        if (localBg) setBgImage(localBg);
       }
     };
     
@@ -205,10 +202,10 @@ export default function Login() {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-300 relative z-10">
         
         {/* Header Section */}
-        <div className="relative h-32 sm:h-40 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden bg-[#fef08a] group">
+        <div className="relative h-32 sm:h-40 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden group">
           {/* Background Image - Hoa Ban Dien Bien */}
           <div 
-            className="absolute inset-0 w-full h-full opacity-90" 
+            className="absolute inset-0 w-full h-full" 
             style={{ 
               backgroundImage: `url('${bgImage}')`, 
               backgroundSize: 'cover', 
