@@ -114,7 +114,7 @@ export default function Login() {
           <div 
             className="absolute inset-y-0 right-0 w-2/3 opacity-60 mix-blend-multiply" 
             style={{ 
-              backgroundImage: "url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80')", 
+              backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Bauhinia_variegata_flower.jpg/800px-Bauhinia_variegata_flower.jpg')", 
               backgroundSize: 'cover', 
               backgroundPosition: 'center',
               WebkitMaskImage: 'linear-gradient(to right, transparent, black 40%)',
