@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function Login() {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,8 +48,8 @@ export default function Login() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      setError('Vui lòng nhập email và mật khẩu.');
+    if (!email || !password || !fullName) {
+      setError('Vui lòng nhập họ tên, email và mật khẩu để đăng ký.');
       return;
     }
 
@@ -64,6 +65,11 @@ export default function Login() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+        }
+      }
     });
 
     if (error) {
@@ -132,6 +138,21 @@ export default function Login() {
           </div>
 
           <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={handleLogin}>
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <label htmlFor="full-name" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Họ và tên:</label>
+              <div className="w-full sm:w-2/3">
+                <input
+                  id="full-name"
+                  name="fullName"
+                  type="text"
+                  className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Chỉ cần khi Đăng ký"
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center">
               <label htmlFor="email-address" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Tài khoản Gmail:</label>
               <div className="w-full sm:w-2/3">
