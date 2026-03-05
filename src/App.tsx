@@ -1650,18 +1650,15 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tables Container - Side-by-side layout on large screens, Stacked on mobile/print */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-x-[0.5px] border-black relative print:block">
-          {/* Blue dashed line separator - Hidden on mobile and print */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-blue-500 border-dashed z-10 pointer-events-none hidden lg:block print:hidden"></div>
-          
+        {/* Tables Container - Stacked layout to increase display size */}
+        <div className="flex flex-col gap-8 relative print:block">
           {/* Left Half: Days 1-16 */}
-          <div className="border-r-[0.5px] border-black relative print:border-black print:border-[0.5px] print:mb-8 print:break-after-page print:w-full overflow-x-auto print:overflow-visible">
+          <div className="relative print:mb-8 print:break-after-page print:w-full overflow-x-auto print:overflow-visible">
             {renderTableHalf(firstHalfDays, false)}
           </div>
 
           {/* Right Half: Days 17-End */}
-          <div className="relative print:border-black print:border-[0.5px] print:w-full print:pt-4 overflow-x-auto print:overflow-visible">
+          <div className="relative print:w-full print:pt-4 overflow-x-auto print:overflow-visible">
             {renderTableHalf(secondHalfDays, true)}
           </div>
         </div>
