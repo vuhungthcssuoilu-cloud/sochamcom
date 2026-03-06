@@ -1858,7 +1858,10 @@ export default function App() {
 
             <div className="mt-6 flex justify-end">
               <button 
-                onClick={() => setIsQuotaModalOpen(false)}
+                onClick={() => {
+                  setIsQuotaModalOpen(false);
+                  handleSave(true);
+                }}
                 className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium w-full"
               >
                 Xong
