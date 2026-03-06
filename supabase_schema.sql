@@ -89,6 +89,12 @@ create policy "Admins can manage license keys"
   for all
   using (auth.jwt() ->> 'email' = 'vuhung@db.edu.vn');
 
+-- Users can view their own license key
+create policy "Users can view their own license key"
+  on public.license_keys
+  for select
+  using (auth.uid() = used_by);
+
 -- Function to validate license key during signup
 create or replace function public.check_license_key_before_signup()
 returns trigger as $$
