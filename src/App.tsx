@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key } from 'lucide-react';
 import { read, utils } from 'xlsx';
 import ExcelJS from 'exceljs';
@@ -1593,14 +1594,6 @@ export default function App() {
               <span className="text-[14px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
             </button>
 
-            <button 
-              onClick={() => setIsFullScreen(!isFullScreen)}
-              className={`flex flex-col items-center justify-center gap-1.5 w-20 h-20 rounded-xl border transition-all shadow-sm ${isFullScreen ? 'bg-blue-600 text-white border-blue-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
-            >
-              {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-              <span className="text-[14px] font-bold leading-tight text-center">{isFullScreen ? 'Thu nhỏ' : <>Phóng<br/>to</>}</span>
-            </button>
-
             <div className="flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200 p-1 h-12 ml-2 shadow-sm">
               <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-8 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">-</button>
               <span className="text-[13px] font-bold w-10 text-center text-slate-700">{zoomLevel}%</span>
@@ -1698,18 +1691,19 @@ export default function App() {
       </div>
 
       {/* Close button for preview mode or fullscreen */}
-      {(isPreviewMode || isFullScreen) && (
+      {(isPreviewMode || isFullScreen) && createPortal(
         <button 
           onClick={() => {
             setIsPreviewMode(false);
             setIsFullScreen(false);
           }}
-          className="fixed top-6 right-6 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-2xl z-[60] print:hidden flex items-center gap-2 transition-all hover:scale-105 group"
+          className="fixed top-6 right-6 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-2xl z-[9999] print:hidden flex items-center gap-2 transition-all hover:scale-105 group"
           title={isPreviewMode ? 'Thoát xem trước' : 'Thoát phóng to'}
         >
           <Minimize2 className="w-6 h-6" />
           <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap">Thoát</span>
-        </button>
+        </button>,
+        document.body
       )}
 
       {/* Main Sheet */}
@@ -1722,7 +1716,7 @@ export default function App() {
       }`}>
         <div 
           className={`bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 ${
-            isPreviewMode ? 'w-full scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-auto' : 'w-full'
+            isPreviewMode ? 'w-full scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-8' : 'w-full'
           }`}
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
         >
