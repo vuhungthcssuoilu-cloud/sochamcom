@@ -92,6 +92,8 @@ export default function App() {
   });
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
+  const [isLicenseExpired, setIsLicenseExpired] = useState(false);
+  const [licenseCheckLoading, setLicenseCheckLoading] = useState(false);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const hasShownInitialAlert = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +120,55 @@ export default function App() {
   
   // Ref to track if data has been modified
   const isDirty = useRef(false);
+
+  // Check license expiration
+  useEffect(() => {
+    if (user) {
+      if (user.email === 'vuhung@db.edu.vn') {
+        setIsLicenseExpired(false);
+        return;
+      }
+
+      const checkLicense = async () => {
+        setLicenseCheckLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('license_keys')
+            .select('used_at')
+            .eq('used_by', user.id)
+            .single();
+          
+          if (error) {
+            console.error('Error fetching license key:', error);
+            // If we can't fetch it, maybe they don't have one or there's an error.
+            // We'll assume it's expired to be safe, or maybe not. Let's not block if error unless we know for sure.
+            // Actually, if they don't have a license key, they shouldn't be able to use the app.
+            setIsLicenseExpired(true);
+          } else if (data && data.used_at) {
+            const usedAtDate = new Date(data.used_at);
+            const oneYearLater = new Date(usedAtDate);
+            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+            
+            if (new Date() > oneYearLater) {
+              setIsLicenseExpired(true);
+            } else {
+              setIsLicenseExpired(false);
+            }
+          } else {
+             setIsLicenseExpired(true);
+          }
+        } catch (err) {
+          console.error('Failed to check license:', err);
+        } finally {
+          setLicenseCheckLoading(false);
+        }
+      };
+      
+      checkLicense();
+    } else {
+      setIsLicenseExpired(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Check active session
@@ -394,12 +445,34 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
-  if (isInitializing) {
+  if (isInitializing || licenseCheckLoading) {
     return <div className="min-h-screen flex items-center justify-center">Đang tải...</div>;
   }
 
   if (!user) {
     return <Login />;
+  }
+
+  if (isLicenseExpired) {
+    return (
+      <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Mã bản quyền đã hết hạn</h2>
+          <p className="text-gray-600 mb-6">
+            Mã bản quyền của bạn đã hết hạn sử dụng (1 năm kể từ ngày kích hoạt). Vui lòng liên hệ quản trị viên để gia hạn.
+          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-700 transition-colors"
+          >
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (showAdmin) {
