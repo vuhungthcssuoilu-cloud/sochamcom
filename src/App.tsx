@@ -461,9 +461,9 @@ export default function App() {
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Mã bản quyền đã hết hạn</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Lỗi mã bản quyền</h2>
           <p className="text-gray-600 mb-6">
-            Mã bản quyền của bạn đã hết hạn sử dụng (1 năm kể từ ngày kích hoạt). Vui lòng liên hệ quản trị viên để gia hạn.
+            Mã bản quyền của bạn không hợp lệ, đã bị thu hồi hoặc đã hết hạn sử dụng (1 năm kể từ ngày kích hoạt). Vui lòng liên hệ quản trị viên để được hỗ trợ.
           </p>
           <button
             onClick={handleLogout}
