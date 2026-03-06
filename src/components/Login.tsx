@@ -6,6 +6,7 @@ export default function Login() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [licenseKey, setLicenseKey] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,8 +93,8 @@ export default function Login() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !fullName || !phoneNumber) {
-      setError('Vui lòng nhập đầy đủ họ tên, số điện thoại, email và mật khẩu.');
+    if (!email || !password || !fullName || !phoneNumber || !licenseKey) {
+      setError('Vui lòng nhập đầy đủ họ tên, số điện thoại, email, mật khẩu và mã bản quyền.');
       return;
     }
 
@@ -124,6 +125,7 @@ export default function Login() {
         data: {
           full_name: fullName,
           phone: formattedPhone,
+          license_key: licenseKey,
         }
       }
     });
@@ -137,6 +139,7 @@ export default function Login() {
       setPassword('');
       setUserCaptchaInput('');
       setPhoneNumber('');
+      setLicenseKey('');
       generateCaptcha();
     }
     setLoading(false);
@@ -310,6 +313,21 @@ export default function Login() {
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="VD: 0984246993"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <label htmlFor="license-key" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Mã bản quyền:</label>
+                  <div className="w-full sm:w-2/3">
+                    <input
+                      id="license-key"
+                      name="licenseKey"
+                      type="text"
+                      required={isRegisterMode}
+                      className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none uppercase"
+                      value={licenseKey}
+                      onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
+                      placeholder="VD: SL-XXXX-XXXX"
                     />
                   </div>
                 </div>

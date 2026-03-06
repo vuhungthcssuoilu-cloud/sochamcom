@@ -4,12 +4,13 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key } from 'lucide-react';
 import { read, utils } from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { supabase } from './lib/supabase';
 import Login from './components/Login';
+import Admin from './components/Admin';
 
 // --- Types ---
 
@@ -83,6 +84,7 @@ export default function App() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
   const [faviconUrl, setFaviconUrl] = useState<string>(() => {
     // Try to load from localStorage for instant display on refresh
@@ -398,6 +400,10 @@ export default function App() {
 
   if (!user) {
     return <Login />;
+  }
+
+  if (showAdmin) {
+    return <Admin onBack={() => setShowAdmin(false)} />;
   }
 
   // --- Handlers ---
@@ -1385,6 +1391,15 @@ export default function App() {
         <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100 bg-indigo-50/50 rounded-t-xl">
           <div className="text-sm text-indigo-900/60 font-medium">Phần mềm Sổ Chấm Cơm Nội Trú</div>
           <div className="flex items-center gap-4">
+            {user?.email === 'vuhung@db.edu.vn' && (
+              <button 
+                onClick={() => setShowAdmin(true)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded-full transition-colors text-sm font-bold border border-indigo-200"
+              >
+                <Key className="w-4 h-4" />
+                <span>Quản lý mã bản quyền</span>
+              </button>
+            )}
             <div className="flex items-center gap-2 text-indigo-700 bg-white px-3 py-1 rounded-full shadow-sm border border-indigo-100">
               <UserIcon className="w-4 h-4" />
               <span className="text-sm font-bold">{user?.user_metadata?.full_name || user?.email}</span>
