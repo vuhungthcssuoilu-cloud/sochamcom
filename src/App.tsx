@@ -192,6 +192,8 @@ export default function App() {
           // Force clear user state and stop loading
           setUser(null);
           setIsInitializing(false);
+          // Force a hard reload to clear any stale state in memory
+          window.location.href = '/';
           return;
         }
         
@@ -211,6 +213,7 @@ export default function App() {
             localStorage.removeItem(key);
           }
         });
+        window.location.href = '/';
       }
       setUser(null);
       setIsInitializing(false);
@@ -219,6 +222,9 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Token was successfully refreshed, no action needed but good to log
+        console.log('Token refreshed successfully');
       } else if (session?.user) {
         setUser((prevUser: any) => {
           if (prevUser?.id === session.user.id) return prevUser;

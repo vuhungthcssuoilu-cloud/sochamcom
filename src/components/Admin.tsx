@@ -38,8 +38,12 @@ export default function Admin({ onBack }: { onBack: () => void }) {
     setGenerating(false);
   };
 
-  const deleteKey = async (id: string) => {
-    if (!confirm('Xóa mã này?')) return;
+  const deleteKey = async (id: string, isUsed: boolean, email: string | null) => {
+    const msg = isUsed 
+      ? `CẢNH BÁO: Mã này đang được sử dụng bởi ${email || 'một người dùng'}. Nếu xóa, người này sẽ bị thu hồi quyền truy cập ngay lập tức. Bạn có chắc chắn muốn xóa?`
+      : 'Xóa mã bản quyền này?';
+      
+    if (!confirm(msg)) return;
     await supabase.from('license_keys').delete().eq('id', id);
     fetchKeys();
   };
@@ -150,15 +154,13 @@ export default function Admin({ onBack }: { onBack: () => void }) {
                       {getExpirationDate(k.used_at)}
                     </td>
                     <td className="p-4 text-right">
-                      {!k.is_used && (
-                        <button
-                          onClick={() => deleteKey(k.id)}
-                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Xóa mã"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => deleteKey(k.id, k.is_used, k.used_by_email)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title={k.is_used ? "Thu hồi mã" : "Xóa mã"}
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </td>
                   </tr>
                 ))
