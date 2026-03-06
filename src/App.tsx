@@ -319,15 +319,25 @@ export default function App() {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,month,year' });
 
-    if (error) {
-      console.error('Error saving data:', error);
-      if (!silent) alert(`Lỗi khi lưu dữ liệu! Chi tiết: ${error.message}`);
+    // Save user preferences
+    const prefs = { footerDay, footerMonth, footerYear, markSymbol, faviconUrl };
+    const { error: prefsError } = await supabase
+      .from('app_settings')
+      .upsert({
+        setting_key: `${user.id}_preferences`,
+        setting_value: JSON.stringify(prefs),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'setting_key' });
+
+    if (error || prefsError) {
+      console.error('Error saving data:', error || prefsError);
+      if (!silent) alert(`Lỗi khi lưu dữ liệu! Chi tiết: ${(error || prefsError)?.message}`);
     } else {
       if (!silent) alert('Đã lưu dữ liệu thành công!');
       isDirty.current = false; // Reset dirty flag after successful save
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, faviconUrl]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, faviconUrl, footerDay, footerMonth, footerYear, markSymbol]);
 
   // Auto-save effect
   useEffect(() => {
@@ -338,15 +348,40 @@ export default function App() {
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(timer);
-  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, handleSave, isInitializing, isDataFetching]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, footerDay, footerMonth, footerYear, markSymbol, handleSave, isInitializing, isDataFetching]);
 
   // Mark as dirty when data changes
   useEffect(() => {
     if (!isInitializing && !isDataFetching) {
       isDirty.current = true;
     }
-  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, isInitializing, isDataFetching]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, footerDay, footerMonth, footerYear, markSymbol, isInitializing, isDataFetching]);
 
+  // Fetch user preferences once on login
+  useEffect(() => {
+    if (!user) return;
+    const fetchPrefs = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', `${user.id}_preferences`)
+        .single();
+      
+      if (data && data.setting_value) {
+        try {
+          const prefs = JSON.parse(data.setting_value);
+          if (prefs.footerDay !== undefined) setFooterDay(prefs.footerDay);
+          if (prefs.footerMonth !== undefined) setFooterMonth(prefs.footerMonth);
+          if (prefs.footerYear !== undefined) setFooterYear(prefs.footerYear);
+          if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
+          if (prefs.faviconUrl !== undefined) setFaviconUrl(prefs.faviconUrl);
+        } catch (e) {
+          console.error("Error parsing preferences", e);
+        }
+      }
+    };
+    fetchPrefs();
+  }, [user]);
 
   // Fetch data when user, month, or year changes
   useEffect(() => {
@@ -1654,6 +1689,14 @@ export default function App() {
             
             {/* Right Side: Buttons */}
             <div className="flex items-center gap-3 shrink-0">
+              <button 
+                onClick={() => faviconInputRef.current?.click()}
+                className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors"
+                title="Thay đổi logo trường"
+              >
+                <img src={faviconUrl} alt="Logo" className="w-5 h-5 object-contain" />
+                <span className="text-base font-medium text-gray-700 whitespace-nowrap">Đổi Logo</span>
+              </button>
               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
                 <span className="text-base font-medium text-gray-700 whitespace-nowrap">Ký hiệu chấm:</span>
                 <select 
@@ -1750,6 +1793,15 @@ export default function App() {
           ref={fileInputRef}
           onChange={handleFileUpload}
           accept=".xlsx, .xls"
+          className="hidden"
+        />
+        
+        {/* Hidden File Input for Favicon Upload */}
+        <input
+          type="file"
+          ref={faviconInputRef}
+          onChange={handleFaviconFileChange}
+          accept="image/*"
           className="hidden"
         />
       </div>
