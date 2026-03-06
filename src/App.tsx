@@ -1624,6 +1624,21 @@ export default function App() {
         )}
       </div>
 
+      {/* Close button for preview mode or fullscreen */}
+      {(isPreviewMode || isFullScreen) && (
+        <button 
+          onClick={() => {
+            setIsPreviewMode(false);
+            setIsFullScreen(false);
+          }}
+          className="fixed top-6 right-6 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-2xl z-[60] print:hidden flex items-center gap-2 transition-all hover:scale-105 group"
+          title={isPreviewMode ? 'Thoát xem trước' : 'Thoát phóng to'}
+        >
+          <Minimize2 className="w-6 h-6" />
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap">Thoát</span>
+        </button>
+      )}
+
       {/* Main Sheet */}
       <div className={`transition-all duration-300 ${
         isPreviewMode 
@@ -1632,21 +1647,6 @@ export default function App() {
             ? 'fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-start p-4 overflow-auto'
             : ''
       }`}>
-        {/* Close button for preview mode or fullscreen */}
-        {(isPreviewMode || isFullScreen) && (
-          <button 
-            onClick={() => {
-              setIsPreviewMode(false);
-              setIsFullScreen(false);
-            }}
-            className="fixed top-6 right-6 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-2xl z-50 print:hidden flex items-center gap-2 transition-all hover:scale-105 group"
-            title={isPreviewMode ? 'Thoát xem trước' : 'Thoát phóng to'}
-          >
-            <Minimize2 className="w-6 h-6" />
-            <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap">Thoát</span>
-          </button>
-        )}
-
         <div 
           className={`bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 ${
             isPreviewMode ? 'w-full scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-auto' : 'w-full'
