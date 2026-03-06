@@ -87,10 +87,6 @@ export default function App() {
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
-  const [faviconUrl, setFaviconUrl] = useState<string>(() => {
-    // Try to load from localStorage for instant display on refresh
-    return localStorage.getItem('app_favicon_url') || '/favicon.ico';
-  });
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const [isLicenseExpired, setIsLicenseExpired] = useState(false);
@@ -98,7 +94,6 @@ export default function App() {
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const hasShownInitialAlert = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const faviconInputRef = useRef<HTMLInputElement>(null);
 
   // --- Computed ---
   const daysInMonth = useMemo(() => getDaysInMonth(month, year), [month, year]);
@@ -254,50 +249,10 @@ export default function App() {
     }
   }, [user, isInitializing]);
 
-  // Favicon update effect
+  // Update tab title
   useEffect(() => {
-    // Update tab title to match user's preference shown in image
     document.title = "Chấm ăn học sinh nội trú";
-
-    const updateFavicon = () => {
-      // Save to localStorage for persistence across loads
-      localStorage.setItem('app_favicon_url', faviconUrl);
-
-      // Remove all existing favicon links to avoid conflicts
-      const existingLinks = document.querySelectorAll("link[rel*='icon']");
-      existingLinks.forEach(link => link.parentNode?.removeChild(link));
-
-      // Add new favicon links (both standard and shortcut icon for better compatibility)
-      const link = document.createElement('link');
-      link.type = 'image/x-icon';
-      link.rel = 'shortcut icon';
-      link.href = faviconUrl;
-      document.getElementsByTagName('head')[0].appendChild(link);
-      
-      const linkIcon = document.createElement('link');
-      linkIcon.rel = 'icon';
-      linkIcon.href = faviconUrl;
-      document.getElementsByTagName('head')[0].appendChild(linkIcon);
-    };
-
-    updateFavicon();
-  }, [faviconUrl]);
-
-  const handleFaviconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for base64 storage
-        alert('File quá lớn! Vui lòng chọn file dưới 1MB.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        setFaviconUrl(base64);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  }, []);
 
   // Save function
   const handleSave = useCallback(async (silent = false) => {
@@ -320,7 +275,7 @@ export default function App() {
       }, { onConflict: 'user_id,month,year' });
 
     // Save user preferences
-    const prefs = { footerDay, footerMonth, footerYear, markSymbol, faviconUrl };
+    const prefs = { footerDay, footerMonth, footerYear, markSymbol };
     const { error: prefsError } = await supabase
       .from('app_settings')
       .upsert({
@@ -337,7 +292,14 @@ export default function App() {
       isDirty.current = false; // Reset dirty flag after successful save
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, faviconUrl, footerDay, footerMonth, footerYear, markSymbol]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol]);
+
+  // Mark as dirty when data changes
+  useEffect(() => {
+    if (!isInitializing && !isDataFetching) {
+      isDirty.current = true;
+    }
+  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, isInitializing, isDataFetching]);
 
   // Auto-save effect
   useEffect(() => {
@@ -348,14 +310,19 @@ export default function App() {
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(timer);
-  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, footerDay, footerMonth, footerYear, markSymbol, handleSave, isInitializing, isDataFetching]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, handleSave, isInitializing, isDataFetching]);
 
-  // Mark as dirty when data changes
+  // Warn before closing tab if there are unsaved changes
   useEffect(() => {
-    if (!isInitializing && !isDataFetching) {
-      isDirty.current = true;
-    }
-  }, [students, className, teacherName, schoolName, location, standardMeals, faviconUrl, footerDay, footerMonth, footerYear, markSymbol, isInitializing, isDataFetching]);
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // Fetch user preferences once on login
   useEffect(() => {
@@ -374,7 +341,6 @@ export default function App() {
           if (prefs.footerMonth !== undefined) setFooterMonth(prefs.footerMonth);
           if (prefs.footerYear !== undefined) setFooterYear(prefs.footerYear);
           if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
-          if (prefs.faviconUrl !== undefined) setFaviconUrl(prefs.faviconUrl);
         } catch (e) {
           console.error("Error parsing preferences", e);
         }
@@ -1689,14 +1655,6 @@ export default function App() {
             
             {/* Right Side: Buttons */}
             <div className="flex items-center gap-3 shrink-0">
-              <button 
-                onClick={() => faviconInputRef.current?.click()}
-                className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors"
-                title="Thay đổi logo trường"
-              >
-                <img src={faviconUrl} alt="Logo" className="w-5 h-5 object-contain" />
-                <span className="text-base font-medium text-gray-700 whitespace-nowrap">Đổi Logo</span>
-              </button>
               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
                 <span className="text-base font-medium text-gray-700 whitespace-nowrap">Ký hiệu chấm:</span>
                 <select 
@@ -1795,15 +1753,6 @@ export default function App() {
           accept=".xlsx, .xls"
           className="hidden"
         />
-        
-        {/* Hidden File Input for Favicon Upload */}
-        <input
-          type="file"
-          ref={faviconInputRef}
-          onChange={handleFaviconFileChange}
-          accept="image/*"
-          className="hidden"
-        />
       </div>
 
       {/* Footer Info / Instructions */}
@@ -1883,8 +1832,8 @@ export default function App() {
                 <label className="font-medium text-gray-700">Sáng (S):</label>
                 <input 
                   type="number" 
-                  value={standardMeals.S} 
-                  onChange={(e) => setStandardMeals(prev => ({ ...prev, S: parseInt(e.target.value) || 0 }))}
+                  value={standardMeals.S || ''} 
+                  onChange={(e) => setStandardMeals(prev => ({ ...prev, S: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
                   className="w-24 border border-gray-300 rounded px-2 py-1 text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
@@ -1892,8 +1841,8 @@ export default function App() {
                 <label className="font-medium text-gray-700">Trưa (T):</label>
                 <input 
                   type="number" 
-                  value={standardMeals.T1} 
-                  onChange={(e) => setStandardMeals(prev => ({ ...prev, T1: parseInt(e.target.value) || 0 }))}
+                  value={standardMeals.T1 || ''} 
+                  onChange={(e) => setStandardMeals(prev => ({ ...prev, T1: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
                   className="w-24 border border-gray-300 rounded px-2 py-1 text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
@@ -1901,8 +1850,8 @@ export default function App() {
                 <label className="font-medium text-gray-700">Tối (T):</label>
                 <input 
                   type="number" 
-                  value={standardMeals.T2} 
-                  onChange={(e) => setStandardMeals(prev => ({ ...prev, T2: parseInt(e.target.value) || 0 }))}
+                  value={standardMeals.T2 || ''} 
+                  onChange={(e) => setStandardMeals(prev => ({ ...prev, T2: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
                   className="w-24 border border-gray-300 rounded px-2 py-1 text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
