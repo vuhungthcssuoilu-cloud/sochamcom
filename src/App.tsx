@@ -83,7 +83,7 @@ export default function App() {
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(90);
+  const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
@@ -1101,13 +1101,13 @@ export default function App() {
           <col className="w-8 print:w-[30px]" /><col className="w-40 print:w-[180px]" />
           {days.map(d => (
             <React.Fragment key={d}>
-              <col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" />
+              <col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" />
             </React.Fragment>
           ))}
           {isSecondHalf && (
             <>
-              <col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" />
-              <col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" /><col className="w-[32px] print:w-[18px]" />
+              <col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" />
+              <col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" />
             </>
           )}
         </colgroup>
@@ -1453,47 +1453,47 @@ export default function App() {
   );
 
   return (
-    <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-4'}`}>
+    <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'}`}>
       {/* Controls - Hidden on Print */}
-      <div className={`w-full mb-6 bg-white rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
+      <div className={`w-full mb-3 bg-white rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
         {/* Top bar of control panel for User Info */}
-        <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100 bg-indigo-50/50 rounded-t-xl">
-          <div className="text-sm text-indigo-900/60 font-medium">Phần mềm Sổ Chấm Cơm Nội Trú</div>
-          <div className="flex items-center gap-4">
+        <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-100 bg-indigo-50/50 rounded-t-xl">
+          <div className="text-xs text-indigo-900/60 font-medium">Phần mềm Sổ Chấm Cơm Nội Trú</div>
+          <div className="flex items-center gap-3">
             {user?.email === 'vuhung@db.edu.vn' && (
               <button 
                 onClick={() => setShowAdmin(true)}
-                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded-full transition-colors text-sm font-bold border border-indigo-200"
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded-full transition-colors text-xs font-bold border border-indigo-200"
               >
-                <Key className="w-4 h-4" />
+                <Key className="w-3.5 h-3.5" />
                 <span>Quản lý mã bản quyền</span>
               </button>
             )}
-            <div className="flex items-center gap-2 text-indigo-700 bg-white px-3 py-1 rounded-full shadow-sm border border-indigo-100">
-              <UserIcon className="w-4 h-4" />
-              <span className="text-sm font-bold">{user?.user_metadata?.full_name || user?.email}</span>
+            <div className="flex items-center gap-1.5 text-indigo-700 bg-white px-2.5 py-1 rounded-full shadow-sm border border-indigo-100">
+              <UserIcon className="w-3.5 h-3.5" />
+              <span className="text-xs font-bold">{user?.user_metadata?.full_name || user?.email}</span>
             </div>
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-full transition-colors text-sm font-bold border border-red-100"
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-full transition-colors text-xs font-bold border border-red-100"
               title="Đăng xuất"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Đăng xuất</span>
             </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-indigo-900 flex items-center gap-2">
-              <Save className="w-6 h-6" />
+            <h1 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+              <Save className="w-5 h-5" />
               Sổ Chấm Cơm
             </h1>
             <div className="flex items-center bg-gray-100 rounded-lg p-1 relative">
               <button onClick={prevMonth} className="p-1 hover:bg-white rounded"><ChevronLeft className="w-4 h-4" /></button>
-              <span className="px-3 font-medium min-w-[100px] text-center">Tháng {month + 1} / {year}</span>
+              <span className="px-3 text-sm font-medium min-w-[90px] text-center">Tháng {month + 1} / {year}</span>
               <button onClick={nextMonth} className="p-1 hover:bg-white rounded"><ChevronRight className="w-4 h-4" /></button>
               {isDataFetching && (
                 <div className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -1508,7 +1508,7 @@ export default function App() {
                 type="number" 
                 value={year} 
                 onChange={(e) => handleYearChange(parseInt(e.target.value) || new Date().getFullYear())}
-                className="w-20 px-2 py-1 border rounded text-sm font-bold text-center"
+                className="w-16 px-1 py-1 border rounded text-sm font-bold text-center"
               />
             </div>
           </div>
@@ -1516,148 +1516,148 @@ export default function App() {
           <div className="flex items-center gap-2 flex-wrap">
             <button 
               onClick={clearMonth}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
               title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
             >
-              <Trash2 className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
+              <Trash2 className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
             </button>
 
             <button 
               onClick={clearAllStudents}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
               title="Xóa toàn bộ danh sách học sinh"
             >
-              <Trash2 className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
+              <Trash2 className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
             </button>
 
             <button 
               onClick={autoFillMeals}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-amber-50 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-amber-50 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-100 transition-all shadow-sm group"
               title="Chấm tự động cả tháng (Trừ chiều T6, T7, CN)"
             >
-              <ClipboardPaste className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
+              <ClipboardPaste className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
             </button>
 
             <button 
               onClick={() => handleSave()}
               disabled={saving}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
             >
-              <Save className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
+              <Save className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
             </button>
 
             <button 
               onClick={addStudent}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
             >
-              <Plus className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
+              <Plus className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
             </button>
 
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
             >
-              <Upload className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
+              <Upload className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => window.print()}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
             >
-              <Printer className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
+              <Printer className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
             </button>
 
             <button 
               onClick={handleExportExcel}
-              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
             >
-              <FileSpreadsheet className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className={`flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
+              className={`flex flex-col items-center justify-center gap-0.5 w-[64px] h-[64px] rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
             >
-              <Maximize2 className="w-5 h-5" />
-              <span className="text-[12px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
+              <Maximize2 className="w-4 h-4" />
+              <span className="text-[11px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
             </button>
 
-            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200 p-1 h-12 ml-2 shadow-sm">
-              <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-8 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">-</button>
-              <span className="text-[13px] font-bold w-10 text-center text-slate-700">{zoomLevel}%</span>
-              <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-8 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">+</button>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200 p-1 h-10 ml-1 shadow-sm">
+              <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">-</button>
+              <span className="text-[12px] font-bold w-9 text-center text-slate-700">{zoomLevel}%</span>
+              <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">+</button>
             </div>
           </div>
         </div>
 
         {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full flex items-center justify-between mt-4 pt-4 border-t border-gray-200 overflow-x-auto pb-2">
+          <div className="w-full flex items-center justify-between mt-0 pt-2 border-t border-gray-200 overflow-x-auto pb-3 px-3">
             {/* Left Side: Inputs */}
-            <div className="flex items-center gap-6 shrink-0 pr-4">
+            <div className="flex items-center gap-4 shrink-0 pr-4">
               <div className="flex items-center gap-2">
-                <span className="text-base font-medium text-gray-700 whitespace-nowrap">Tên lớp:</span>
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Tên lớp:</span>
                 <input 
                   type="text" 
                   value={className} 
                   onChange={(e) => setClassName(e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-1.5 text-base w-28 focus:outline-none focus:border-indigo-500 font-bold"
+                  className="border border-gray-300 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:border-indigo-500 font-bold"
                   placeholder="8C1"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-medium text-gray-700 whitespace-nowrap">Giáo viên chủ nhiệm:</span>
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Giáo viên chủ nhiệm:</span>
                 <input 
                   type="text" 
                   value={teacherName} 
                   onChange={(e) => setTeacherName(e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-1.5 text-base w-64 focus:outline-none focus:border-indigo-500"
+                  className="border border-gray-300 rounded px-2 py-1 text-sm w-56 focus:outline-none focus:border-indigo-500"
                   placeholder="Nhập tên GVCN"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-medium text-gray-700 whitespace-nowrap">Ngày ký:</span>
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Ngày ký:</span>
                 <div className="flex items-center gap-1">
                   <input 
                     type="number" 
                     value={footerDay} 
                     onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                    className="border border-gray-300 rounded px-2 py-1.5 text-base w-14 text-center focus:outline-none focus:border-indigo-500"
+                    className="border border-gray-300 rounded px-1.5 py-1 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
                   />
                   <span className="text-gray-400">/</span>
                   <input 
                     type="number" 
                     value={footerMonth} 
                     onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                    className="border border-gray-300 rounded px-2 py-1.5 text-base w-14 text-center focus:outline-none focus:border-indigo-500"
+                    className="border border-gray-300 rounded px-1.5 py-1 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
                   />
                   <span className="text-gray-400">/</span>
                   <input 
                     type="number" 
                     value={footerYear} 
                     onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                    className="border border-gray-300 rounded px-2 py-1.5 text-base w-20 text-center focus:outline-none focus:border-indigo-500"
+                    className="border border-gray-300 rounded px-1.5 py-1 text-sm w-16 text-center focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
             </div>
             
             {/* Right Side: Buttons */}
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-300 shadow-sm">
-                <span className="text-base font-medium text-gray-700 whitespace-nowrap">Ký hiệu chấm:</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-gray-300 shadow-sm">
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Ký hiệu chấm:</span>
                 <select 
                   value={markSymbol} 
                   onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
-                  className="border-none bg-transparent text-base font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0"
+                  className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0"
                 >
                   <option value="+">Dấu cộng (+)</option>
                   <option value="x">Dấu nhân (x)</option>
@@ -1666,18 +1666,18 @@ export default function App() {
               </div>
               <button 
                 onClick={syncFromPreviousMonth}
-                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm whitespace-nowrap"
+                className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm whitespace-nowrap"
                 title="Cập nhật danh sách học sinh từ tháng trước"
               >
-                <ClipboardPaste className="w-4 h-4" />
-                <span className="font-bold text-base">Đồng bộ DS tháng trước</span>
+                <ClipboardPaste className="w-3.5 h-3.5" />
+                <span className="font-bold text-sm">Đồng bộ DS tháng trước</span>
               </button>
               <button 
                 onClick={() => setIsQuotaModalOpen(true)}
-                className="flex items-center gap-2 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
+                className="flex items-center gap-1.5 bg-purple-600 text-white px-3 py-1 rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
               >
-                <span className="font-bold text-base">Định mức ăn</span>
-                <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
+                <span className="font-bold text-sm">Định mức ăn</span>
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px]">
                   S:{standardMeals.S} | T:{standardMeals.T1} | T:{standardMeals.T2}
                 </span>
               </button>
@@ -1711,7 +1711,7 @@ export default function App() {
             : ''
       }`}>
         <div 
-          className={`bg-white shadow-2xl p-4 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 ${
+          className={`bg-white shadow-2xl p-2 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 ${
             isPreviewMode ? 'w-full scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-8' : 'w-full'
           }`}
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
@@ -1739,7 +1739,7 @@ export default function App() {
         </div>
 
         {/* Tables Container - Stacked layout to increase display size */}
-        <div className="flex flex-col gap-8 relative print:block">
+        <div className="flex flex-col gap-4 relative print:block">
           {/* Left Half: Days 1-16 */}
           <div className="relative print:mb-8 print:break-after-page print:w-full overflow-x-auto print:overflow-visible">
             {renderTableHalf(firstHalfDays, false)}
