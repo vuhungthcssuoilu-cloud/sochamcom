@@ -1,16 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info } from 'lucide-react';
+import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save } from 'lucide-react';
 
 export default function Admin({ onBack }: { onBack: () => void }) {
   const [keys, setKeys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [faviconUrl, setFaviconUrl] = useState('');
+  const [savingFavicon, setSavingFavicon] = useState(false);
 
   useEffect(() => {
     fetchKeys();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'global_favicon')
+      .single();
+    
+    if (data) {
+      setFaviconUrl(data.setting_value);
+    }
+  };
+
+  const saveFavicon = async () => {
+    setSavingFavicon(true);
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({
+        setting_key: 'global_favicon',
+        setting_value: faviconUrl,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'setting_key' });
+    
+    if (error) {
+      alert('Lỗi lưu Favicon: ' + error.message);
+    } else {
+      // Update the favicon in real-time for the admin too
+      const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (link) {
+        link.href = faviconUrl;
+      } else {
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+        newLink.href = faviconUrl;
+        document.head.appendChild(newLink);
+      }
+      alert('Đã cập nhật Favicon thành công!');
+    }
+    setSavingFavicon(false);
+  };
+
+  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 200 * 1024) {
+      alert('Dung lượng ảnh quá lớn (vui lòng chọn ảnh dưới 200KB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFaviconUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const fetchKeys = async () => {
     const { data, error } = await supabase
@@ -93,6 +152,50 @@ export default function Admin({ onBack }: { onBack: () => void }) {
             <p className="font-medium">Lưu ý về mã bản quyền:</p>
             <p className="text-sm mt-1">Mỗi mã bản quyền chỉ được sử dụng <strong>1 lần duy nhất</strong> cho 1 máy hoặc 1 tài khoản đăng ký. Thời hạn sử dụng là 1 năm kể từ ngày kích hoạt.</p>
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-indigo-600" />
+            Cấu hình Favicon (Biểu tượng trang web)
+          </h2>
+          <div className="flex items-end gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL ảnh hoặc Tải lên ảnh (Base64)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={faviconUrl}
+                  onChange={(e) => setFaviconUrl(e.target.value)}
+                  placeholder="https://example.com/favicon.ico"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 transition-colors flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Tải lên
+                  <input type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" />
+                </label>
+              </div>
+            </div>
+            <div className="w-12 h-12 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">
+              {faviconUrl ? (
+                <img src={faviconUrl} alt="Preview" className="w-full h-full object-contain" />
+              ) : (
+                <ImageIcon className="w-6 h-6 text-gray-300" />
+              )}
+            </div>
+            <button
+              onClick={saveFavicon}
+              disabled={savingFavicon}
+              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {savingFavicon ? 'Đang lưu...' : 'Lưu Favicon'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2 italic">
+            * Favicon sẽ được áp dụng cho toàn bộ hệ thống. Nên sử dụng ảnh vuông (1:1), định dạng .ico, .png hoặc .svg.
+          </p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
