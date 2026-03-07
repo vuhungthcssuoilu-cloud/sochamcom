@@ -68,7 +68,6 @@
   }
 
   .print-page-container {
-    min-height: 190mm; /* Adjusted for A4 landscape (210mm) minus margins */
     display: flex;
     flex-direction: column;
   }
@@ -80,8 +79,7 @@
   }
 
   .print-signature-spacer {
-    flex-grow: 1;
-    display: block;
+    display: none;
   }
 }
 
