@@ -169,64 +169,65 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
+    const clearStaleSession = () => {
+      // Manually clear any supabase related items from localStorage to be safe
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+          localStorage.removeItem(key);
+        }
+      });
+      setUser(null);
+      setIsInitializing(false);
+      // Force a hard reload to clear any stale state in memory
+      window.location.href = '/';
+    };
+
     // Check active session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Session error:', error);
-        // If there's a refresh token error, we need to clear the local session completely
         const isRefreshTokenError = 
           error.message?.includes('Refresh Token Not Found') || 
           error.message?.includes('refresh_token_not_found') ||
-          error.message?.includes('Invalid Refresh Token');
+          error.message?.includes('Invalid Refresh Token') ||
+          error.message?.includes('session_not_found');
 
         if (isRefreshTokenError) {
-          // Manually clear any supabase related items from localStorage to be safe
-          Object.keys(localStorage).forEach(key => {
-            if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
-              localStorage.removeItem(key);
-            }
-          });
-          // Force clear user state and stop loading
-          setUser(null);
-          setIsInitializing(false);
-          // Force a hard reload to clear any stale state in memory
-          window.location.href = '/';
+          clearStaleSession();
           return;
         }
         
         supabase.auth.signOut().catch(() => {
-          // If signOut fails, at least we clear the local user state
           setUser(null);
+          setIsInitializing(false);
         });
       }
       setUser(session?.user ?? null);
       setIsInitializing(false);
     }).catch(err => {
       console.error('Unexpected session error:', err);
-      // If it's the specific refresh token error, clear everything
-      if (err.message?.includes('Refresh Token Not Found') || err.message?.includes('Invalid Refresh Token')) {
-        Object.keys(localStorage).forEach(key => {
-          if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
-            localStorage.removeItem(key);
-          }
-        });
-        window.location.href = '/';
+      const isRefreshTokenError = 
+        err.message?.includes('Refresh Token Not Found') || 
+        err.message?.includes('Invalid Refresh Token') ||
+        err.message?.includes('session_not_found');
+
+      if (isRefreshTokenError) {
+        clearStaleSession();
+      } else {
+        setUser(null);
+        setIsInitializing(false);
       }
-      setUser(null);
-      setIsInitializing(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
       } else if (event === 'TOKEN_REFRESHED') {
-        // Token was successfully refreshed, no action needed but good to log
         console.log('Token refreshed successfully');
-      } else if (session?.user) {
-        setUser((prevUser: any) => {
-          if (prevUser?.id === session.user.id) return prevUser;
-          return session.user;
-        });
+      } else if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+        if (session?.user) {
+          setUser(session.user);
+        }
       }
     });
 
