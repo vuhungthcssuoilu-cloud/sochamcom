@@ -83,7 +83,7 @@ export default function App() {
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomLevel, setZoomLevel] = useState(90);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
@@ -1078,13 +1078,23 @@ export default function App() {
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
     <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col">
-      <div className="text-left mb-2 px-2 print:px-0 hidden print:block">
+      <div className="flex-col mb-2 px-2 print:px-0 hidden print:flex">
         <input 
           type="text" 
           value={schoolName} 
           onChange={(e) => setSchoolName(e.target.value)}
           className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-[400px] bg-transparent"
         />
+        <div className="text-center font-bold uppercase text-base mt-2">
+          SỔ CHẤM CƠM LỚP: 
+          <input 
+            type="text" 
+            value={className} 
+            onChange={(e) => setClassName(e.target.value)}
+            className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-14 text-center bg-transparent inline-block mx-1"
+          />
+           THÁNG {month + 1}/{year}
+        </div>
       </div>
       <table className="w-full border-collapse text-[12px] print:text-[13px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full">
         <colgroup>
@@ -1102,29 +1112,16 @@ export default function App() {
           )}
         </colgroup>
         <thead>
-          {/* Header Row 1: STT, Diagonal, Title */}
+          {/* Header Row 1: STT, Diagonal, Day Numbers */}
           <tr>
-            <th rowSpan={3} className="border-[0.5px] border-black text-center font-bold text-[12px] sticky left-0 print:left-0 print:relative bg-white z-20 w-8 print:w-[30px]">STT</th>
-            <th rowSpan={3} className="border-[0.5px] border-black text-center relative sticky left-8 print:left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] overflow-hidden">
+            <th rowSpan={2} className="border-[0.5px] border-black text-center font-bold text-[12px] sticky left-0 print:left-0 print:relative bg-white z-20 w-8 print:w-[30px]">STT</th>
+            <th rowSpan={2} className="border-[0.5px] border-black text-center relative sticky left-8 print:left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] overflow-hidden">
               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="1" />
               </svg>
               <span className="absolute top-2 right-2 text-[12px] print:text-[13px] font-bold">Ngày</span>
               <span className="absolute bottom-2 left-2 text-[12px] print:text-[13px] font-bold">Thứ</span>
             </th>
-            <th colSpan={days.length * 3 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black p-2 text-center font-bold uppercase text-base">
-              SỔ CHẤM CƠM LỚP: 
-              <input 
-                type="text" 
-                value={className} 
-                onChange={(e) => setClassName(e.target.value)}
-                className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-14 text-center bg-transparent inline-block mx-1"
-              />
-               THÁNG {month + 1}/{year}
-            </th>
-          </tr>
-          {/* Header Row 2: Day Numbers */}
-          <tr>
             {days.map(d => (
               <th 
                 key={d} 
@@ -1147,7 +1144,7 @@ export default function App() {
               <th colSpan={6} className="border-[0.5px] border-black text-center text-[11px] font-bold">Số ngày ăn trong tháng</th>
             )}
           </tr>
-          {/* Header Row 3: Day of Week */}
+          {/* Header Row 2: Day of Week */}
           <tr>
             {days.map(d => (
               <th 
@@ -1519,78 +1516,78 @@ export default function App() {
           <div className="flex items-center gap-2 flex-wrap">
             <button 
               onClick={clearMonth}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
               title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
             >
               <Trash2 className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
+              <span className="text-[12px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
             </button>
 
             <button 
               onClick={clearAllStudents}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
               title="Xóa toàn bộ danh sách học sinh"
             >
               <Trash2 className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
+              <span className="text-[12px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
             </button>
 
             <button 
               onClick={autoFillMeals}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-amber-50 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-100 transition-all shadow-sm group"
               title="Chấm tự động cả tháng (Trừ chiều T6, T7, CN)"
             >
               <ClipboardPaste className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
+              <span className="text-[12px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
             </button>
 
             <button 
               onClick={() => handleSave()}
               disabled={saving}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
             >
               <Save className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
+              <span className="text-[12px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
             </button>
 
             <button 
               onClick={addStudent}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
             >
               <Plus className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
+              <span className="text-[12px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
             </button>
 
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
             >
               <Upload className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
+              <span className="text-[12px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => window.print()}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
             >
               <Printer className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
+              <span className="text-[12px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
             </button>
 
             <button 
               onClick={handleExportExcel}
-              className="flex flex-col items-center justify-center gap-1.5 w-20 h-20 bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
             >
               <FileSpreadsheet className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
+              <span className="text-[12px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className={`flex flex-col items-center justify-center gap-1.5 w-20 h-20 rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
+              className={`flex flex-col items-center justify-center gap-1 w-[72px] h-[72px] rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
             >
               <Maximize2 className="w-5 h-5" />
-              <span className="text-[14px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
+              <span className="text-[12px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
             </button>
 
             <div className="flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200 p-1 h-12 ml-2 shadow-sm">
@@ -1720,14 +1717,24 @@ export default function App() {
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
         >
         {/* Header Section */}
-        <div className="flex justify-between items-start mb-2 px-2 print:hidden">
+        <div className="flex flex-col mb-2 px-2 print:hidden">
           <div className="text-left">
             <input 
               type="text" 
               value={schoolName} 
               onChange={(e) => setSchoolName(e.target.value)}
-              className="font-bold text-xs uppercase border-none focus:ring-0 p-0 w-[300px] bg-transparent"
+              className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-[400px] bg-transparent"
             />
+          </div>
+          <div className="text-center font-bold uppercase text-lg mt-2">
+            SỔ CHẤM CƠM LỚP: 
+            <input 
+              type="text" 
+              value={className} 
+              onChange={(e) => setClassName(e.target.value)}
+              className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-16 text-center bg-transparent inline-block mx-1"
+            />
+             THÁNG {month + 1}/{year}
           </div>
         </div>
 
