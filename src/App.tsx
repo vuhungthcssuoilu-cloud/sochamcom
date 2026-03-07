@@ -91,6 +91,8 @@ export default function App() {
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [isLicenseExpired, setIsLicenseExpired] = useState(false);
+  const [renewalKey, setRenewalKey] = useState('');
+  const [isRenewing, setIsRenewing] = useState(false);
   const [licenseCheckLoading, setLicenseCheckLoading] = useState(false);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const hasShownInitialAlert = useRef(false);
@@ -129,20 +131,19 @@ export default function App() {
       const checkLicense = async () => {
         setLicenseCheckLoading(true);
         try {
+          // Fetch the latest license key used by this user
           const { data, error } = await supabase
             .from('license_keys')
             .select('used_at')
             .eq('used_by', user.id)
-            .single();
+            .order('used_at', { ascending: false })
+            .limit(1);
           
           if (error) {
             console.error('Error fetching license key:', error);
-            // If we can't fetch it, maybe they don't have one or there's an error.
-            // We'll assume it's expired to be safe, or maybe not. Let's not block if error unless we know for sure.
-            // Actually, if they don't have a license key, they shouldn't be able to use the app.
             setIsLicenseExpired(true);
-          } else if (data && data.used_at) {
-            const usedAtDate = new Date(data.used_at);
+          } else if (data && data.length > 0 && data[0].used_at) {
+            const usedAtDate = new Date(data[0].used_at);
             const oneYearLater = new Date(usedAtDate);
             oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
             
@@ -477,6 +478,37 @@ export default function App() {
     return <Login />;
   }
 
+  const handleRenewLicense = async () => {
+    if (!renewalKey.trim()) {
+      alert('Vui lòng nhập mã bản quyền mới.');
+      return;
+    }
+
+    setIsRenewing(true);
+    try {
+      const { data, error } = await supabase.rpc('activate_new_license_key', {
+        license_key_text: renewalKey.trim()
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        alert(data.message);
+        setRenewalKey('');
+        setIsLicenseExpired(false);
+        // Re-check license to be sure
+        window.location.reload();
+      } else {
+        alert(data.message);
+      }
+    } catch (err: any) {
+      console.error('Renewal error:', err);
+      alert('Lỗi kích hoạt: ' + err.message);
+    } finally {
+      setIsRenewing(false);
+    }
+  };
+
   if (isLicenseExpired) {
     return (
       <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
@@ -484,16 +516,42 @@ export default function App() {
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Lỗi mã bản quyền</h2>
-          <p className="text-gray-600 mb-6">
-            Mã bản quyền của bạn không hợp lệ, đã bị thu hồi hoặc đã hết hạn sử dụng (1 năm kể từ ngày kích hoạt). Vui lòng liên hệ quản trị viên để được hỗ trợ.
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Hết hạn bản quyền</h2>
+          <p className="text-gray-600 mb-6 text-sm">
+            Mã bản quyền của bạn đã hết hạn sử dụng (1 năm kể từ ngày kích hoạt). Vui lòng nhập mã bản quyền mới để tiếp tục sử dụng. 
+            <br/><span className="font-bold text-indigo-600">Dữ liệu cũ của bạn sẽ được giữ nguyên sau khi gia hạn.</span>
           </p>
-          <button
-            onClick={handleLogout}
-            className="w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-700 transition-colors"
-          >
-            Đăng xuất
-          </button>
+          
+          <div className="mb-6 text-left">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Nhập mã gia hạn mới:</label>
+            <input 
+              type="text"
+              value={renewalKey}
+              onChange={(e) => setRenewalKey(e.target.value.toUpperCase())}
+              placeholder="SL-XXXX-XXXX"
+              className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-0 transition-all font-mono text-center text-lg"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleRenewLicense}
+              disabled={isRenewing}
+              className="w-full bg-indigo-600 text-white rounded-lg py-3 font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isRenewing ? 'Đang kích hoạt...' : 'Gia hạn ngay'}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full bg-gray-100 text-gray-600 rounded-lg py-2 font-medium hover:bg-gray-200 transition-colors"
+            >
+              Đăng xuất
+            </button>
+          </div>
+          
+          <p className="mt-6 text-xs text-gray-400">
+            Liên hệ quản trị viên để nhận mã gia hạn mới.
+          </p>
         </div>
       </div>
     );
