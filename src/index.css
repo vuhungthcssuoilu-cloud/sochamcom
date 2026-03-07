@@ -68,10 +68,15 @@
   }
 
   .print-page-container {
-    min-height: 185mm; /* Approximate landscape A4 height minus margins and headers */
+    min-height: 190mm; /* Adjusted for A4 landscape (210mm) minus margins */
     display: flex;
     flex-direction: column;
+  }
+
+  /* Only break page after the first half */
+  .print-page-container:first-child {
     page-break-after: always;
+    break-after: page;
   }
 
   .print-signature-spacer {
