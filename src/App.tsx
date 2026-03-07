@@ -1159,13 +1159,13 @@ export default function App() {
         <thead>
           {/* Header Row 1: STT, Diagonal, Day Numbers */}
           <tr>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center font-bold text-[12px] sticky left-0 print:left-0 print:relative bg-white z-20 w-8 print:w-[30px]">STT</th>
-            <th rowSpan={2} className="border-[0.5px] border-black text-center relative sticky left-8 print:left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] overflow-hidden">
+            <th rowSpan={2} className="border-[1px] border-gray-400 text-center font-bold text-[13px] sticky left-0 print:left-0 print:relative bg-slate-100 z-20 w-8 print:w-[30px] print:border-black">STT</th>
+            <th rowSpan={2} className="border-[1px] border-gray-400 text-center relative sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none w-40 print:w-[180px] overflow-hidden print:border-black">
               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" strokeWidth="1" />
+                <line x1="0" y1="0" x2="100%" y2="100%" stroke="currentColor" className="text-gray-400 print:text-black" strokeWidth="1" />
               </svg>
-              <span className="absolute top-2 right-2 text-[12px] print:text-[13px] font-bold">Ngày</span>
-              <span className="absolute bottom-2 left-2 text-[12px] print:text-[13px] font-bold">Thứ</span>
+              <span className="absolute top-2 right-2 text-[13px] print:text-[13px] font-bold">Ngày</span>
+              <span className="absolute bottom-2 left-2 text-[13px] print:text-[13px] font-bold">Thứ</span>
             </th>
             {days.map(d => (
               <th 
@@ -1173,7 +1173,7 @@ export default function App() {
                 colSpan={3} 
                 onMouseEnter={() => setHoveredDay(d)}
                 onMouseLeave={() => setHoveredDay(null)}
-                className={`border-[0.5px] border-black text-center py-1 font-bold relative group/d ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                className={`border-[1px] border-gray-400 text-center py-1 font-bold relative group/d print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
               >
                 {d}
                 <button 
@@ -1186,7 +1186,7 @@ export default function App() {
               </th>
             ))}
             {isSecondHalf && (
-              <th colSpan={6} className="border-[0.5px] border-black text-center text-[11px] font-bold">Số ngày ăn trong tháng</th>
+              <th colSpan={6} className="border-[1px] border-gray-400 text-center text-[11px] font-bold bg-slate-50 print:border-black">Số ngày ăn trong tháng</th>
             )}
           </tr>
           {/* Header Row 2: Day of Week */}
@@ -1197,22 +1197,22 @@ export default function App() {
                 colSpan={3} 
                 onMouseEnter={() => setHoveredDay(d)}
                 onMouseLeave={() => setHoveredDay(null)}
-                className={`border-[0.5px] border-black text-center py-1 font-bold text-[11px] ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-100' : '')}`}
+                className={`border-[1px] border-gray-400 text-center py-1 font-bold text-[11px] print:border-black ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-200' : 'bg-slate-50')}`}
               >
                 {getDayOfWeek(d, month, year)}
               </th>
             ))}
             {isSecondHalf && (
               <>
-                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[10px]">Số ngày<br/>báo ăn</th>
-                <th colSpan={3} className="border-[0.5px] border-black text-center bg-gray-50 font-bold text-[10px]">Số ngày<br/>không báo ăn</th>
+                <th colSpan={3} className="border-[1px] border-gray-400 text-center bg-gray-100 font-bold text-[10px] print:border-black">Số ngày<br/>báo ăn</th>
+                <th colSpan={3} className="border-[1px] border-gray-400 text-center bg-gray-100 font-bold text-[10px] print:border-black">Số ngày<br/>không báo ăn</th>
               </>
             )}
           </tr>
           {/* Header Row 4: Họ và tên & Meal Labels */}
           <tr>
-            <th className="border-[0.5px] border-black sticky left-0 print:left-0 print:relative bg-white z-20 h-6 w-8 print:w-[30px]"></th>
-            <th className="border-[0.5px] border-black text-center font-bold py-1 sticky left-8 print:left-0 print:relative bg-white z-20 shadow-[1px_0_0_black] print:shadow-none relative h-6 w-40 print:w-[180px]">
+            <th className="border-[1px] border-gray-400 sticky left-0 print:left-0 print:relative bg-slate-100 z-20 h-6 w-8 print:w-[30px] print:border-black"></th>
+            <th className="border-[1px] border-gray-400 text-center font-bold py-1 sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none relative h-6 w-40 print:w-[180px] print:border-black">
               <div className="flex items-center justify-center px-1 w-full h-full print:text-[13px]">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -1231,7 +1231,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[8px] relative group/h h-6 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[8px] relative group/h h-6 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1250,7 +1250,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[10px] relative group/h h-6 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-6 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1269,7 +1269,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[0.5px] border-black text-center font-normal text-[10px] relative group/h h-6 ${hoveredDay === d ? 'bg-blue-100' : ''}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-6 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1289,22 +1289,22 @@ export default function App() {
             ))}
             {isSecondHalf && (
               <>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">S</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">S</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[0.5px] border-black text-center align-middle font-normal text-[8px] h-6">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
               </>
@@ -1529,10 +1529,10 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'}`}>
       {/* Controls - Hidden on Print */}
-      <div className={`w-full mb-3 bg-white rounded-xl shadow-sm border border-black/5 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
+      <div className={`w-full mb-3 bg-white rounded-xl shadow-md border border-gray-300 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
         {/* Top bar of control panel for User Info */}
-        <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-100 bg-indigo-50/50 rounded-t-xl">
+        <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-200 bg-indigo-50/70 rounded-t-xl shadow-sm">
           <div className="text-xs text-indigo-900/60 font-medium">Phần mềm Sổ Chấm Cơm Nội Trú</div>
           <div className="flex items-center gap-3">
             {user?.email === 'vuhung@db.edu.vn' && (
@@ -1590,81 +1590,81 @@ export default function App() {
           <div className="flex items-center gap-2 flex-wrap">
             <button 
               onClick={clearMonth}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-red-50 text-red-600 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
               title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
             >
-              <Trash2 className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
             </button>
 
             <button 
               onClick={clearAllStudents}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-red-50 text-red-700 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
               title="Xóa toàn bộ danh sách học sinh"
             >
-              <Trash2 className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
             </button>
 
             <button 
               onClick={autoFillMeals}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-amber-50 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-100 transition-all shadow-sm group"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-amber-50 text-amber-700 rounded-xl border-2 border-amber-300 hover:bg-amber-100 transition-all shadow-md group"
               title="Chấm tự động cả tháng (Trừ chiều T6, T7, CN)"
             >
-              <ClipboardPaste className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
+              <ClipboardPaste className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
             </button>
 
             <button 
               onClick={() => handleSave()}
               disabled={saving}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-indigo-600 text-white rounded-xl border border-indigo-700 hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-indigo-600 text-white rounded-xl border-2 border-indigo-800 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
+              <Save className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
             </button>
 
             <button 
               onClick={addStudent}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-emerald-600 text-white rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-emerald-600 text-white rounded-xl border-2 border-emerald-800 hover:bg-emerald-700 transition-all shadow-md"
             >
-              <Plus className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
             </button>
 
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-blue-600 text-white rounded-xl border border-blue-700 hover:bg-blue-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-blue-600 text-white rounded-xl border-2 border-blue-800 hover:bg-blue-700 transition-all shadow-md"
             >
-              <Upload className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
+              <Upload className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => window.print()}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-slate-700 text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-slate-700 text-white rounded-xl border-2 border-slate-900 hover:bg-slate-800 transition-all shadow-md"
             >
-              <Printer className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
+              <Printer className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
             </button>
 
             <button 
               onClick={handleExportExcel}
-              className="flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] bg-green-600 text-white rounded-xl border border-green-700 hover:bg-green-700 transition-all shadow-sm"
+              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-green-600 text-white rounded-xl border-2 border-green-800 hover:bg-green-700 transition-all shadow-md"
             >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className={`flex flex-col items-center justify-center gap-0 w-[58px] h-[58px] rounded-xl border transition-all shadow-sm ${isPreviewMode ? 'bg-orange-600 text-white border-orange-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}
+              className={`flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] rounded-xl border-2 transition-all shadow-md ${isPreviewMode ? 'bg-orange-600 text-white border-orange-800' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'}`}
             >
-              <Maximize2 className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
             </button>
 
-            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200 p-1 h-10 ml-0.5 shadow-sm">
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border-2 border-slate-300 p-1 h-10 ml-0.5 shadow-md">
               <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">-</button>
               <span className="text-[11px] font-bold w-9 text-center text-slate-700">{zoomLevel}%</span>
               <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">+</button>
@@ -1674,58 +1674,58 @@ export default function App() {
 
         {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full flex items-center justify-between mt-0 pt-2 border-t border-gray-200 overflow-x-auto pb-3 px-3">
+          <div className="w-full flex items-center justify-between mt-0 pt-2 border-t border-gray-300 overflow-x-auto pb-3 px-3 bg-gray-50/30 rounded-b-xl shadow-inner">
             {/* Left Side: Inputs */}
             <div className="flex items-center gap-6 shrink-0 pr-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Tên lớp:</span>
+                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Tên lớp:</span>
                 <input 
                   type="text" 
                   value={className} 
                   onChange={(e) => setClassName(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:border-indigo-500 font-bold"
+                  className="border-2 border-gray-300 rounded px-2 py-1 text-[13px] w-24 focus:outline-none focus:border-indigo-500 font-bold shadow-sm bg-white"
                   placeholder="8C1"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Giáo viên chủ nhiệm:</span>
+                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Giáo viên chủ nhiệm:</span>
                 <input 
                   type="text" 
                   value={teacherName} 
                   onChange={(e) => setTeacherName(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm w-64 focus:outline-none focus:border-indigo-500"
+                  className="border-2 border-gray-300 rounded px-2 py-1 text-[13px] w-64 focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-medium"
                   placeholder="Nhập tên GVCN"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Ngày ký:</span>
+                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Ngày ký:</span>
                 <div className="flex items-center gap-1">
                   <input 
                     type="number" 
                     value={footerDay} 
                     onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                    className="border border-gray-300 rounded px-1.5 py-1 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
+                    className="border-2 border-gray-300 rounded px-1.5 py-1 text-[13px] w-12 text-center focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-bold"
                   />
                   <span className="text-gray-400">/</span>
                   <input 
                     type="number" 
                     value={footerMonth} 
                     onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                    className="border border-gray-300 rounded px-1.5 py-1 text-sm w-12 text-center focus:outline-none focus:border-indigo-500"
+                    className="border-2 border-gray-300 rounded px-1.5 py-1 text-[13px] w-12 text-center focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-bold"
                   />
                   <span className="text-gray-400">/</span>
                   <input 
                     type="number" 
                     value={footerYear} 
                     onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                    className="border border-gray-300 rounded px-1.5 py-1 text-sm w-16 text-center focus:outline-none focus:border-indigo-500"
+                    className="border-2 border-gray-300 rounded px-1.5 py-1 text-[13px] w-16 text-center focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-bold"
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-2">
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Chữ ký:</span>
+                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Chữ ký:</span>
                 {signature ? (
-                  <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-300 shadow-sm group/sig-top">
+                  <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border-2 border-gray-300 shadow-sm group/sig-top">
                     <img src={signature} alt="Signature" className="h-6 object-contain mix-blend-multiply" />
                     <button 
                       onClick={() => setSignature(null)} 
@@ -1744,7 +1744,7 @@ export default function App() {
                       input.onchange = (e) => handleSignatureUpload(e as any);
                       input.click();
                     }}
-                    className="flex items-center gap-1.5 bg-white text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 shadow-sm whitespace-nowrap text-xs font-bold"
+                    className="flex items-center gap-1.5 bg-white text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors border-2 border-gray-300 shadow-sm whitespace-nowrap text-xs font-bold"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     <span>Tải chữ ký số</span>
@@ -1755,12 +1755,12 @@ export default function App() {
             
             {/* Right Side: Buttons */}
             <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-gray-300 shadow-sm">
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Ký hiệu:</span>
+              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border-2 border-gray-300 shadow-sm">
+                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Ký hiệu:</span>
                 <select 
                   value={markSymbol} 
                   onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
-                  className="border-none bg-transparent text-sm font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0"
+                  className="border-none bg-transparent text-[13px] font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0"
                 >
                   <option value="+">(+)</option>
                   <option value="x">(x)</option>
@@ -1769,18 +1769,18 @@ export default function App() {
               </div>
               <button 
                 onClick={syncFromPreviousMonth}
-                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm whitespace-nowrap"
+                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-colors border-2 border-indigo-300 shadow-sm whitespace-nowrap"
                 title="Cập nhật danh sách học sinh từ tháng trước"
               >
                 <ClipboardPaste className="w-4 h-4" />
-                <span className="font-bold text-sm">Đồng bộ DS</span>
+                <span className="font-bold text-[13px]">Đồng bộ DS</span>
               </button>
               <button 
                 onClick={() => setIsQuotaModalOpen(true)}
-                className="flex items-center gap-2 bg-purple-600 text-white px-3 py-1 rounded-lg hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
+                className="flex items-center gap-2 bg-purple-600 text-white px-3 py-1 rounded-lg hover:bg-purple-700 transition-colors border-2 border-purple-700 shadow-sm whitespace-nowrap"
               >
-                <span className="font-bold text-sm">Định mức</span>
-                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px]">
+                <span className="font-bold text-[13px]">Định mức</span>
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] font-bold">
                   {standardMeals.S}|{standardMeals.T1}|{standardMeals.T2}
                 </span>
               </button>
@@ -1814,7 +1814,7 @@ export default function App() {
             : ''
       }`}>
         <div 
-          className={`bg-white shadow-2xl p-2 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 ${
+          className={`bg-white shadow-2xl p-2 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 border border-gray-300 rounded-xl ${
             isPreviewMode ? 'w-full scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-8' : 'w-full'
           }`}
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
