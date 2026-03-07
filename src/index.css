@@ -106,6 +106,26 @@
   }
 }
 
+.is-preview .student-row.is-empty,
+.is-preview .print\:hidden {
+  display: none !important;
+}
+
+.is-preview table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.is-preview th, 
+.is-preview td {
+  border: 0.5pt solid black !important;
+}
+
+.excel-grid.is-preview {
+  background-image: none !important;
+  background-color: white !important;
+}
+
 .excel-grid {
   background-image: 
     linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
