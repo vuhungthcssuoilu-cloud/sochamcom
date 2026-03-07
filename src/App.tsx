@@ -1123,7 +1123,7 @@ export default function App() {
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
     <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col print-page-container">
-      <div className="flex-col mb-2 px-2 print:px-0 hidden print:flex">
+      <div className={`flex-col mb-2 px-2 print:px-0 ${isPreviewMode ? 'flex' : 'hidden print:flex'}`}>
         <input 
           type="text" 
           value={schoolName} 
@@ -1417,12 +1417,14 @@ export default function App() {
             );
           })}
           {/* Add Student Row */}
-          <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
-            <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:relative bg-white z-10">+</td>
-            <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:relative bg-white z-10">
-              Thêm học sinh mới...
-            </td>
-          </tr>
+          {!isPreviewMode && (
+            <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
+              <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:relative bg-white z-10">+</td>
+              <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:relative bg-white z-10">
+                Thêm học sinh mới...
+              </td>
+            </tr>
+          )}
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
             <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
@@ -1526,9 +1528,11 @@ export default function App() {
       )}
 
       {/* Watermark-like Page Label */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] text-8xl font-bold select-none print:hidden">
-        Page {isSecondHalf ? '2' : '1'}
-      </div>
+      {!isPreviewMode && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] text-8xl font-bold select-none print:hidden">
+          Page {isSecondHalf ? '2' : '1'}
+        </div>
+      )}
     </div>
   );
 
@@ -1821,7 +1825,7 @@ export default function App() {
       }`}>
         <div 
           className={`bg-white shadow-2xl p-2 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 border border-gray-300 rounded-xl ${
-            isPreviewMode ? 'w-full scale-90 origin-top' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-8' : 'w-full'
+            isPreviewMode ? 'w-full scale-90 origin-top is-preview' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-8' : 'w-full'
           }`}
           style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
         >
