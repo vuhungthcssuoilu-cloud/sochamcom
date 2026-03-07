@@ -1254,7 +1254,7 @@ export default function App() {
                 colSpan={3} 
                 onMouseEnter={() => setHoveredDay(d)}
                 onMouseLeave={() => setHoveredDay(null)}
-                className={`border-[1px] border-gray-400 text-center py-1 font-bold relative group/d print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold relative group/d print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
               >
                 {d}
                 <button 
@@ -1278,7 +1278,7 @@ export default function App() {
                 colSpan={3} 
                 onMouseEnter={() => setHoveredDay(d)}
                 onMouseLeave={() => setHoveredDay(null)}
-                className={`border-[1px] border-gray-400 text-center py-1 font-bold text-[11px] print:border-black ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-200' : 'bg-slate-50')}`}
+                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold text-[11px] print:border-black ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-200' : 'bg-slate-50')}`}
               >
                 {getDayOfWeek(d, month, year)}
               </th>
@@ -1292,8 +1292,8 @@ export default function App() {
           </tr>
           {/* Header Row 4: Họ và tên & Meal Labels */}
           <tr>
-            <th className="border-[1px] border-gray-400 sticky left-0 print:left-0 print:relative bg-slate-100 z-20 h-6 w-8 print:w-[30px] print:border-black"></th>
-            <th className="border-[1px] border-gray-400 text-center font-bold py-1 sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none relative h-6 w-40 print:w-[180px] print:border-black">
+            <th className="border-[1px] border-gray-400 sticky left-0 print:left-0 print:relative bg-slate-100 z-20 h-5 w-8 print:w-[30px] print:border-black"></th>
+            <th className="border-[1px] border-gray-400 text-center font-bold py-0.5 sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none relative h-5 w-40 print:w-[180px] print:border-black">
               <div className="flex items-center justify-center px-1 w-full h-full print:text-[13px]">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -1312,7 +1312,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[1px] border-gray-400 text-center font-normal text-[8px] relative group/h h-6 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[8px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1331,7 +1331,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-6 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1350,7 +1350,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-6 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1370,22 +1370,22 @@ export default function App() {
             ))}
             {isSecondHalf && (
               <>
-                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">S</div>
                 </th>
-                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">S</div>
                 </th>
-                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
-                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-6 bg-slate-50 print:border-black">
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
                   <div className="flex items-center justify-center h-full w-full leading-none">T</div>
                 </th>
               </>
@@ -1401,7 +1401,7 @@ export default function App() {
             });
             const isStudentEmpty = (!student.name.trim() || student.name === 'Học sinh mới') && !hasMeals;
             return (
-              <tr key={student.id} className={`hover:bg-blue-50 group h-6 student-row ${isStudentEmpty ? 'is-empty' : ''}`}>
+              <tr key={student.id} className={`hover:bg-blue-50 group h-5 student-row ${isStudentEmpty ? 'is-empty' : ''}`}>
                 <td className="border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 w-8 print:w-[30px] student-stt"></td>
                 <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px]">
                   <div className="flex items-center gap-1 h-full">
@@ -1444,7 +1444,7 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'S')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-6 ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.S ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.S ? 'bg-gray-50' : '')}`}
                     >
                       <div className="flex items-center justify-center h-full w-full leading-none">
                         {student.meals[d]?.S ? markSymbol : ''}
@@ -1454,7 +1454,7 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'T1')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-6 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T1 ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T1 ? 'bg-gray-50' : '')}`}
                     >
                       <div className="flex items-center justify-center h-full w-full leading-none">
                         {student.meals[d]?.T1 ? markSymbol : ''}
@@ -1464,7 +1464,7 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'T2')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-6 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T2 ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T2 ? 'bg-gray-50' : '')}`}
                     >
                       <div className="flex items-center justify-center h-full w-full leading-none">
                         {student.meals[d]?.T2 ? markSymbol : ''}
@@ -1474,22 +1474,22 @@ export default function App() {
                 ))}
                 {isSecondHalf && (
                   <>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-6">
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-5">
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.S}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-6">
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-5">
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.T1}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-6">
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-5">
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.T2}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-6">
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-5">
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.uS}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-6">
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-5">
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT1}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-6">
+                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-5">
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT2}</div>
                     </td>
                   </>
