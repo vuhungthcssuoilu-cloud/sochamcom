@@ -861,6 +861,19 @@ export default function App() {
   const handleExportExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     
+    let signatureId: number | null = null;
+    if (signature) {
+      try {
+        const extension = signature.split(';')[0].split('/')[1] as 'png' | 'jpeg' | 'gif';
+        signatureId = workbook.addImage({
+          base64: signature.split(',')[1],
+          extension: extension,
+        });
+      } catch (e) {
+        console.error("Error adding signature to Excel:", e);
+      }
+    }
+
     const createSheet = (sheetName: string, days: number[], isSecondHalf: boolean) => {
       const sheet = workbook.addWorksheet(sheetName, {
         pageSetup: { 
@@ -873,7 +886,8 @@ export default function App() {
             left: 0.2, right: 0.2, top: 0.2, bottom: 0.2,
             header: 0, footer: 0
           }
-        }
+        },
+        views: [{ state: 'normal', zoomScale: 100 }]
       });
 
       const lastColIdx = 2 + days.length * 3 + (isSecondHalf ? 6 : 0);
@@ -1047,6 +1061,18 @@ export default function App() {
         roleCell.alignment = { horizontal: 'center' };
         roleCell.font = { name: 'Times New Roman', size: 11, bold: true };
 
+        // Add signature image if exists
+        if (signatureId !== null) {
+          // Center the signature within the merged area (sigColStart to lastColIdx)
+          // sigColStart and lastColIdx are 1-indexed.
+          // tl and br are 0-indexed.
+          sheet.addImage(signatureId, {
+            tl: { col: sigColStart + 0.5, row: roleRowIdx + 0.2 } as any,
+            br: { col: lastColIdx - 1.5, row: roleRowIdx + 4.8 } as any,
+            editAs: 'oneCell'
+          });
+        }
+
         const nameRowIdx = roleRowIdx + 5;
         sheet.mergeCells(nameRowIdx, sigColStart, nameRowIdx, lastColIdx);
         const nameCell = sheet.getCell(nameRowIdx, sigColStart);
@@ -1075,6 +1101,7 @@ export default function App() {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `So_Cham_Com_${className}_Thang_${month + 1}_${year}.xlsx`);
   };
+
 
   // --- Render Helpers ---
 
