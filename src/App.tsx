@@ -1447,9 +1447,9 @@ export default function App() {
       </table>
 
       {isSecondHalf && (
-        <div className="flex flex-col flex-grow print:flex-grow">
+        <div className="flex flex-col">
           <div className="print-signature-spacer"></div>
-          <div className="pt-8 pb-4 print:break-inside-avoid">
+          <div className="pt-4 pb-4 print:break-inside-avoid">
             <div className="flex justify-end pr-8">
               <div className="text-center w-80 print:break-inside-avoid">
                 <p className="italic text-[13px] mb-1 flex items-center justify-center gap-0.5">
