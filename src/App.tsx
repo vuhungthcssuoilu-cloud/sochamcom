@@ -1122,7 +1122,7 @@ export default function App() {
   };
 
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
-    <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col">
+    <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col print-page-container">
       <div className="flex-col mb-2 px-2 print:px-0 hidden print:flex">
         <input 
           type="text" 
@@ -1418,6 +1418,30 @@ export default function App() {
               Thêm học sinh mới...
             </td>
           </tr>
+          {/* Empty rows to fill the page for printing */}
+          {Array.from({ length: Math.max(0, 28 - students.length) }).map((_, i) => (
+            <tr key={`empty-${i}`} className="h-6 hidden print:table-row">
+              <td className="border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative bg-white z-10">{students.length + i + 1}</td>
+              <td className="border-[0.5px] border-black sticky left-8 print:left-0 print:relative bg-white z-10 shadow-[1px_0_0_black] print:shadow-none"></td>
+              {days.map(d => (
+                <React.Fragment key={d}>
+                  <td className="border-[0.5px] border-black"></td>
+                  <td className="border-[0.5px] border-black"></td>
+                  <td className="border-[0.5px] border-black"></td>
+                </React.Fragment>
+              ))}
+              {isSecondHalf && (
+                <>
+                  <td className="border-[0.5px] border-black bg-gray-50"></td>
+                  <td className="border-[0.5px] border-black bg-gray-50"></td>
+                  <td className="border-[0.5px] border-black bg-gray-50"></td>
+                  <td className="border-[0.5px] border-black bg-gray-50"></td>
+                  <td className="border-[0.5px] border-black bg-gray-50"></td>
+                  <td className="border-[0.5px] border-black bg-gray-50"></td>
+                </>
+              )}
+            </tr>
+          ))}
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
             <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
@@ -1439,86 +1463,87 @@ export default function App() {
             )}
           </tr>
         </tbody>
-        {isSecondHalf && (
-          <tfoot className="print:table-footer-group">
-            <tr className="no-print-border border-none print:break-inside-avoid">
-              <td colSpan={days.length * 3 + 2 + 6} className="border-0 pt-8 pb-4">
-                <div className="flex justify-end pr-8">
-                  <div className="text-center w-80 print:break-inside-avoid">
-                    <p className="italic text-[13px] mb-1 flex items-center justify-center gap-0.5">
-                      <input 
-                        type="text" 
-                        value={location} 
-                        onChange={(e) => setLocation(e.target.value)}
-                        className="border-none focus:ring-0 p-0 min-w-[60px] text-right bg-transparent italic"
-                        style={{ width: `${Math.max(location.length * 9, 60)}px` }}
-                      />
-                      , ngày 
-                      <input 
-                        type="text" 
-                        value={footerDay} 
-                        onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                        className="border-none focus:ring-0 p-0 w-[35px] text-center bg-transparent italic"
-                      />
-                      tháng 
-                      <input 
-                        type="text" 
-                        value={footerMonth} 
-                        onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                        className="border-none focus:ring-0 p-0 w-[35px] text-center bg-transparent italic"
-                      />
-                      năm 
-                      <input 
-                        type="text" 
-                        value={footerYear} 
-                        onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                        className="border-none focus:ring-0 p-0 w-[45px] text-center bg-transparent italic"
-                      />
-                    </p>
-                    <p className="font-bold uppercase text-[13px] leading-tight">GIÁO VIÊN CHỦ NHIỆM</p>
-                    <div className="relative h-20 flex items-center justify-center group/sig">
-                      {signature ? (
-                        <div className="relative h-full">
-                          <img 
-                            src={signature} 
-                            alt="Chữ ký" 
-                            className="h-full object-contain mix-blend-multiply"
-                          />
-                          <button 
-                            onClick={() => setSignature(null)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/sig:opacity-100 transition-opacity print:hidden"
-                            title="Xóa chữ ký"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="cursor-pointer border-2 border-dashed border-gray-200 rounded-lg w-full h-full flex flex-col items-center justify-center text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-all print:hidden">
-                          <Upload className="w-5 h-5 mb-1" />
-                          <span className="text-[10px] font-medium">Tải chữ ký</span>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleSignatureUpload} 
-                            className="hidden" 
-                          />
-                        </label>
-                      )}
-                      {!signature && <div className="hidden print:block h-16"></div>}
-                    </div>
-                    <input 
-                      type="text" 
-                      value={teacherName} 
-                      onChange={(e) => setTeacherName(e.target.value)}
-                      className="font-bold text-[13px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
-                    />
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tfoot>
-        )}
       </table>
+
+      {isSecondHalf && (
+        <div className="flex flex-col flex-grow print:flex-grow">
+          <div className="print-signature-spacer"></div>
+          <div className="pt-8 pb-4 print:break-inside-avoid">
+            <div className="flex justify-end pr-8">
+              <div className="text-center w-80 print:break-inside-avoid">
+                <p className="italic text-[13px] mb-1 flex items-center justify-center gap-0.5">
+                  <input 
+                    type="text" 
+                    value={location} 
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="border-none focus:ring-0 p-0 min-w-[60px] text-right bg-transparent italic"
+                    style={{ width: `${Math.max(location.length * 9, 60)}px` }}
+                  />
+                  , ngày 
+                  <input 
+                    type="text" 
+                    value={footerDay} 
+                    onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[35px] text-center bg-transparent italic"
+                  />
+                  tháng 
+                  <input 
+                    type="text" 
+                    value={footerMonth} 
+                    onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[35px] text-center bg-transparent italic"
+                  />
+                  năm 
+                  <input 
+                    type="text" 
+                    value={footerYear} 
+                    onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[45px] text-center bg-transparent italic"
+                  />
+                </p>
+                <p className="font-bold uppercase text-[13px] leading-tight">GIÁO VIÊN CHỦ NHIỆM</p>
+                <div className="relative h-20 flex items-center justify-center group/sig">
+                  {signature ? (
+                    <div className="relative h-full">
+                      <img 
+                        src={signature} 
+                        alt="Chữ ký" 
+                        className="h-full object-contain mix-blend-multiply"
+                      />
+                      <button 
+                        onClick={() => setSignature(null)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/sig:opacity-100 transition-opacity print:hidden"
+                        title="Xóa chữ ký"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer border-2 border-dashed border-gray-200 rounded-lg w-full h-full flex flex-col items-center justify-center text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-all print:hidden">
+                      <Upload className="w-5 h-5 mb-1" />
+                      <span className="text-[10px] font-medium">Tải chữ ký</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleSignatureUpload} 
+                        className="hidden" 
+                      />
+                    </label>
+                  )}
+                  {!signature && <div className="hidden print:block h-16"></div>}
+                </div>
+                <input 
+                  type="text" 
+                  value={teacherName} 
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  className="font-bold text-[13px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Watermark-like Page Label */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] text-8xl font-bold select-none print:hidden">
         Page {isSecondHalf ? '2' : '1'}
