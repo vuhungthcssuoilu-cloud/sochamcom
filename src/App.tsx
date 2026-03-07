@@ -89,6 +89,7 @@ export default function App() {
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
   const [clipboard, setClipboard] = useState<MealData | null>(null);
   const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
   const [isLicenseExpired, setIsLicenseExpired] = useState(false);
   const [licenseCheckLoading, setLicenseCheckLoading] = useState(false);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
@@ -275,7 +276,7 @@ export default function App() {
       }, { onConflict: 'user_id,month,year' });
 
     // Save user preferences
-    const prefs = { footerDay, footerMonth, footerYear, markSymbol };
+    const prefs = { footerDay, footerMonth, footerYear, markSymbol, signature };
     const { error: prefsError } = await supabase
       .from('app_settings')
       .upsert({
@@ -292,14 +293,14 @@ export default function App() {
       isDirty.current = false; // Reset dirty flag after successful save
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature]);
 
   // Mark as dirty when data changes
   useEffect(() => {
     if (!isInitializing && !isDataFetching) {
       isDirty.current = true;
     }
-  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, isInitializing, isDataFetching]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, isInitializing, isDataFetching]);
 
   // Auto-save effect
   useEffect(() => {
@@ -310,7 +311,7 @@ export default function App() {
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(timer);
-  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, handleSave, isInitializing, isDataFetching]);
+  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, handleSave, isInitializing, isDataFetching]);
 
   // Warn before closing tab if there are unsaved changes
   useEffect(() => {
@@ -341,6 +342,7 @@ export default function App() {
           if (prefs.footerMonth !== undefined) setFooterMonth(prefs.footerMonth);
           if (prefs.footerYear !== undefined) setFooterYear(prefs.footerYear);
           if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
+          if (prefs.signature !== undefined) setSignature(prefs.signature);
         } catch (e) {
           console.error("Error parsing preferences", e);
         }
@@ -1076,6 +1078,22 @@ export default function App() {
 
   // --- Render Helpers ---
 
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 500 * 1024) {
+      alert('Dung lượng ảnh chữ ký quá lớn (vui lòng chọn ảnh dưới 500KB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSignature(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
     <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col">
       <div className="flex-col mb-2 px-2 print:px-0 hidden print:flex">
@@ -1431,7 +1449,36 @@ export default function App() {
                       />
                     </p>
                     <p className="font-bold uppercase text-[13px] leading-tight">GIÁO VIÊN CHỦ NHIỆM</p>
-                    <div className="h-16"></div>
+                    <div className="relative h-20 flex items-center justify-center group/sig">
+                      {signature ? (
+                        <div className="relative h-full">
+                          <img 
+                            src={signature} 
+                            alt="Chữ ký" 
+                            className="h-full object-contain mix-blend-multiply"
+                          />
+                          <button 
+                            onClick={() => setSignature(null)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/sig:opacity-100 transition-opacity print:hidden"
+                            title="Xóa chữ ký"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer border-2 border-dashed border-gray-200 rounded-lg w-full h-full flex flex-col items-center justify-center text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-all print:hidden">
+                          <Upload className="w-5 h-5 mb-1" />
+                          <span className="text-[10px] font-medium">Tải chữ ký</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleSignatureUpload} 
+                            className="hidden" 
+                          />
+                        </label>
+                      )}
+                      {!signature && <div className="hidden print:block h-16"></div>}
+                    </div>
                     <input 
                       type="text" 
                       value={teacherName} 
@@ -1647,6 +1694,35 @@ export default function App() {
                     className="border border-gray-300 rounded px-1.5 py-1 text-sm w-16 text-center focus:outline-none focus:border-indigo-500"
                   />
                 </div>
+              </div>
+              <div className="flex items-center gap-2 ml-2">
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Chữ ký:</span>
+                {signature ? (
+                  <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-300 shadow-sm group/sig-top">
+                    <img src={signature} alt="Signature" className="h-6 object-contain mix-blend-multiply" />
+                    <button 
+                      onClick={() => setSignature(null)} 
+                      className="text-red-500 hover:text-red-700 p-0.5 hover:bg-red-50 rounded transition-colors"
+                      title="Xóa chữ ký"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e) => handleSignatureUpload(e as any);
+                      input.click();
+                    }}
+                    className="flex items-center gap-1.5 bg-white text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 shadow-sm whitespace-nowrap text-xs font-bold"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Tải chữ ký số</span>
+                  </button>
+                )}
               </div>
             </div>
             
