@@ -250,9 +250,31 @@ export default function App() {
     }
   }, [user, isInitializing]);
 
-  // Update tab title
+  // Update tab title and favicon
   useEffect(() => {
     document.title = "Chấm ăn học sinh nội trú";
+    
+    // Fetch global favicon
+    const fetchFavicon = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'global_favicon')
+        .single();
+      
+      if (data && data.setting_value) {
+        const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (link) {
+          link.href = data.setting_value;
+        } else {
+          const newLink = document.createElement('link');
+          newLink.rel = 'icon';
+          newLink.href = data.setting_value;
+          document.head.appendChild(newLink);
+        }
+      }
+    };
+    fetchFavicon();
   }, []);
 
   // Save function
