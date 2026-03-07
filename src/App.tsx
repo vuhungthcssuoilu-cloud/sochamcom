@@ -1850,12 +1850,12 @@ export default function App() {
         {/* Tables Container - Stacked layout to increase display size */}
         <div className="flex flex-col gap-4 relative print:block">
           {/* Left Half: Days 1-16 */}
-          <div className="relative print:mb-8 print:break-after-page print:w-full overflow-x-auto print:overflow-visible">
+          <div className="relative print:w-full overflow-x-auto print:overflow-visible">
             {renderTableHalf(firstHalfDays, false)}
           </div>
 
           {/* Right Half: Days 17-End */}
-          <div className="relative print:w-full print:pt-4 overflow-x-auto print:overflow-visible">
+          <div className="relative print:w-full overflow-x-auto print:overflow-visible">
             {renderTableHalf(secondHalfDays, true)}
           </div>
         </div>
