@@ -142,6 +142,38 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- Function for existing users to activate a new license key (renewal)
+create or replace function public.activate_new_license_key(license_key_text text)
+returns json as $$
+declare
+  key_id uuid;
+  is_already_used boolean;
+begin
+  -- Check if key exists and get its status
+  select id, is_used into key_id, is_already_used
+  from public.license_keys
+  where key = license_key_text;
+
+  if key_id is null then
+    return json_build_object('success', false, 'message', 'Mã bản quyền không tồn tại.');
+  end if;
+
+  if is_already_used then
+    return json_build_object('success', false, 'message', 'Mã bản quyền này đã được sử dụng.');
+  end if;
+
+  -- Mark as used by current user
+  update public.license_keys
+  set is_used = true,
+      used_by = auth.uid(),
+      used_by_email = (select email from auth.users where id = auth.uid()),
+      used_at = now()
+  where id = key_id;
+
+  return json_build_object('success', true, 'message', 'Kích hoạt mã bản quyền thành công!');
+end;
+$$ language plpgsql security definer;
+
 -- Trigger after insert on auth.users to mark key as used
 drop trigger if exists mark_license_key_used_on_signup on auth.users;
 create trigger mark_license_key_used_on_signup
