@@ -1141,7 +1141,7 @@ export default function App() {
            THÁNG {month + 1}/{year}
         </div>
       </div>
-      <table className="w-full border-collapse text-[12px] print:text-[13px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full">
+      <table className="w-full border-collapse text-[12px] print:text-[13px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full attendance-table">
         <colgroup>
           <col className="w-8 print:w-[30px]" /><col className="w-40 print:w-[180px]" />
           {days.map(d => (
@@ -1314,9 +1314,14 @@ export default function App() {
         <tbody>
           {students.map((student, idx) => {
             const totals = calculateStudentTotals(student);
+            const hasMeals = Object.values(student.meals).some(day => {
+              const d = day as { S: boolean; T1: boolean; T2: boolean };
+              return d.S || d.T1 || d.T2;
+            });
+            const isStudentEmpty = (!student.name.trim() || student.name === 'Học sinh mới') && !hasMeals;
             return (
-              <tr key={student.id} className="hover:bg-blue-50 group h-6">
-                <td className="border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 w-8 print:w-[30px]">{idx + 1}</td>
+              <tr key={student.id} className={`hover:bg-blue-50 group h-6 student-row ${isStudentEmpty ? 'is-empty' : ''}`}>
+                <td className="border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 w-8 print:w-[30px] student-stt"></td>
                 <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px]">
                   <div className="flex items-center gap-1 h-full">
                     <input 
