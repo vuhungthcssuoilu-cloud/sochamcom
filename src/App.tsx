@@ -1418,30 +1418,6 @@ export default function App() {
               Thêm học sinh mới...
             </td>
           </tr>
-          {/* Empty rows to fill the page for printing */}
-          {Array.from({ length: Math.max(0, 28 - students.length) }).map((_, i) => (
-            <tr key={`empty-${i}`} className="h-6 hidden print:table-row">
-              <td className="border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative bg-white z-10">{students.length + i + 1}</td>
-              <td className="border-[0.5px] border-black sticky left-8 print:left-0 print:relative bg-white z-10 shadow-[1px_0_0_black] print:shadow-none"></td>
-              {days.map(d => (
-                <React.Fragment key={d}>
-                  <td className="border-[0.5px] border-black"></td>
-                  <td className="border-[0.5px] border-black"></td>
-                  <td className="border-[0.5px] border-black"></td>
-                </React.Fragment>
-              ))}
-              {isSecondHalf && (
-                <>
-                  <td className="border-[0.5px] border-black bg-gray-50"></td>
-                  <td className="border-[0.5px] border-black bg-gray-50"></td>
-                  <td className="border-[0.5px] border-black bg-gray-50"></td>
-                  <td className="border-[0.5px] border-black bg-gray-50"></td>
-                  <td className="border-[0.5px] border-black bg-gray-50"></td>
-                  <td className="border-[0.5px] border-black bg-gray-50"></td>
-                </>
-              )}
-            </tr>
-          ))}
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
             <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
