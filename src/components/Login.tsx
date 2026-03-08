@@ -118,6 +118,23 @@ export default function Login() {
     // Format phone number to E.164 format (+84...)
     const formattedPhone = '+84' + phoneNumber.substring(1);
 
+    // Check license duration before signup to show message
+    let durationText = '1 năm (Bản quyền)';
+    try {
+      const { data: keyData, error: keyError } = await supabase
+        .from('license_keys')
+        .select('duration_days')
+        .eq('key', licenseKey)
+        .eq('is_used', false)
+        .single();
+      
+      if (!keyError && keyData) {
+        durationText = keyData.duration_days === 30 ? '30 ngày (Dùng thử)' : '1 năm (Bản quyền)';
+      }
+    } catch (e) {
+      // Ignore error here, let the trigger handle validation
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -134,7 +151,7 @@ export default function Login() {
       setError(error.message);
       generateCaptcha();
     } else {
-      setSuccessMsg('Đăng ký thành công! Vui lòng đăng nhập.');
+      setSuccessMsg(`Đăng ký thành công! Thời hạn sử dụng: ${durationText}. Vui lòng đăng nhập.`);
       setIsRegisterMode(false);
       setPassword('');
       setUserCaptchaInput('');
