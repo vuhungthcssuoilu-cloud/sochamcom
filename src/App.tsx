@@ -1786,6 +1786,16 @@ export default function App() {
             {/* Left Side: Inputs */}
             <div className="flex items-center gap-6 shrink-0 pr-4">
               <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Tên trường:</span>
+                <input 
+                  type="text" 
+                  value={schoolName} 
+                  onChange={(e) => setSchoolName(e.target.value)}
+                  className="border-2 border-gray-300 rounded px-2 py-1 text-[13px] w-64 focus:outline-none focus:border-indigo-500 font-bold shadow-sm bg-white uppercase"
+                  placeholder="Nhập tên trường"
+                />
+              </div>
+              <div className="flex items-center gap-2">
                 <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Tên lớp:</span>
                 <input 
                   type="text" 
