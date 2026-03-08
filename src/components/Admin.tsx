@@ -123,7 +123,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="w-full mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <button 
