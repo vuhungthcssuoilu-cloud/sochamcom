@@ -94,6 +94,8 @@ export default function App() {
   const [renewalKey, setRenewalKey] = useState('');
   const [isRenewing, setIsRenewing] = useState(false);
   const [licenseCheckLoading, setLicenseCheckLoading] = useState(false);
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState<string | null>(null);
+  const [licenseDuration, setLicenseDuration] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const hasShownInitialAlert = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -148,6 +150,9 @@ export default function App() {
             const expirationDate = new Date(usedAtDate);
             expirationDate.setDate(expirationDate.getDate() + duration);
             
+            setLicenseExpiryDate(expirationDate.toLocaleDateString('vi-VN'));
+            setLicenseDuration(duration);
+
             if (new Date() > expirationDate) {
               setIsLicenseExpired(true);
             } else {
@@ -1625,7 +1630,17 @@ export default function App() {
         
         {/* Top bar of control panel for User Info */}
         <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-200 bg-indigo-50/70 rounded-t-xl shadow-sm">
-          <div className="text-xs text-indigo-900/60 font-medium">Phần mềm Sổ Chấm Cơm Nội Trú</div>
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-indigo-900/60 font-medium">Phần mềm Sổ Chấm Cơm Nội Trú</div>
+            {user?.email !== 'vuhung@db.edu.vn' && licenseExpiryDate && (
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/50 rounded-full border border-indigo-100/50">
+                <div className={`w-1.5 h-1.5 rounded-full ${isLicenseExpired ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                <span className="text-[10px] font-bold text-indigo-800/70">
+                  {licenseDuration === 30 ? 'Dùng thử' : 'Bản quyền'}: Hết hạn {licenseExpiryDate}
+                </span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             {user?.email === 'vuhung@db.edu.vn' && (
               <button 
