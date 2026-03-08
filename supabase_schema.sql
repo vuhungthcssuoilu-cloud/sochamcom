@@ -176,6 +176,32 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- Function to check license key status before signup (bypasses RLS)
+create or replace function public.check_license_key_status(key_text text)
+returns json as $$
+declare
+  key_record record;
+begin
+  select is_used, duration_days into key_record
+  from public.license_keys
+  where key = key_text;
+
+  if key_record is null then
+    return json_build_object('valid', false, 'message', 'Mã không hợp lệ');
+  end if;
+
+  if key_record.is_used then
+    return json_build_object('valid', false, 'message', 'Mã đã được sử dụng');
+  end if;
+
+  return json_build_object(
+    'valid', true, 
+    'duration_days', key_record.duration_days,
+    'message', case when key_record.duration_days = 30 then 'Mã dùng thử (30 ngày)' else 'Mã bản quyền (1 năm)' end
+  );
+end;
+$$ language plpgsql security definer;
+
 -- Trigger after insert on auth.users to mark key as used
 drop trigger if exists mark_license_key_used_on_signup on auth.users;
 create trigger mark_license_key_used_on_signup
