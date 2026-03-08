@@ -134,7 +134,7 @@ export default function App() {
           // Fetch the latest license key used by this user
           const { data, error } = await supabase
             .from('license_keys')
-            .select('used_at')
+            .select('used_at, duration_days')
             .eq('used_by', user.id)
             .order('used_at', { ascending: false })
             .limit(1);
@@ -144,10 +144,11 @@ export default function App() {
             setIsLicenseExpired(true);
           } else if (data && data.length > 0 && data[0].used_at) {
             const usedAtDate = new Date(data[0].used_at);
-            const oneYearLater = new Date(usedAtDate);
-            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+            const duration = data[0].duration_days || 365;
+            const expirationDate = new Date(usedAtDate);
+            expirationDate.setDate(expirationDate.getDate() + duration);
             
-            if (new Date() > oneYearLater) {
+            if (new Date() > expirationDate) {
               setIsLicenseExpired(true);
             } else {
               setIsLicenseExpired(false);
@@ -519,7 +520,7 @@ export default function App() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Hết hạn bản quyền</h2>
           <p className="text-gray-600 mb-6 text-sm">
-            Mã bản quyền của bạn đã hết hạn sử dụng (1 năm kể từ ngày kích hoạt). Vui lòng nhập mã bản quyền mới để tiếp tục sử dụng. 
+            Mã bản quyền của bạn đã hết hạn sử dụng. Vui lòng nhập mã bản quyền mới để tiếp tục sử dụng. 
             <br/><span className="font-bold text-indigo-600">Dữ liệu cũ của bạn sẽ được giữ nguyên sau khi gia hạn.</span>
           </p>
           
