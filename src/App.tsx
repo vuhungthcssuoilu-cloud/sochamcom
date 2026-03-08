@@ -1667,9 +1667,9 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-start gap-4 p-3">
+          <div className="flex items-center gap-3 mr-auto">
+            <h1 className="text-lg font-bold text-indigo-900 flex items-center gap-2 hidden lg:flex">
               <Save className="w-5 h-5" />
               Sổ Chấm Cơm
             </h1>
@@ -1685,7 +1685,7 @@ export default function App() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Năm:</span>
+              <span className="text-sm font-medium hidden sm:inline">Năm:</span>
               <input 
                 type="number" 
                 value={year} 
@@ -1695,86 +1695,86 @@ export default function App() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button 
               onClick={clearMonth}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-red-50 text-red-600 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-red-50 text-red-600 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
               title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
+              <Trash2 className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
             </button>
 
             <button 
               onClick={clearAllStudents}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-red-50 text-red-700 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-red-50 text-red-700 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
               title="Xóa toàn bộ danh sách học sinh"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
+              <Trash2 className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
             </button>
 
             <button 
               onClick={autoFillMeals}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-amber-50 text-amber-700 rounded-xl border-2 border-amber-300 hover:bg-amber-100 transition-all shadow-md group"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-amber-50 text-amber-700 rounded-xl border-2 border-amber-300 hover:bg-amber-100 transition-all shadow-md group"
               title="Chấm tự động cả tháng (Trừ chiều T6, T7, CN)"
             >
-              <ClipboardPaste className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
+              <ClipboardPaste className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
             </button>
 
             <button 
               onClick={() => handleSave()}
               disabled={saving}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-indigo-600 text-white rounded-xl border-2 border-indigo-800 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-indigo-600 text-white rounded-xl border-2 border-indigo-800 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50"
             >
-              <Save className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
+              <Save className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
             </button>
 
             <button 
               onClick={addStudent}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-emerald-600 text-white rounded-xl border-2 border-emerald-800 hover:bg-emerald-700 transition-all shadow-md"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-emerald-600 text-white rounded-xl border-2 border-emerald-800 hover:bg-emerald-700 transition-all shadow-md"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
+              <Plus className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
             </button>
 
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-blue-600 text-white rounded-xl border-2 border-blue-800 hover:bg-blue-700 transition-all shadow-md"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-blue-600 text-white rounded-xl border-2 border-blue-800 hover:bg-blue-700 transition-all shadow-md"
             >
-              <Upload className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
+              <Upload className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => window.print()}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-slate-700 text-white rounded-xl border-2 border-slate-900 hover:bg-slate-800 transition-all shadow-md"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-slate-700 text-white rounded-xl border-2 border-slate-900 hover:bg-slate-800 transition-all shadow-md"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
+              <Printer className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
             </button>
 
             <button 
               onClick={handleExportExcel}
-              className="flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] bg-green-600 text-white rounded-xl border-2 border-green-800 hover:bg-green-700 transition-all shadow-md"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-green-600 text-white rounded-xl border-2 border-green-800 hover:bg-green-700 transition-all shadow-md"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
             </button>
 
             <button 
               onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className={`flex flex-col items-center justify-center gap-0 w-[54px] h-[54px] rounded-xl border-2 transition-all shadow-md ${isPreviewMode ? 'bg-orange-600 text-white border-orange-800' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'}`}
+              className={`flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] rounded-xl border-2 transition-all shadow-md ${isPreviewMode ? 'bg-orange-600 text-white border-orange-800' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'}`}
             >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
+              <Maximize2 className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
             </button>
 
-            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border-2 border-slate-300 p-1 h-10 ml-0.5 shadow-md">
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border-2 border-slate-300 p-1 h-[64px] ml-0.5 shadow-md">
               <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">-</button>
-              <span className="text-[11px] font-bold w-9 text-center text-slate-700">{zoomLevel}%</span>
+              <span className="text-[11px] font-bold w-10 text-center text-slate-700">{zoomLevel}%</span>
               <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">+</button>
             </div>
           </div>
