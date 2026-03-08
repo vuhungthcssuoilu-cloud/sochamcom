@@ -500,7 +500,8 @@ export default function App() {
       if (error) throw error;
 
       if (data.success) {
-        alert(data.message);
+        const durationText = data.duration_days === 30 ? '30 ngày (Dùng thử)' : '1 năm (Bản quyền)';
+        alert(`${data.message}\nThời hạn sử dụng: ${durationText}`);
         setRenewalKey('');
         setIsLicenseExpired(false);
         // Re-check license to be sure
