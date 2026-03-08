@@ -77,7 +77,8 @@ create table if not exists public.license_keys (
   used_by uuid,
   used_by_email text,
   created_at timestamptz default now(),
-  used_at timestamptz
+  used_at timestamptz,
+  duration_days int default 365
 );
 
 -- RLS for license_keys
