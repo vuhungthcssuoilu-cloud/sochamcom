@@ -64,6 +64,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
 
   const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LƯ');
+  const [bookTitle, setBookTitle] = useState('SỔ CHẤM CƠM LỚP:');
   const [className, setClassName] = useState('8C1');
   const [month, setMonth] = useState(() => {
     const saved = localStorage.getItem('app_current_month');
@@ -297,6 +298,7 @@ export default function App() {
         month,
         year,
         class_name: className,
+        book_title: bookTitle,
         teacher_name: teacherName,
         school_name: schoolName,
         location,
@@ -330,7 +332,7 @@ export default function App() {
     if (!isInitializing && !isDataFetching) {
       isDirty.current = true;
     }
-  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, isInitializing, isDataFetching]);
+  }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, isInitializing, isDataFetching]);
 
   // Auto-save effect
   useEffect(() => {
@@ -341,7 +343,7 @@ export default function App() {
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(timer);
-  }, [students, className, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, handleSave, isInitializing, isDataFetching]);
+  }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, handleSave, isInitializing, isDataFetching]);
 
   // Warn before closing tab if there are unsaved changes
   useEffect(() => {
@@ -413,6 +415,7 @@ export default function App() {
           }
 
           setSchoolName(fetchedSchoolName);
+          setBookTitle(data.book_title || 'SỔ CHẤM CƠM LỚP:');
           setClassName(data.class_name || '8C1');
           setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
           setLocation(fetchedLocation);
@@ -986,7 +989,7 @@ export default function App() {
       sheet.mergeCells(1, 1, 1, 5);
 
       // Row 2: Title
-      const titleRow = sheet.addRow(['', '', `SỔ CHẤM CƠM LỚP: ${className} THÁNG ${month + 1}/${year}`]);
+      const titleRow = sheet.addRow(['', '', `${bookTitle} ${className} THÁNG ${month + 1}/${year}`]);
       titleRow.getCell(3).font = { name: 'Times New Roman', size: 14, bold: true };
       titleRow.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
       sheet.mergeCells(2, 3, 2, lastColIdx);
@@ -1219,7 +1222,12 @@ export default function App() {
           className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-[400px] bg-transparent"
         />
         <div className="text-center font-bold uppercase text-base mt-2">
-          SỔ CHẤM CƠM LỚP: 
+          <input 
+            type="text" 
+            value={bookTitle} 
+            onChange={(e) => setBookTitle(e.target.value)}
+            className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-48 text-right bg-transparent inline-block"
+          />
           <input 
             type="text" 
             value={className} 
@@ -1782,126 +1790,145 @@ export default function App() {
 
         {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full flex items-center justify-between mt-0 pt-2 border-t border-gray-300 overflow-x-auto pb-3 px-3 bg-gray-50/30 rounded-b-xl shadow-inner">
-            {/* Left Side: Inputs */}
-            <div className="flex items-center gap-6 shrink-0 pr-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Tên trường:</span>
-                <input 
-                  type="text" 
-                  value={schoolName} 
-                  onChange={(e) => setSchoolName(e.target.value)}
-                  className="border-2 border-gray-300 rounded px-2 py-1 text-[13px] w-64 focus:outline-none focus:border-indigo-500 font-bold shadow-sm bg-white uppercase"
-                  placeholder="Nhập tên trường"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Tên lớp:</span>
-                <input 
-                  type="text" 
-                  value={className} 
-                  onChange={(e) => setClassName(e.target.value)}
-                  className="border-2 border-gray-300 rounded px-2 py-1 text-[13px] w-24 focus:outline-none focus:border-indigo-500 font-bold shadow-sm bg-white"
-                  placeholder="8C1"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Giáo viên chủ nhiệm:</span>
-                <input 
-                  type="text" 
-                  value={teacherName} 
-                  onChange={(e) => setTeacherName(e.target.value)}
-                  className="border-2 border-gray-300 rounded px-2 py-1 text-[13px] w-64 focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-medium"
-                  placeholder="Nhập tên GVCN"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Ngày ký:</span>
-                <div className="flex items-center gap-1">
+          <div className="w-full mt-0 pt-3 border-t border-gray-200 px-6 bg-white overflow-x-auto no-scrollbar">
+            <div className="flex items-center justify-between gap-x-4 py-3 min-w-max">
+              {/* Configuration Fields Group */}
+              <div className="flex items-center gap-x-5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Trường:</span>
                   <input 
-                    type="number" 
-                    value={footerDay} 
-                    onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                    className="border-2 border-gray-300 rounded px-1.5 py-1 text-[13px] w-12 text-center focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-bold"
-                  />
-                  <span className="text-gray-400">/</span>
-                  <input 
-                    type="number" 
-                    value={footerMonth} 
-                    onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                    className="border-2 border-gray-300 rounded px-1.5 py-1 text-[13px] w-12 text-center focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-bold"
-                  />
-                  <span className="text-gray-400">/</span>
-                  <input 
-                    type="number" 
-                    value={footerYear} 
-                    onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                    className="border-2 border-gray-300 rounded px-1.5 py-1 text-[13px] w-16 text-center focus:outline-none focus:border-indigo-500 shadow-sm bg-white font-bold"
+                    type="text" 
+                    value={schoolName} 
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-56 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
+                    placeholder="Trường"
                   />
                 </div>
-              </div>
-              <div className="flex items-center gap-2 ml-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Chữ ký:</span>
-                {signature ? (
-                  <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border-2 border-gray-300 shadow-sm group/sig-top">
-                    <img src={signature} alt="Signature" className="h-6 object-contain mix-blend-multiply" />
-                    <button 
-                      onClick={() => setSignature(null)} 
-                      className="text-red-500 hover:text-red-700 p-0.5 hover:bg-red-50 rounded transition-colors"
-                      title="Xóa chữ ký"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Sổ:</span>
+                  <input 
+                    type="text" 
+                    value={bookTitle} 
+                    onChange={(e) => setBookTitle(e.target.value)}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
+                    placeholder="Tên sổ"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Lớp:</span>
+                  <input 
+                    type="text" 
+                    value={className} 
+                    onChange={(e) => setClassName(e.target.value)}
+                    className="border border-gray-300 rounded-md px-2 py-1.5 text-[14px] w-16 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm"
+                    placeholder="8C1"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">GVCN:</span>
+                  <input 
+                    type="text" 
+                    value={teacherName} 
+                    onChange={(e) => setTeacherName(e.target.value)}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-44 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold uppercase shadow-sm"
+                    placeholder="GVCN"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Ngày:</span>
+                  <div className="flex items-center gap-1">
+                    <input 
+                      type="number" 
+                      value={footerDay} 
+                      onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                      className="border border-gray-300 rounded-md px-1 py-1.5 text-[14px] w-12 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm"
+                    />
+                    <span className="text-gray-400 text-lg">/</span>
+                    <input 
+                      type="number" 
+                      value={footerMonth} 
+                      onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                      className="border border-gray-300 rounded-md px-1 py-1.5 text-[14px] w-12 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm"
+                    />
+                    <span className="text-gray-400 text-lg">/</span>
+                    <input 
+                      type="number" 
+                      value={footerYear} 
+                      onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                      className="border border-gray-300 rounded-md px-1 py-1.5 text-[14px] w-20 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm"
+                    />
                   </div>
-                ) : (
-                  <button 
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = (e) => handleSignatureUpload(e as any);
-                      input.click();
-                    }}
-                    className="flex items-center gap-1.5 bg-white text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors border-2 border-gray-300 shadow-sm whitespace-nowrap text-xs font-bold"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Tải chữ ký số</span>
-                  </button>
-                )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Ký:</span>
+                  {signature ? (
+                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-gray-300 shadow-sm group/sig-top">
+                      <img src={signature} alt="Signature" className="h-6 object-contain mix-blend-multiply" />
+                      <button 
+                        onClick={() => setSignature(null)} 
+                        className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors"
+                        title="Xóa chữ ký"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => handleSignatureUpload(e as any);
+                        input.click();
+                      }}
+                      className="flex items-center gap-2 bg-white text-gray-600 px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap text-[13px] font-medium"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Tải lên
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-            
-            {/* Right Side: Buttons */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border-2 border-gray-300 shadow-sm">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">Ký hiệu:</span>
-                <select 
-                  value={markSymbol} 
-                  onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
-                  className="border-none bg-transparent text-[13px] font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0"
+
+              {/* Action Buttons Group */}
+              <div className="flex items-center gap-x-4">
+                <div className="h-8 w-[1px] bg-gray-300 mx-2" />
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-bold text-gray-700 whitespace-nowrap">Ký hiệu:</span>
+                  <div className="bg-white px-3 py-1.5 rounded-md border border-gray-300 shadow-sm flex items-center">
+                    <select 
+                      value={markSymbol} 
+                      onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
+                      className="border-none bg-transparent text-[14px] font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0 appearance-none pr-6 relative"
+                      style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%234338ca\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")', backgroundPosition: 'right 0 center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+                    >
+                      <option value="+">(+)</option>
+                      <option value="x">(x)</option>
+                      <option value="1">(1)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={syncFromPreviousMonth}
+                  className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md border border-indigo-200 hover:bg-indigo-100 transition-colors shadow-sm whitespace-nowrap"
+                  title="Cập nhật danh sách học sinh từ tháng trước"
                 >
-                  <option value="+">(+)</option>
-                  <option value="x">(x)</option>
-                  <option value="1">(1)</option>
-                </select>
+                  <ClipboardPaste className="w-4.5 h-4.5" />
+                  <span className="font-bold text-[14px]">Đồng bộ DS</span>
+                </button>
+
+                <button 
+                  onClick={() => setIsQuotaModalOpen(true)}
+                  className="flex items-center gap-2 bg-[#9333ea] text-white px-4 py-2 rounded-md border border-[#7e22ce] hover:bg-[#7e22ce] transition-colors shadow-sm whitespace-nowrap"
+                >
+                  <span className="font-bold text-[14px]">Định mức</span>
+                  <span className="bg-white/20 px-2 py-0.5 rounded text-[12px] font-bold">
+                    {standardMeals.S}|{standardMeals.T1}|{standardMeals.T2}
+                  </span>
+                </button>
               </div>
-              <button 
-                onClick={syncFromPreviousMonth}
-                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-colors border-2 border-indigo-300 shadow-sm whitespace-nowrap"
-                title="Cập nhật danh sách học sinh từ tháng trước"
-              >
-                <ClipboardPaste className="w-4 h-4" />
-                <span className="font-bold text-[13px]">Đồng bộ DS</span>
-              </button>
-              <button 
-                onClick={() => setIsQuotaModalOpen(true)}
-                className="flex items-center gap-2 bg-purple-600 text-white px-3 py-1 rounded-lg hover:bg-purple-700 transition-colors border-2 border-purple-700 shadow-sm whitespace-nowrap"
-              >
-                <span className="font-bold text-[13px]">Định mức</span>
-                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] font-bold">
-                  {standardMeals.S}|{standardMeals.T1}|{standardMeals.T2}
-                </span>
-              </button>
             </div>
           </div>
         )}
@@ -1948,7 +1975,12 @@ export default function App() {
             />
           </div>
           <div className="text-center font-bold uppercase text-lg mt-2">
-            SỔ CHẤM CƠM LỚP: 
+            <input 
+              type="text" 
+              value={bookTitle} 
+              onChange={(e) => setBookTitle(e.target.value)}
+              className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-56 text-right bg-transparent inline-block"
+            />
             <input 
               type="text" 
               value={className} 
