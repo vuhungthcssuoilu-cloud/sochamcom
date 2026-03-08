@@ -202,6 +202,25 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- Function to reset user password by admin
+create or replace function public.admin_reset_user_password(target_user_id uuid, new_password text)
+returns json as $$
+begin
+  -- Check if the caller is the admin
+  if auth.jwt() ->> 'email' != 'vuhung@db.edu.vn' then
+    return json_build_object('success', false, 'message', 'Bạn không có quyền thực hiện hành động này.');
+  end if;
+
+  -- Update the password in auth.users
+  -- Supabase uses bcrypt for passwords
+  update auth.users
+  set encrypted_password = crypt(new_password, gen_salt('bf'))
+  where id = target_user_id;
+
+  return json_build_object('success', true, 'message', 'Đã đặt lại mật khẩu thành công.');
+end;
+$$ language plpgsql security definer;
+
 -- Trigger after insert on auth.users to mark key as used
 drop trigger if exists mark_license_key_used_on_signup on auth.users;
 create trigger mark_license_key_used_on_signup
