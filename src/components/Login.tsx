@@ -21,21 +21,18 @@ export default function Login() {
       
       setCheckingLicense(true);
       try {
-        const { data, error } = await supabase
-          .from('license_keys')
-          .select('duration_days, is_used')
-          .eq('key', licenseKey.toUpperCase())
-          .single();
+        const { data, error } = await supabase.rpc('check_license_key_status', {
+          key_text: licenseKey.toUpperCase()
+        });
         
         if (!error && data) {
-          if (data.is_used) {
-            setLicenseInfo({ duration: 0, text: 'Mã đã được sử dụng' });
-          } else {
-            const duration = data.duration_days || 365;
+          if (data.valid) {
             setLicenseInfo({ 
-              duration, 
-              text: duration === 30 ? 'Mã dùng thử (30 ngày)' : 'Mã bản quyền (1 năm)' 
+              duration: data.duration_days, 
+              text: data.message 
             });
+          } else {
+            setLicenseInfo({ duration: 0, text: data.message });
           }
         } else {
           setLicenseInfo({ duration: 0, text: 'Mã không hợp lệ' });
@@ -117,6 +114,14 @@ export default function Login() {
     setError(null);
     setSuccessMsg(null);
 
+    // Clear any stale session data before attempting to log in
+    await supabase.auth.signOut().catch(() => {});
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+        localStorage.removeItem(key);
+      }
+    });
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -158,20 +163,25 @@ export default function Login() {
     setError(null);
     setSuccessMsg(null);
 
+    // Clear any stale session data before attempting to sign up
+    await supabase.auth.signOut().catch(() => {});
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+        localStorage.removeItem(key);
+      }
+    });
+
     // Format phone number to E.164 format (+84...)
     const formattedPhone = '+84' + phoneNumber.substring(1);
 
     // Check license duration before signup to show message
     let durationText = '1 năm (Bản quyền)';
     try {
-      const { data: keyData, error: keyError } = await supabase
-        .from('license_keys')
-        .select('duration_days')
-        .eq('key', licenseKey)
-        .eq('is_used', false)
-        .single();
+      const { data: keyData, error: keyError } = await supabase.rpc('check_license_key_status', {
+        key_text: licenseKey.toUpperCase()
+      });
       
-      if (!keyError && keyData) {
+      if (!keyError && keyData && keyData.valid) {
         durationText = keyData.duration_days === 30 ? '30 ngày (Dùng thử)' : '1 năm (Bản quyền)';
       }
     } catch (e) {
