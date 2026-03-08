@@ -149,9 +149,10 @@ returns json as $$
 declare
   key_id uuid;
   is_already_used boolean;
+  key_duration int;
 begin
   -- Check if key exists and get its status
-  select id, is_used into key_id, is_already_used
+  select id, is_used, duration_days into key_id, is_already_used, key_duration
   from public.license_keys
   where key = license_key_text;
 
@@ -171,7 +172,7 @@ begin
       used_at = now()
   where id = key_id;
 
-  return json_build_object('success', true, 'message', 'Kích hoạt mã bản quyền thành công!');
+  return json_build_object('success', true, 'message', 'Kích hoạt mã bản quyền thành công!', 'duration_days', key_duration);
 end;
 $$ language plpgsql security definer;
 
