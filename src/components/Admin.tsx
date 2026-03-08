@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save } from 'lucide-react';
+import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save, Lock, RefreshCw } from 'lucide-react';
 
 export default function Admin({ onBack }: { onBack: () => void }) {
   const [keys, setKeys] = useState<any[]>([]);
@@ -10,6 +10,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [faviconUrl, setFaviconUrl] = useState('');
   const [savingFavicon, setSavingFavicon] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
 
   useEffect(() => {
     fetchKeys();
@@ -112,6 +113,35 @@ export default function Admin({ onBack }: { onBack: () => void }) {
     navigator.clipboard.writeText(key);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleResetPassword = async (userId: string, email: string) => {
+    const newPassword = prompt(`Nhập mật khẩu mới cho người dùng ${email}:`);
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      alert('Mật khẩu phải có ít nhất 6 ký tự.');
+      return;
+    }
+
+    setResettingPassword(userId);
+    try {
+      const { data, error } = await supabase.rpc('admin_reset_user_password', {
+        target_user_id: userId,
+        new_password: newPassword
+      });
+
+      if (error) {
+        alert('Lỗi đặt lại mật khẩu: ' + error.message);
+      } else if (data && !data.success) {
+        alert(data.message);
+      } else {
+        alert('Đã đặt lại mật khẩu thành công cho ' + email);
+      }
+    } catch (e: any) {
+      alert('Lỗi hệ thống: ' + e.message);
+    } finally {
+      setResettingPassword(null);
+    }
   };
 
   const getExpirationDate = (usedAt: string | null, duration: number) => {
@@ -282,13 +312,25 @@ export default function Admin({ onBack }: { onBack: () => void }) {
                       {getExpirationDate(k.used_at, k.duration_days)}
                     </td>
                     <td className="p-4 text-right">
-                      <button
-                        onClick={() => deleteKey(k.id, k.is_used, k.used_by_email)}
-                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title={k.is_used ? "Thu hồi mã" : "Xóa mã"}
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {k.is_used && k.used_by && (
+                          <button
+                            onClick={() => handleResetPassword(k.used_by, k.used_by_email)}
+                            disabled={resettingPassword === k.used_by}
+                            className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors disabled:opacity-50"
+                            title="Đặt lại mật khẩu"
+                          >
+                            {resettingPassword === k.used_by ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteKey(k.id, k.is_used, k.used_by_email)}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title={k.is_used ? "Thu hồi mã" : "Xóa mã"}
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
