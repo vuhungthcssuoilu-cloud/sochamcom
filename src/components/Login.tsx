@@ -7,7 +7,50 @@ export default function Login() {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [licenseKey, setLicenseKey] = useState('');
+  const [licenseInfo, setLicenseInfo] = useState<{ duration: number, text: string } | null>(null);
+  const [checkingLicense, setCheckingLicense] = useState(false);
   const [email, setEmail] = useState('');
+
+  // Check license key when it changes
+  useEffect(() => {
+    const checkKey = async () => {
+      if (licenseKey.length < 5) {
+        setLicenseInfo(null);
+        return;
+      }
+      
+      setCheckingLicense(true);
+      try {
+        const { data, error } = await supabase
+          .from('license_keys')
+          .select('duration_days, is_used')
+          .eq('key', licenseKey.toUpperCase())
+          .single();
+        
+        if (!error && data) {
+          if (data.is_used) {
+            setLicenseInfo({ duration: 0, text: 'Mã đã được sử dụng' });
+          } else {
+            const duration = data.duration_days || 365;
+            setLicenseInfo({ 
+              duration, 
+              text: duration === 30 ? 'Mã dùng thử (30 ngày)' : 'Mã bản quyền (1 năm)' 
+            });
+          }
+        } else {
+          setLicenseInfo({ duration: 0, text: 'Mã không hợp lệ' });
+        }
+      } catch (e) {
+        setLicenseInfo(null);
+      } finally {
+        setCheckingLicense(false);
+      }
+    };
+
+    const timeoutId = setTimeout(checkKey, 500);
+    return () => clearTimeout(timeoutId);
+  }, [licenseKey]);
+
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -333,8 +376,8 @@ export default function Login() {
                     />
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center">
-                  <label htmlFor="license-key" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Mã bản quyền:</label>
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <label htmlFor="license-key" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal mt-1.5">Mã bản quyền:</label>
                   <div className="w-full sm:w-2/3">
                     <input
                       id="license-key"
@@ -346,6 +389,13 @@ export default function Login() {
                       onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
                       placeholder="VD: SL-XXXX-XXXX"
                     />
+                    {checkingLicense ? (
+                      <p className="text-xs text-gray-500 mt-1">Đang kiểm tra mã...</p>
+                    ) : licenseInfo ? (
+                      <p className={`text-xs mt-1 font-medium ${licenseInfo.duration > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {licenseInfo.text}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </>
