@@ -1217,20 +1217,20 @@ export default function App() {
         <input 
           type="text" 
           value={schoolName} 
-          onChange={(e) => setSchoolName(e.target.value)}
+          onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
           className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-[400px] bg-transparent"
         />
         <div className="text-center font-bold uppercase text-base mt-2">
           <input 
             type="text" 
             value={bookTitle} 
-            onChange={(e) => setBookTitle(e.target.value)}
+            onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
             className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-48 text-right bg-transparent inline-block"
           />
           <input 
             type="text" 
             value={className} 
-            onChange={(e) => setClassName(e.target.value)}
+            onChange={(e) => setClassName(e.target.value.toUpperCase())}
             className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-14 text-center bg-transparent inline-block mx-1"
           />
            THÁNG {month + 1}/{year}
@@ -1613,8 +1613,8 @@ export default function App() {
                 <input 
                   type="text" 
                   value={teacherName} 
-                  onChange={(e) => setTeacherName(e.target.value)}
-                  className="font-bold text-[13px] border-none focus:ring-0 p-0 w-full text-center bg-transparent"
+                  onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
+                  className="font-bold text-[13px] border-none focus:ring-0 p-0 w-full text-center bg-transparent uppercase"
                 />
               </div>
             </div>
@@ -1798,7 +1798,7 @@ export default function App() {
                   <input 
                     type="text" 
                     value={schoolName} 
-                    onChange={(e) => setSchoolName(e.target.value)}
+                    onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
                     className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-56 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
                     placeholder="Trường"
                   />
@@ -1808,7 +1808,7 @@ export default function App() {
                   <input 
                     type="text" 
                     value={bookTitle} 
-                    onChange={(e) => setBookTitle(e.target.value)}
+                    onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
                     className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
                     placeholder="Tên sổ"
                   />
@@ -1818,7 +1818,7 @@ export default function App() {
                   <input 
                     type="text" 
                     value={className} 
-                    onChange={(e) => setClassName(e.target.value)}
+                    onChange={(e) => setClassName(e.target.value.toUpperCase())}
                     className="border border-gray-300 rounded-md px-2 py-1.5 text-[14px] w-16 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm"
                     placeholder="8C1"
                   />
@@ -1828,7 +1828,7 @@ export default function App() {
                   <input 
                     type="text" 
                     value={teacherName} 
-                    onChange={(e) => setTeacherName(e.target.value)}
+                    onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
                     className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-44 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold uppercase shadow-sm"
                     placeholder="GVCN"
                   />
@@ -1969,7 +1969,7 @@ export default function App() {
             <input 
               type="text" 
               value={schoolName} 
-              onChange={(e) => setSchoolName(e.target.value)}
+              onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
               className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-[400px] bg-transparent"
             />
           </div>
@@ -1977,13 +1977,13 @@ export default function App() {
             <input 
               type="text" 
               value={bookTitle} 
-              onChange={(e) => setBookTitle(e.target.value)}
+              onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
               className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-56 text-right bg-transparent inline-block"
             />
             <input 
               type="text" 
               value={className} 
-              onChange={(e) => setClassName(e.target.value)}
+              onChange={(e) => setClassName(e.target.value.toUpperCase())}
               className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-16 text-center bg-transparent inline-block mx-1"
             />
              THÁNG {month + 1}/{year}
