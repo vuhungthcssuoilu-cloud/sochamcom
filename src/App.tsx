@@ -316,9 +316,19 @@ export default function App() {
         updated_at: new Date().toISOString()
       }, { onConflict: 'setting_key' });
 
-    if (error || prefsError) {
-      console.error('Error saving data:', error || prefsError);
-      if (!silent) alert(`Lỗi khi lưu dữ liệu! Chi tiết: ${(error || prefsError)?.message}`);
+    // Save month-specific preferences
+    const monthPrefs = { footerDay, footerMonth, footerYear };
+    const { error: monthPrefsError } = await supabase
+      .from('app_settings')
+      .upsert({
+        setting_key: `${user.id}_prefs_${year}_${month}`,
+        setting_value: JSON.stringify(monthPrefs),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'setting_key' });
+
+    if (error || prefsError || monthPrefsError) {
+      console.error('Error saving data:', error || prefsError || monthPrefsError);
+      if (!silent) alert(`Lỗi khi lưu dữ liệu! Chi tiết: ${(error || prefsError || monthPrefsError)?.message}`);
     } else {
       if (!silent) alert('Đã lưu dữ liệu thành công!');
       isDirty.current = false; // Reset dirty flag after successful save
@@ -421,6 +431,26 @@ export default function App() {
           setStudents(data.students || INITIAL_STUDENTS);
           setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
           
+          // Fetch month-specific preferences (footer date)
+          const { data: monthPrefsData } = await supabase
+            .from('app_settings')
+            .select('setting_value')
+            .eq('setting_key', `${user.id}_prefs_${year}_${month}`)
+            .maybeSingle();
+          
+          if (monthPrefsData && monthPrefsData.setting_value) {
+            const mPrefs = JSON.parse(monthPrefsData.setting_value);
+            if (mPrefs.footerDay !== undefined) setFooterDay(mPrefs.footerDay);
+            if (mPrefs.footerMonth !== undefined) setFooterMonth(mPrefs.footerMonth);
+            if (mPrefs.footerYear !== undefined) setFooterYear(mPrefs.footerYear);
+          } else {
+            // Default to end of month if no specific prefs saved
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            setFooterDay(lastDay);
+            setFooterMonth(month + 1);
+            setFooterYear(year);
+          }
+
           isDirty.current = false;
         } else {
           // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
@@ -433,6 +463,12 @@ export default function App() {
             .order('month', { ascending: false })
             .limit(1)
             .maybeSingle();
+
+          // Default date for new month
+          const lastDay = new Date(year, month + 1, 0).getDate();
+          setFooterDay(lastDay);
+          setFooterMonth(month + 1);
+          setFooterYear(year);
 
           if (latestData) {
             console.log(`Copying student list from ${latestData.month + 1}/${latestData.year}`);
