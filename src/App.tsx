@@ -298,7 +298,6 @@ export default function App() {
         month,
         year,
         class_name: className,
-        book_title: bookTitle,
         teacher_name: teacherName,
         school_name: schoolName,
         location,
@@ -308,7 +307,7 @@ export default function App() {
       }, { onConflict: 'user_id,month,year' });
 
     // Save user preferences
-    const prefs = { footerDay, footerMonth, footerYear, markSymbol, signature };
+    const prefs = { footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle };
     const { error: prefsError } = await supabase
       .from('app_settings')
       .upsert({
@@ -375,6 +374,7 @@ export default function App() {
           if (prefs.footerYear !== undefined) setFooterYear(prefs.footerYear);
           if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
           if (prefs.signature !== undefined) setSignature(prefs.signature);
+          if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
         } catch (e) {
           console.error("Error parsing preferences", e);
         }
@@ -415,7 +415,6 @@ export default function App() {
           }
 
           setSchoolName(fetchedSchoolName);
-          setBookTitle(data.book_title || 'SỔ CHẤM CƠM LỚP:');
           setClassName(data.class_name || '8C1');
           setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
           setLocation(fetchedLocation);
