@@ -226,3 +226,37 @@ drop trigger if exists mark_license_key_used_on_signup on auth.users;
 create trigger mark_license_key_used_on_signup
   after insert on auth.users
   for each row execute procedure public.mark_license_key_as_used();
+
+-- ==========================================
+-- ACCESS LOG SYSTEM
+-- ==========================================
+
+-- Create a table for user access logs
+create table if not exists public.access_logs (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  email text not null,
+  access_time timestamptz default now(),
+  ip_address text
+);
+
+-- RLS for access_logs
+alter table public.access_logs enable row level security;
+
+-- Admins can view all access logs
+create policy "Admins can view all access logs"
+  on public.access_logs
+  for select
+  using (auth.jwt() ->> 'email' = 'vuhung@db.edu.vn');
+
+-- Users can view their own access logs
+create policy "Users can view their own access logs"
+  on public.access_logs
+  for select
+  using (auth.uid() = user_id);
+
+-- Anyone authenticated can insert their own access log
+create policy "Users can insert their own access logs"
+  on public.access_logs
+  for insert
+  with check (auth.uid() = user_id);
