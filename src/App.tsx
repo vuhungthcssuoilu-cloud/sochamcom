@@ -99,7 +99,37 @@ export default function App() {
   const [licenseDuration, setLicenseDuration] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const hasShownInitialAlert = useRef(false);
+  const hasRecordedAccess = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Record user access
+  useEffect(() => {
+    if (user && !isInitializing && !hasRecordedAccess.current) {
+      const recordAccess = async () => {
+        try {
+          let ip = 'Unknown';
+          try {
+            const ipRes = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipRes.json();
+            ip = ipData.ip;
+          } catch (e) {
+            console.warn('Could not fetch IP address:', e);
+          }
+
+          await supabase.from('access_logs').insert([{
+            user_id: user.id,
+            email: user.email,
+            access_time: new Date().toISOString(),
+            ip_address: ip
+          }]);
+          hasRecordedAccess.current = true;
+        } catch (err) {
+          console.error('Failed to record access log:', err);
+        }
+      };
+      recordAccess();
+    }
+  }, [user, isInitializing]);
 
   // --- Computed ---
   const daysInMonth = useMemo(() => getDaysInMonth(month, year), [month, year]);
