@@ -45,8 +45,24 @@ create table if not exists app_settings (
   updated_at timestamptz default now()
 );
 
--- Disable RLS for app_settings so anyone (even on login page before authenticating) can read/update it
-alter table app_settings disable row level security;
+-- Enable RLS for app_settings to fix security vulnerability
+alter table app_settings enable row level security;
+
+-- Anyone can read global settings (favicon, login background)
+create policy "Anyone can read global settings"
+  on app_settings for select
+  using (setting_key in ('global_favicon', 'login_bg_image'));
+
+-- Authenticated users can manage their own preferences (keys starting with their UID)
+create policy "Users can manage their own preferences"
+  on app_settings for all
+  using (setting_key like auth.uid()::text || '%')
+  with check (setting_key like auth.uid()::text || '%');
+
+-- Admins can manage all settings
+create policy "Admins can manage all settings"
+  on app_settings for all
+  using (auth.jwt() ->> 'email' = 'vuhung@db.edu.vn');
 
 -- Create a function to automatically set the phone column in auth.users from user_metadata
 create or replace function public.sync_phone_from_metadata()
