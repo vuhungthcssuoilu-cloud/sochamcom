@@ -3,15 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key } from 'lucide-react';
-import { read, utils } from 'xlsx';
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
 import { supabase } from './lib/supabase';
-import Login from './components/Login';
-import Admin from './components/Admin';
+
+const Login = lazy(() => import('./components/Login'));
+const Admin = lazy(() => import('./components/Admin'));
 
 // --- Types ---
 
@@ -207,27 +205,40 @@ export default function App() {
 
   useEffect(() => {
     const clearStaleSession = () => {
+      console.warn('Clearing stale session due to refresh token error');
       // Manually clear any supabase related items from localStorage to be safe
       Object.keys(localStorage).forEach(key => {
         if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
           localStorage.removeItem(key);
         }
       });
+      // Also clear session storage
+      sessionStorage.clear();
+      
       setUser(null);
       setIsInitializing(false);
-      // Force a hard reload to clear any stale state in memory
-      window.location.href = '/';
+      
+      // Prevent infinite reload loops
+      const reloadCount = parseInt(sessionStorage.getItem('auth_reload_count') || '0');
+      if (reloadCount < 2) {
+        sessionStorage.setItem('auth_reload_count', (reloadCount + 1).toString());
+        window.location.href = '/';
+      } else {
+        console.error('Auth reload loop detected. Stopping.');
+      }
     };
 
     // Check active session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Session error:', error);
+        const errorMsg = error.message || '';
         const isRefreshTokenError = 
-          error.message?.includes('Refresh Token Not Found') || 
-          error.message?.includes('refresh_token_not_found') ||
-          error.message?.includes('Invalid Refresh Token') ||
-          error.message?.includes('session_not_found');
+          errorMsg.includes('Refresh Token Not Found') || 
+          errorMsg.includes('refresh_token_not_found') ||
+          errorMsg.includes('Invalid Refresh Token') ||
+          errorMsg.includes('session_not_found') ||
+          errorMsg.includes('Invalid token');
 
         if (isRefreshTokenError) {
           clearStaleSession();
@@ -241,12 +252,16 @@ export default function App() {
       }
       setUser(session?.user ?? null);
       setIsInitializing(false);
+      // Reset reload count on successful session check
+      sessionStorage.removeItem('auth_reload_count');
     }).catch(err => {
       console.error('Unexpected session error:', err);
+      const errorMsg = err.message || '';
       const isRefreshTokenError = 
-        err.message?.includes('Refresh Token Not Found') || 
-        err.message?.includes('Invalid Refresh Token') ||
-        err.message?.includes('session_not_found');
+        errorMsg.includes('Refresh Token Not Found') || 
+        errorMsg.includes('Invalid Refresh Token') ||
+        errorMsg.includes('session_not_found') ||
+        errorMsg.includes('Invalid token');
 
       if (isRefreshTokenError) {
         clearStaleSession();
@@ -546,11 +561,26 @@ export default function App() {
   };
 
   if (isInitializing || licenseCheckLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Đang tải...</div>;
+    return (
+      <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="text-gray-600 font-medium">Đang kết nối dữ liệu...</div>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
-    return <Login />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }>
+        <Login />
+      </Suspense>
+    );
   }
 
   const handleRenewLicense = async () => {
@@ -587,7 +617,7 @@ export default function App() {
 
   if (isLicenseExpired) {
     return (
-      <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8" />
@@ -634,7 +664,15 @@ export default function App() {
   }
 
   if (showAdmin) {
-    return <Admin onBack={() => setShowAdmin(false)} />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }>
+        <Admin onBack={() => setShowAdmin(false)} />
+      </Suspense>
+    );
   }
 
   // --- Handlers ---
@@ -897,6 +935,7 @@ export default function App() {
     if (!file) return;
 
     try {
+      const { read, utils } = await import('xlsx');
       const data = await file.arrayBuffer();
       const workbook = read(data);
       
@@ -1015,6 +1054,9 @@ export default function App() {
   };
 
   const handleExportExcel = async () => {
+    const { default: ExcelJS } = await import('exceljs');
+    const { saveAs } = await import('file-saver');
+    
     const workbook = new ExcelJS.Workbook();
     
     let signatureId: number | null = null;
@@ -1698,7 +1740,7 @@ export default function App() {
   );
 
   return (
-    <div className={`min-h-screen bg-stone-100 font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'}`}>
+    <div className={`min-h-screen bg-transparent font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'}`}>
       {/* Controls - Hidden on Print */}
       <div className={`w-full mb-3 bg-white rounded-xl shadow-md border border-gray-300 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
