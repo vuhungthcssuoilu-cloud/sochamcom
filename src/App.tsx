@@ -109,33 +109,6 @@ export default function App() {
   const hasRecordedAccess = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleClassNameSubmit = useCallback(async () => {
-    const trimmed = classNameInput.trim().toUpperCase();
-    if (trimmed && trimmed !== className) {
-      setClassName(trimmed);
-      
-      // Auto-save the new class to the teacher's classes configuration if it doesn't exist
-      if (user && trimmed) {
-        const exists = classesConfig.some(c => c.className === trimmed);
-        if (!exists) {
-          const updatedConfig = [...classesConfig, { className: trimmed, teacherName: teacherName }];
-          setClassesConfig(updatedConfig);
-          try {
-            await supabase
-              .from('app_settings')
-              .upsert({
-                setting_key: `${user.id}_classes_config`,
-                setting_value: JSON.stringify(updatedConfig),
-                updated_at: new Date().toISOString()
-              }, { onConflict: 'setting_key' });
-          } catch (e) {
-            console.error("Failed to auto-save class to config", e);
-          }
-        }
-      }
-    }
-  }, [classNameInput, className, classesConfig, teacherName, user]);
-
   const [savedSheets, setSavedSheets] = useState<any[]>([]);
   const [isSavedSheetsOpen, setIsSavedSheetsOpen] = useState(false);
   const [isLoadingSavedSheets, setIsLoadingSavedSheets] = useState(false);
@@ -207,7 +180,7 @@ export default function App() {
   
   // Ref to track if data has been modified
   const isDirty = useRef(false);
-  const justFetchedRef = useRef(false);
+  const lastSavedDataRef = useRef<string>('');
 
   // Check license expiration
   useEffect(() => {
@@ -460,6 +433,33 @@ export default function App() {
     }
   };
 
+  const captureStateString = useCallback((overrides: any = {}) => {
+    return JSON.stringify({
+      students: overrides.students !== undefined ? overrides.students : students,
+      className: overrides.className !== undefined ? overrides.className : className,
+      bookTitle: overrides.bookTitle !== undefined ? overrides.bookTitle : bookTitle,
+      teacherName: overrides.teacherName !== undefined ? overrides.teacherName : teacherName,
+      schoolName: overrides.schoolName !== undefined ? overrides.schoolName : schoolName,
+      location: overrides.location !== undefined ? overrides.location : location,
+      standardMeals: overrides.standardMeals !== undefined ? overrides.standardMeals : standardMeals,
+      footerDay: overrides.footerDay !== undefined ? overrides.footerDay : footerDay,
+      footerMonth: overrides.footerMonth !== undefined ? overrides.footerMonth : footerMonth,
+      footerYear: overrides.footerYear !== undefined ? overrides.footerYear : footerYear,
+      markSymbol: overrides.markSymbol !== undefined ? overrides.markSymbol : markSymbol,
+      signature: overrides.signature !== undefined ? overrides.signature : signature,
+    });
+  }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature]);
+
+  const getIsDirty = useCallback(() => {
+    if (!user || isInitializing || isDataFetching || !lastSavedDataRef.current) return false;
+    return lastSavedDataRef.current !== captureStateString();
+  }, [user, isInitializing, isDataFetching, captureStateString]);
+
+  // Keep isDirty.current in sync
+  useEffect(() => {
+    isDirty.current = getIsDirty();
+  }, [getIsDirty]);
+
   // Save function
   const handleSave = useCallback(async (silent = false) => {
     if (!user) return;
@@ -563,24 +563,48 @@ export default function App() {
         }
       }
 
-      if (!silent) alert('Đã lưu dữ liệu thành công!');
+      // Update the last saved state for dirty checking
+      lastSavedDataRef.current = captureStateString();
       isDirty.current = false; // Reset dirty flag after successful save
+
+      if (!silent) alert('Đã lưu dữ liệu thành công!');
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle, classesConfig]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle, classesConfig, captureStateString]);
 
-  // Mark as dirty when data changes
-  useEffect(() => {
-    if (isInitializing || isDataFetching) return;
-
-    if (justFetchedRef.current) {
-      justFetchedRef.current = false;
-      isDirty.current = false;
-      return;
+  const handleClassNameSubmit = useCallback(async () => {
+    const trimmed = classNameInput.trim().toUpperCase();
+    if (trimmed && trimmed !== className) {
+      if (isDirty.current) {
+        if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang lớp khác không?')) {
+          await handleSave(true);
+        }
+      }
+      setClassName(trimmed);
+      
+      // Auto-save the new class to the teacher's classes configuration if it doesn't exist
+      if (user && trimmed) {
+        const exists = classesConfig.some(c => c.className === trimmed);
+        if (!exists) {
+          const updatedConfig = [...classesConfig, { className: trimmed, teacherName: teacherName }];
+          setClassesConfig(updatedConfig);
+          try {
+            await supabase
+              .from('app_settings')
+              .upsert({
+                setting_key: `${user.id}_classes_config`,
+                setting_value: JSON.stringify(updatedConfig),
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'setting_key' });
+          } catch (e) {
+            console.error("Failed to auto-save class to config", e);
+          }
+        }
+      }
     }
+  }, [classNameInput, className, classesConfig, teacherName, user, handleSave]);
 
-    isDirty.current = true;
-  }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, isInitializing, isDataFetching]);
+
 
 
 
@@ -757,7 +781,8 @@ export default function App() {
           
           // Use configured GVCN if available in classesConfig, otherwise use saved one
           const configMatch = classesConfig.find(c => c.className === (data.class_name || className));
-          setTeacherName(configMatch ? configMatch.teacherName : (data.teacher_name || ''));
+          const finalTeacherName = configMatch ? configMatch.teacherName : (data.teacher_name || '');
+          setTeacherName(finalTeacherName);
           
           setLocation(fetchedLocation);
           setStudents(data.students || INITIAL_STUDENTS);
@@ -770,28 +795,51 @@ export default function App() {
             .eq('setting_key', `${user.id}_prefs_${year}_${month}`)
             .maybeSingle();
           
+          let fDay = new Date().getDate();
+          let fMonth = new Date().getMonth() + 1;
+          let fYear = new Date().getFullYear();
+
           if (monthPrefsData && monthPrefsData.setting_value) {
             const mPrefs = JSON.parse(monthPrefsData.setting_value);
-            if (mPrefs.footerDay !== undefined) setFooterDay(mPrefs.footerDay);
-            if (mPrefs.footerMonth !== undefined) setFooterMonth(mPrefs.footerMonth);
-            if (mPrefs.footerYear !== undefined) setFooterYear(mPrefs.footerYear);
+            if (mPrefs.footerDay !== undefined) { fDay = mPrefs.footerDay; setFooterDay(mPrefs.footerDay); }
+            if (mPrefs.footerMonth !== undefined) { fMonth = mPrefs.footerMonth; setFooterMonth(mPrefs.footerMonth); }
+            if (mPrefs.footerYear !== undefined) { fYear = mPrefs.footerYear; setFooterYear(mPrefs.footerYear); }
           } else {
             // Default to current date if selected month & year match today's date, otherwise default to end of month
             const today = new Date();
             if (month === today.getMonth() && year === today.getFullYear()) {
+              fDay = today.getDate();
+              fMonth = today.getMonth() + 1;
+              fYear = today.getFullYear();
               setFooterDay(today.getDate());
               setFooterMonth(today.getMonth() + 1);
               setFooterYear(today.getFullYear());
             } else {
               const lastDay = new Date(year, month + 1, 0).getDate();
+              fDay = lastDay;
+              fMonth = month + 1;
+              fYear = year;
               setFooterDay(lastDay);
               setFooterMonth(month + 1);
               setFooterYear(year);
             }
           }
 
+          lastSavedDataRef.current = JSON.stringify({
+            students: data.students || INITIAL_STUDENTS,
+            className: data.class_name || '',
+            bookTitle,
+            teacherName: finalTeacherName,
+            schoolName: fetchedSchoolName,
+            location: fetchedLocation,
+            standardMeals: data.standard_meals || { S: 0, T1: 0, T2: 0 },
+            footerDay: fDay,
+            footerMonth: fMonth,
+            footerYear: fYear,
+            markSymbol,
+            signature,
+          });
           isDirty.current = false;
-          justFetchedRef.current = true;
         } else {
           // Find if there is a configured GVCN for this class in classesConfig
           const configMatch = classesConfig.find(c => c.className === className);
@@ -810,22 +858,36 @@ export default function App() {
             .maybeSingle();
 
           // Default date for new month
+          let fDay = new Date().getDate();
+          let fMonth = new Date().getMonth() + 1;
+          let fYear = new Date().getFullYear();
           const today = new Date();
           if (month === today.getMonth() && year === today.getFullYear()) {
+            fDay = today.getDate();
+            fMonth = today.getMonth() + 1;
+            fYear = today.getFullYear();
             setFooterDay(today.getDate());
             setFooterMonth(today.getMonth() + 1);
             setFooterYear(today.getFullYear());
           } else {
             const lastDay = new Date(year, month + 1, 0).getDate();
+            fDay = lastDay;
+            fMonth = month + 1;
+            fYear = year;
             setFooterDay(lastDay);
             setFooterMonth(month + 1);
             setFooterYear(year);
           }
 
+          let copiedStudents = INITIAL_STUDENTS;
+          let fetchedSchoolName = 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+          let fetchedLocation = 'Suối Lư';
+          let finalTeacherName = configuredTeacherName;
+
           if (latestData) {
             console.log(`Copying student list for ${className} from ${latestData.month + 1}/${latestData.year}`);
-            let fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-            let fetchedLocation = latestData.location || 'Suối Lư';
+            fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+            fetchedLocation = latestData.location || 'Suối Lư';
 
             // Auto-correct typo if found
             if (fetchedSchoolName.includes('SUỐI LỪ')) {
@@ -836,17 +898,16 @@ export default function App() {
             }
 
             setSchoolName(fetchedSchoolName);
-            setTeacherName(configuredTeacherName || latestData.teacher_name || '');
+            finalTeacherName = configuredTeacherName || latestData.teacher_name || '';
+            setTeacherName(finalTeacherName);
             setLocation(fetchedLocation);
             setStandardMeals({ S: 0, T1: 0, T2: 0 });
             // Copy students but clear their meal data for the new month
-            const copiedStudents = (latestData.students || []).map((s: any) => ({
+            copiedStudents = (latestData.students || []).map((s: any) => ({
               ...s,
               meals: {}
             }));
             setStudents(copiedStudents);
-            isDirty.current = false;
-            justFetchedRef.current = true;
           } else {
             // No previous month's data for this specific class.
             // Let's copy general metadata from the latest sheet of ANY class to save re-typing
@@ -861,8 +922,8 @@ export default function App() {
               .maybeSingle();
 
             if (genericLatestData) {
-              let fetchedSchoolName = genericLatestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-              let fetchedLocation = genericLatestData.location || 'Suối Lư';
+              fetchedSchoolName = genericLatestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+              fetchedLocation = genericLatestData.location || 'Suối Lư';
 
               if (fetchedSchoolName.includes('SUỐI LỪ')) {
                 fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
@@ -872,18 +933,35 @@ export default function App() {
               }
 
               setSchoolName(fetchedSchoolName);
-              setTeacherName(configuredTeacherName || genericLatestData.teacher_name || '');
+              finalTeacherName = configuredTeacherName || genericLatestData.teacher_name || '';
+              setTeacherName(finalTeacherName);
               setLocation(fetchedLocation);
               setStandardMeals({ S: 0, T1: 0, T2: 0 });
             } else {
+              finalTeacherName = configuredTeacherName;
               setTeacherName(configuredTeacherName);
               setStandardMeals({ S: 0, T1: 0, T2: 0 });
             }
 
+            copiedStudents = INITIAL_STUDENTS;
             setStudents(INITIAL_STUDENTS);
-            isDirty.current = false;
-            justFetchedRef.current = true;
           }
+
+          lastSavedDataRef.current = JSON.stringify({
+            students: copiedStudents,
+            className: className,
+            bookTitle,
+            teacherName: finalTeacherName,
+            schoolName: fetchedSchoolName,
+            location: fetchedLocation,
+            standardMeals: { S: 0, T1: 0, T2: 0 },
+            footerDay: fDay,
+            footerMonth: fMonth,
+            footerYear: fYear,
+            markSymbol,
+            signature,
+          });
+          isDirty.current = false;
         }
 
         const today = new Date();
@@ -1040,6 +1118,11 @@ export default function App() {
   // --- Handlers ---
   
   const prevMonth = async () => {
+    if (isDirty.current) {
+      if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang tháng khác không?')) {
+        await handleSave(true);
+      }
+    }
     if (month === 0) {
       setMonth(11);
       setYear(y => y - 1);
@@ -1049,6 +1132,11 @@ export default function App() {
   };
 
   const nextMonth = async () => {
+    if (isDirty.current) {
+      if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang tháng khác không?')) {
+        await handleSave(true);
+      }
+    }
     if (month === 11) {
       setMonth(0);
       setYear(y => y + 1);
@@ -1058,6 +1146,11 @@ export default function App() {
   };
   
   const handleYearChange = async (newYear: number) => {
+    if (isDirty.current) {
+      if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang năm khác không?')) {
+        await handleSave(true);
+      }
+    }
     setYear(newYear);
   };
 
@@ -2690,7 +2783,6 @@ export default function App() {
               <button 
                 onClick={() => {
                   setIsQuotaModalOpen(false);
-                  handleSave(true);
                 }}
                 className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium w-full"
               >
