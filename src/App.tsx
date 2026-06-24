@@ -275,9 +275,43 @@ export default function App() {
       setUser(null);
       setIsInitializing(false);
       
-      // Notify Supabase client to clear its state
-      supabase.auth.signOut().catch(() => {});
+      // Notify Supabase client to clear its state locally first to avoid remote requests with invalid token
+      supabase.auth.signOut({ scope: 'local' }).catch(() => {
+        supabase.auth.signOut().catch(() => {});
+      });
     };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      if (reason) {
+        const errorMsg = typeof reason === 'string' 
+          ? reason 
+          : (reason.message || reason.error_description || reason.error || '');
+        if (
+          errorMsg.includes('Invalid Refresh Token') || 
+          errorMsg.includes('Refresh Token Not Found') ||
+          errorMsg.includes('invalid_grant')
+        ) {
+          console.warn('Caught refresh token error in unhandled rejection:', reason);
+          clearStaleSession();
+        }
+      }
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      const errorMsg = event.message || '';
+      if (
+        errorMsg.includes('Invalid Refresh Token') || 
+        errorMsg.includes('Refresh Token Not Found') ||
+        errorMsg.includes('invalid_grant')
+      ) {
+        console.warn('Caught refresh token error in error event:', errorMsg);
+        clearStaleSession();
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
 
     // Check active session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -309,7 +343,11 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+    };
   }, []);
 
   // Persist month/year changes
@@ -824,10 +862,27 @@ export default function App() {
   }, [user, month, year, className]);
 
   const handleLogout = async () => {
-    if (isDirty.current) {
-      await handleSave(true);
+    try {
+      if (isDirty.current) {
+        await handleSave(true);
+      }
+    } catch (err) {
+      console.error('Error saving before logout:', err);
     }
-    await supabase.auth.signOut();
+    
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Error signing out from server, clearing local session...', err);
+      // Manually clear local storage session as fallback
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+          localStorage.removeItem(key);
+        }
+      });
+      sessionStorage.clear();
+      setUser(null);
+    }
   };
 
   if (isInitializing || licenseCheckLoading) {
