@@ -838,7 +838,7 @@ export default function App() {
             setSchoolName(fetchedSchoolName);
             setTeacherName(configuredTeacherName || latestData.teacher_name || '');
             setLocation(fetchedLocation);
-            setStandardMeals(latestData.standard_meals || { S: 0, T1: 0, T2: 0 });
+            setStandardMeals({ S: 0, T1: 0, T2: 0 });
             // Copy students but clear their meal data for the new month
             const copiedStudents = (latestData.students || []).map((s: any) => ({
               ...s,
@@ -874,9 +874,10 @@ export default function App() {
               setSchoolName(fetchedSchoolName);
               setTeacherName(configuredTeacherName || genericLatestData.teacher_name || '');
               setLocation(fetchedLocation);
-              setStandardMeals(genericLatestData.standard_meals || { S: 0, T1: 0, T2: 0 });
+              setStandardMeals({ S: 0, T1: 0, T2: 0 });
             } else {
               setTeacherName(configuredTeacherName);
+              setStandardMeals({ S: 0, T1: 0, T2: 0 });
             }
 
             setStudents(INITIAL_STUDENTS);
