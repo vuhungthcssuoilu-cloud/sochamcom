@@ -547,16 +547,7 @@ export default function App() {
     isDirty.current = true;
   }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, isInitializing, isDataFetching]);
 
-  // Auto-save effect
-  useEffect(() => {
-    if (isInitializing || isDataFetching || !isDirty.current) return;
 
-    const timer = setTimeout(() => {
-      handleSave(true);
-    }, 2000); // Auto-save after 2 seconds of inactivity
-
-    return () => clearTimeout(timer);
-  }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, handleSave, isInitializing, isDataFetching]);
 
   // Warn before closing tab if there are unsaved changes
   useEffect(() => {
