@@ -161,6 +161,15 @@ export default function App() {
     return days;
   }, [daysInMonth]);
 
+  const scrollToToday = useCallback(() => {
+    const today = new Date();
+    const todayDay = today.getDate();
+    const element = document.getElementById(`day-col-${todayDay}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, []);
+
   // --- Auth & Data Fetching ---
   
   // Ref to track if data has been modified
@@ -653,6 +662,11 @@ export default function App() {
             isDirty.current = false;
             justFetchedRef.current = true;
           }
+        }
+
+        const today = new Date();
+        if (month === today.getMonth() && year === today.getFullYear()) {
+          setTimeout(scrollToToday, 500);
         }
       } finally {
         setIsDataFetching(false);
@@ -1429,8 +1443,13 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  const renderTableHalf = (days: number[], isSecondHalf: boolean) => (
-    <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col print-page-container">
+  const renderTableHalf = (days: number[], isSecondHalf: boolean) => {
+    const today = new Date();
+    const isCurrentMonthYear = month === today.getMonth() && year === today.getFullYear();
+    const todayDay = today.getDate();
+
+    return (
+      <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col print-page-container">
       <div className={`flex-col mb-2 px-2 print:px-0 ${isPreviewMode ? 'flex' : 'hidden print:flex'}`}>
         <input 
           type="text" 
@@ -1485,10 +1504,11 @@ export default function App() {
             {days.map(d => (
               <th 
                 key={d} 
+                id={`day-col-${d}`}
                 colSpan={3} 
                 onMouseEnter={() => setHoveredDay(d)}
                 onMouseLeave={() => setHoveredDay(null)}
-                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold relative group/d print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold relative group/d print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-100 ring-2 ring-indigo-500 text-indigo-950 font-extrabold shadow-inner' : 'bg-slate-50')}`}
               >
                 {d}
                 <button 
@@ -1512,7 +1532,7 @@ export default function App() {
                 colSpan={3} 
                 onMouseEnter={() => setHoveredDay(d)}
                 onMouseLeave={() => setHoveredDay(null)}
-                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold text-[11px] print:border-black ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-200' : 'bg-slate-50')}`}
+                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold text-[11px] print:border-black ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-200' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-800' : 'bg-slate-50'))}`}
               >
                 {getDayOfWeek(d, month, year)}
               </th>
@@ -1546,7 +1566,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[1px] border-gray-400 text-center font-normal text-[8px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[8px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-850 font-black' : 'bg-slate-50')}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1565,7 +1585,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-850 font-black' : 'bg-slate-50')}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1584,7 +1604,7 @@ export default function App() {
                 <th 
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : 'bg-slate-50'}`}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-850 font-black' : 'bg-slate-50')}`}
                 >
                   <div className="flex flex-col h-full items-center justify-center">
                     <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
@@ -1678,7 +1698,7 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'S')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.S ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50' : (student.meals[d]?.S ? 'bg-gray-50' : ''))}`}
                     >
                       <div className="flex items-center justify-center h-full w-full leading-none">
                         {student.meals[d]?.S ? markSymbol : ''}
@@ -1688,7 +1708,7 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'T1')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T1 ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50' : (student.meals[d]?.T1 ? 'bg-gray-50' : ''))}`}
                     >
                       <div className="flex items-center justify-center h-full w-full leading-none">
                         {student.meals[d]?.T1 ? markSymbol : ''}
@@ -1698,7 +1718,7 @@ export default function App() {
                       onClick={() => toggleMeal(student.id, d, 'T2')}
                       onMouseEnter={() => setHoveredDay(d)}
                       onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (student.meals[d]?.T2 ? 'bg-gray-50' : '')}`}
+                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50' : (student.meals[d]?.T2 ? 'bg-gray-50' : ''))}`}
                     >
                       <div className="flex items-center justify-center h-full w-full leading-none">
                         {student.meals[d]?.T2 ? markSymbol : ''}
@@ -1745,13 +1765,13 @@ export default function App() {
             <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
-                <td className="border-[0.5px] border-black text-center align-middle h-6">
+                <td className={`border-[0.5px] border-black text-center align-middle h-6 ${isCurrentMonthYear && d === todayDay ? 'bg-amber-100 font-extrabold' : ''}`}>
                   <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'S')}</div>
                 </td>
-                <td className="border-[0.5px] border-black text-center align-middle h-6">
+                <td className={`border-[0.5px] border-black text-center align-middle h-6 ${isCurrentMonthYear && d === todayDay ? 'bg-amber-100 font-extrabold' : ''}`}>
                   <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'T1')}</div>
                 </td>
-                <td className="border-[0.5px] border-black text-center align-middle h-6">
+                <td className={`border-[0.5px] border-black text-center align-middle h-6 ${isCurrentMonthYear && d === todayDay ? 'bg-amber-100 font-extrabold' : ''}`}>
                   <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'T2')}</div>
                 </td>
               </React.Fragment>
@@ -1849,7 +1869,8 @@ export default function App() {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className={`min-h-screen bg-white ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'} text-gray-900 print:p-4`}>
@@ -1921,6 +1942,19 @@ export default function App() {
                 className="w-16 px-1 py-1 border rounded text-sm font-bold text-center"
               />
             </div>
+            <button
+              onClick={() => {
+                const today = new Date();
+                setMonth(today.getMonth());
+                setYear(today.getFullYear());
+                setTimeout(scrollToToday, 400);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#A0522D] hover:bg-[#8B4513] text-white rounded-lg transition-colors text-xs font-bold shadow-sm"
+              title="Quay về tháng hiện tại và nhảy đến hôm nay"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Hôm nay</span>
+            </button>
             <button
               onClick={() => {
                 fetchSavedSheets();
