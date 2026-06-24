@@ -104,6 +104,7 @@ export default function App() {
   const [licenseExpiryDate, setLicenseExpiryDate] = useState<string | null>(null);
   const [licenseDuration, setLicenseDuration] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+  const [hoveredStudentId, setHoveredStudentId] = useState<string | null>(null);
   const hasShownInitialAlert = useRef(false);
   const hasRecordedAccess = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1889,9 +1890,14 @@ export default function App() {
             });
             const isStudentEmpty = (!student.name.trim() || student.name === 'Học sinh mới') && !hasMeals;
             return (
-              <tr key={student.id} className={`hover:bg-blue-50 group h-5 student-row ${isStudentEmpty ? 'is-empty' : ''}`}>
-                <td className="border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 w-8 print:w-[30px] student-stt"></td>
-                <td className="border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative bg-white group-hover:bg-blue-50 z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px]">
+              <tr 
+                key={student.id} 
+                onMouseEnter={() => setHoveredStudentId(student.id)}
+                onMouseLeave={() => setHoveredStudentId(null)}
+                className={`hover:bg-blue-50 group h-5 student-row ${isStudentEmpty ? 'is-empty' : ''}`}
+              >
+                <td className={`border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative z-10 w-8 print:w-[30px] student-stt transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900 font-bold' : 'bg-white group-hover:bg-blue-50'}`}></td>
+                <td className={`border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900' : 'bg-white group-hover:bg-blue-50'}`}>
                   <div className="flex items-center gap-1 h-full">
                     <input 
                       type="text" 
@@ -1926,58 +1932,91 @@ export default function App() {
                     </div>
                   </div>
                 </td>
-                {days.map(d => (
-                  <React.Fragment key={d}>
-                    <td 
-                      onClick={() => toggleMeal(student.id, d, 'S')}
-                      onMouseEnter={() => setHoveredDay(d)}
-                      onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.S ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50' : (student.meals[d]?.S ? 'bg-gray-50' : ''))}`}
-                    >
-                      <div className="flex items-center justify-center h-full w-full leading-none">
-                        {student.meals[d]?.S ? markSymbol : ''}
-                      </div>
-                    </td>
-                    <td 
-                      onClick={() => toggleMeal(student.id, d, 'T1')}
-                      onMouseEnter={() => setHoveredDay(d)}
-                      onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50' : (student.meals[d]?.T1 ? 'bg-gray-50' : ''))}`}
-                    >
-                      <div className="flex items-center justify-center h-full w-full leading-none">
-                        {student.meals[d]?.T1 ? markSymbol : ''}
-                      </div>
-                    </td>
-                    <td 
-                      onClick={() => toggleMeal(student.id, d, 'T2')}
-                      onMouseEnter={() => setHoveredDay(d)}
-                      onMouseLeave={() => setHoveredDay(null)}
-                      className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${hoveredDay === d ? '!bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50' : (student.meals[d]?.T2 ? 'bg-gray-50' : ''))}`}
-                    >
-                      <div className="flex items-center justify-center h-full w-full leading-none">
-                        {student.meals[d]?.T2 ? markSymbol : ''}
-                      </div>
-                    </td>
-                  </React.Fragment>
-                ))}
+                {days.map(d => {
+                  const isHoveredRow = hoveredStudentId === student.id;
+                  const isHoveredCol = hoveredDay === d;
+                  const isToday = isCurrentMonthYear && d === todayDay;
+
+                  const getBgClass = (meal: MealType) => {
+                    if (isHoveredRow && isHoveredCol) return '!bg-amber-200 text-indigo-950 font-extrabold';
+                    if (isHoveredRow) return '!bg-blue-50/80 text-blue-950';
+                    if (isHoveredCol) return '!bg-blue-100 text-blue-900';
+                    if (isToday) return 'bg-amber-50';
+                    if (student.meals[d]?.[meal]) return 'bg-gray-50';
+                    return '';
+                  };
+
+                  return (
+                    <React.Fragment key={d}>
+                      <td 
+                        onClick={() => toggleMeal(student.id, d, 'S')}
+                        onMouseEnter={() => {
+                          setHoveredDay(d);
+                          setHoveredStudentId(student.id);
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredDay(null);
+                          setHoveredStudentId(null);
+                        }}
+                        className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 transition-colors duration-75 ${student.meals[d]?.S ? 'font-bold' : ''} ${getBgClass('S')}`}
+                      >
+                        <div className="flex items-center justify-center h-full w-full leading-none">
+                          {student.meals[d]?.S ? markSymbol : ''}
+                        </div>
+                      </td>
+                      <td 
+                        onClick={() => toggleMeal(student.id, d, 'T1')}
+                        onMouseEnter={() => {
+                          setHoveredDay(d);
+                          setHoveredStudentId(student.id);
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredDay(null);
+                          setHoveredStudentId(null);
+                        }}
+                        className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 transition-colors duration-75 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${getBgClass('T1')}`}
+                      >
+                        <div className="flex items-center justify-center h-full w-full leading-none">
+                          {student.meals[d]?.T1 ? markSymbol : ''}
+                        </div>
+                      </td>
+                      <td 
+                        onClick={() => toggleMeal(student.id, d, 'T2')}
+                        onMouseEnter={() => {
+                          setHoveredDay(d);
+                          setHoveredStudentId(student.id);
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredDay(null);
+                          setHoveredStudentId(null);
+                        }}
+                        className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 transition-colors duration-75 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${getBgClass('T2')}`}
+                      >
+                        <div className="flex items-center justify-center h-full w-full leading-none">
+                          {student.meals[d]?.T2 ? markSymbol : ''}
+                        </div>
+                      </td>
+                    </React.Fragment>
+                  );
+                })}
                 {isSecondHalf && (
                   <>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-5">
+                    <td className={`border-[0.5px] border-black text-center align-middle font-medium h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.S}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-5">
+                    <td className={`border-[0.5px] border-black text-center align-middle font-medium h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.T1}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 font-medium h-5">
+                    <td className={`border-[0.5px] border-black text-center align-middle font-medium h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.T2}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-5">
+                    <td className={`border-[0.5px] border-black text-center align-middle text-gray-500 h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.uS}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-5">
+                    <td className={`border-[0.5px] border-black text-center align-middle text-gray-500 h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT1}</div>
                     </td>
-                    <td className="border-[0.5px] border-black text-center align-middle bg-gray-50 text-gray-500 h-5">
+                    <td className={`border-[0.5px] border-black text-center align-middle text-gray-500 h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
                       <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT2}</div>
                     </td>
                   </>
