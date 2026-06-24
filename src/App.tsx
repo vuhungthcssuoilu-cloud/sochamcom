@@ -154,6 +154,7 @@ export default function App() {
   
   // Ref to track if data has been modified
   const isDirty = useRef(false);
+  const justFetchedRef = useRef(false);
 
   // Check license expiration
   useEffect(() => {
@@ -356,9 +357,15 @@ export default function App() {
 
   // Mark as dirty when data changes
   useEffect(() => {
-    if (!isInitializing && !isDataFetching) {
-      isDirty.current = true;
+    if (isInitializing || isDataFetching) return;
+
+    if (justFetchedRef.current) {
+      justFetchedRef.current = false;
+      isDirty.current = false;
+      return;
     }
+
+    isDirty.current = true;
   }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, isInitializing, isDataFetching]);
 
   // Auto-save effect
@@ -518,6 +525,7 @@ export default function App() {
           }
 
           isDirty.current = false;
+          justFetchedRef.current = true;
         } else {
           // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
           const { data: latestData } = await supabase
@@ -560,10 +568,12 @@ export default function App() {
               meals: {}
             }));
             setStudents(copiedStudents);
-            isDirty.current = true; // Mark as dirty so it gets saved for the new month
+            isDirty.current = false;
+            justFetchedRef.current = true;
           } else {
             setStudents(INITIAL_STUDENTS);
             isDirty.current = false;
+            justFetchedRef.current = true;
           }
         }
       } finally {
