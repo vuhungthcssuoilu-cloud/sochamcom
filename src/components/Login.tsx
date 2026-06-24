@@ -244,16 +244,16 @@ export default function Login() {
           {/* Top Blue Border */}
           <div className="h-1.5 bg-[#0b5394] w-full"></div>
           
-          <div className="p-6 sm:p-8">
-            <h3 className="text-lg text-[#0b5394] font-bold mb-4 pb-3 border-b border-gray-100 text-center sm:text-left">
+          <div className="p-5 sm:p-6">
+            <h3 className="text-lg text-[#0b5394] font-bold mb-3 pb-2 border-b border-gray-100 text-center sm:text-left">
               {isRegisterMode ? 'Đăng ký tài khoản' : 'Nhập thông tin đăng nhập'}
             </h3>
             
-            <form className="space-y-4" onSubmit={isRegisterMode ? handleSignUp : handleLogin}>
+            <form className="space-y-3" onSubmit={isRegisterMode ? handleSignUp : handleLogin}>
               {isRegisterMode && (
                 <>
                   <div className="flex flex-col">
-                    <label htmlFor="full-name" className="text-sm text-gray-700 font-medium mb-1.5">
+                    <label htmlFor="full-name" className="text-sm text-gray-700 font-medium mb-1">
                       Họ và tên <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -261,7 +261,7 @@ export default function Login() {
                       name="fullName"
                       type="text"
                       required={isRegisterMode}
-                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
+                      className="w-full border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Nhập họ và tên"
@@ -269,7 +269,7 @@ export default function Login() {
                   </div>
                   
                   <div className="flex flex-col">
-                    <label htmlFor="phone-number" className="text-sm text-gray-700 font-medium mb-1.5">
+                    <label htmlFor="phone-number" className="text-sm text-gray-700 font-medium mb-1">
                       Số điện thoại <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -277,7 +277,7 @@ export default function Login() {
                       name="phoneNumber"
                       type="tel"
                       required={isRegisterMode}
-                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
+                      className="w-full border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="VD: 0984246993"
@@ -285,7 +285,7 @@ export default function Login() {
                   </div>
                   
                   <div className="flex flex-col">
-                    <label htmlFor="license-key" className="text-sm text-gray-700 font-medium mb-1.5">
+                    <label htmlFor="license-key" className="text-sm text-gray-700 font-medium mb-1">
                       Mã bản quyền <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -293,15 +293,15 @@ export default function Login() {
                       name="licenseKey"
                       type="text"
                       required={isRegisterMode}
-                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors uppercase"
+                      className="w-full border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors uppercase"
                       value={licenseKey}
                       onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
                       placeholder="VD: SL-XXXX-XXXX"
                     />
                     {checkingLicense ? (
-                      <p className="text-xs text-gray-500 mt-1.5">Đang kiểm tra mã...</p>
+                      <p className="text-xs text-gray-500 mt-1">Đang kiểm tra mã...</p>
                     ) : licenseInfo ? (
-                      <p className={`text-xs mt-1.5 font-medium ${licenseInfo.duration > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <p className={`text-xs mt-1 font-medium ${licenseInfo.duration > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {licenseInfo.text}
                       </p>
                     ) : null}
@@ -310,7 +310,7 @@ export default function Login() {
               )}
 
               <div className="flex flex-col">
-                <label htmlFor="email-address" className="text-sm text-gray-700 font-medium mb-1.5">
+                <label htmlFor="email-address" className="text-sm text-gray-700 font-medium mb-1">
                   Tài khoản Gmail <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -319,7 +319,7 @@ export default function Login() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
+                  className="w-full border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Nhập email của bạn"
@@ -327,7 +327,7 @@ export default function Login() {
               </div>
               
               <div className="flex flex-col">
-                <label htmlFor="password" className="text-sm text-gray-700 font-medium mb-1.5">
+                <label htmlFor="password" className="text-sm text-gray-700 font-medium mb-1">
                   Mật khẩu <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -336,7 +336,7 @@ export default function Login() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
+                  className="w-full border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Nhập mật khẩu"
@@ -351,7 +351,7 @@ export default function Login() {
               )}
 
               <div className="flex flex-col">
-                <label htmlFor="captcha" className="text-sm text-gray-700 font-medium mb-1.5 flex items-center justify-between">
+                <label htmlFor="captcha" className="text-sm text-gray-700 font-medium mb-1 flex items-center justify-between">
                   <span>Mã xác nhận ({captchaQuestion} = ?) <span className="text-red-500">*</span></span>
                   <button 
                     type="button" 
@@ -366,7 +366,7 @@ export default function Login() {
                   id="captcha"
                   type="text"
                   required
-                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
+                  className="w-full border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                   value={userCaptchaInput}
                   onChange={(e) => setUserCaptchaInput(e.target.value)}
                   placeholder="Nhập kết quả phép tính"
@@ -385,16 +385,16 @@ export default function Login() {
                 </div>
               )}
               
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#0b5394] hover:bg-[#094074] text-white font-bold py-2 px-4 rounded shadow transition-colors text-base"
+                  className="w-full bg-[#0b5394] hover:bg-[#094074] text-white font-bold py-2 px-4 rounded shadow transition-colors text-sm"
                 >
                   {loading ? 'Đang xử lý...' : (isRegisterMode ? 'Đăng ký tài khoản' : 'Đăng nhập')}
                 </button>
                 
-                <div className="mt-3 text-center">
+                <div className="mt-2 text-center">
                   <button 
                     type="button"
                     onClick={() => {
