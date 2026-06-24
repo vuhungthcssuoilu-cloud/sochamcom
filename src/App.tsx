@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar, Settings } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
-const Login = lazy(() => import('./components/Login'));
+import Login from './components/Login';
 const Admin = lazy(() => import('./components/Admin'));
 
 // --- Types ---
@@ -620,6 +620,18 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
+  const [isGridMounted, setIsGridMounted] = useState(false);
+
+  useEffect(() => {
+    if (!isInitializing && !isDataFetching && user) {
+      // Small delay to allow the shell to paint first
+      const timer = setTimeout(() => {
+        setIsGridMounted(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitializing, isDataFetching, user]);
+
   // Fetch user preferences once on login
   useEffect(() => {
     if (!user) return;
@@ -1012,15 +1024,7 @@ export default function App() {
   }
 
   if (!user) {
-    return (
-      <Suspense fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      }>
-        <Login />
-      </Suspense>
-    );
+    return <Login />;
   }
 
   const handleRenewLicense = async () => {
@@ -1976,7 +1980,16 @@ export default function App() {
           </tr>
         </thead>
         <tbody>
-          {students.map((student, idx) => {
+          {!isGridMounted ? (
+            <tr>
+              <td colSpan={daysInMonth + 9} className="text-center py-8 text-gray-500">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  Đang tải danh sách...
+                </div>
+              </td>
+            </tr>
+          ) : students.map((student, idx) => {
             const totals = calculateStudentTotals(student);
             const hasMeals = Object.values(student.meals).some(day => {
               const d = day as { S: boolean; T1: boolean; T2: boolean };
