@@ -12,7 +12,11 @@ create table monthly_sheets (
   standard_meals jsonb default '{"S": 14, "T1": 14, "T2": 12}'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
-  unique(user_id, month, year)
+  -- Unique constraint: ensures each class has exactly one sheet per month/year for a given user.
+  -- To upgrade an existing DB with the old unique(user_id, month, year) constraint, run this SQL:
+  --   ALTER TABLE monthly_sheets DROP CONSTRAINT IF EXISTS monthly_sheets_user_id_month_year_key;
+  --   ALTER TABLE monthly_sheets ADD CONSTRAINT monthly_sheets_user_id_month_year_class_name_key UNIQUE (user_id, month, year, class_name);
+  unique(user_id, month, year, class_name)
 );
 
 -- Enable Row Level Security (RLS)
