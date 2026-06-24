@@ -528,11 +528,45 @@ export default function App() {
       console.error('Error saving data:', error || prefsError || monthPrefsError);
       if (!silent) alert(`Lỗi khi lưu dữ liệu! Chi tiết: ${(error || prefsError || monthPrefsError)?.message}`);
     } else {
+      // Sync current className and teacherName to classesConfig if changed
+      if (className) {
+        const trimmedClass = className.trim().toUpperCase();
+        const trimmedTeacher = teacherName.trim();
+        const existingIdx = classesConfig.findIndex(c => c.className === trimmedClass);
+        let updatedConfig = [...classesConfig];
+        let needsConfigSave = false;
+
+        if (existingIdx !== -1) {
+          if (classesConfig[existingIdx].teacherName !== trimmedTeacher) {
+            updatedConfig[existingIdx] = { className: trimmedClass, teacherName: trimmedTeacher };
+            needsConfigSave = true;
+          }
+        } else {
+          updatedConfig.push({ className: trimmedClass, teacherName: trimmedTeacher });
+          needsConfigSave = true;
+        }
+
+        if (needsConfigSave) {
+          setClassesConfig(updatedConfig);
+          try {
+            await supabase
+              .from('app_settings')
+              .upsert({
+                setting_key: `${user.id}_classes_config`,
+                setting_value: JSON.stringify(updatedConfig),
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'setting_key' });
+          } catch (e) {
+            console.error("Failed to auto-save class to config on manual save", e);
+          }
+        }
+      }
+
       if (!silent) alert('Đã lưu dữ liệu thành công!');
       isDirty.current = false; // Reset dirty flag after successful save
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle, classesConfig]);
 
   // Mark as dirty when data changes
   useEffect(() => {
@@ -719,7 +753,11 @@ export default function App() {
 
           setSchoolName(fetchedSchoolName);
           setClassName(data.class_name || '');
-          setTeacherName(data.teacher_name || '');
+          
+          // Use configured GVCN if available in classesConfig, otherwise use saved one
+          const configMatch = classesConfig.find(c => c.className === (data.class_name || className));
+          setTeacherName(configMatch ? configMatch.teacherName : (data.teacher_name || ''));
+          
           setLocation(fetchedLocation);
           setStudents(data.students || INITIAL_STUDENTS);
           setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
@@ -754,6 +792,10 @@ export default function App() {
           isDirty.current = false;
           justFetchedRef.current = true;
         } else {
+          // Find if there is a configured GVCN for this class in classesConfig
+          const configMatch = classesConfig.find(c => c.className === className);
+          const configuredTeacherName = configMatch ? configMatch.teacherName : '';
+
           // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata for this SPECIFIC class
           const { data: latestData } = await supabase
             .from('monthly_sheets')
@@ -793,7 +835,7 @@ export default function App() {
             }
 
             setSchoolName(fetchedSchoolName);
-            setTeacherName(latestData.teacher_name || '');
+            setTeacherName(configuredTeacherName || latestData.teacher_name || '');
             setLocation(fetchedLocation);
             setStandardMeals(latestData.standard_meals || { S: 0, T1: 0, T2: 0 });
             // Copy students but clear their meal data for the new month
@@ -829,9 +871,11 @@ export default function App() {
               }
 
               setSchoolName(fetchedSchoolName);
-              setTeacherName(genericLatestData.teacher_name || '');
+              setTeacherName(configuredTeacherName || genericLatestData.teacher_name || '');
               setLocation(fetchedLocation);
               setStandardMeals(genericLatestData.standard_meals || { S: 0, T1: 0, T2: 0 });
+            } else {
+              setTeacherName(configuredTeacherName);
             }
 
             setStudents(INITIAL_STUDENTS);
@@ -850,11 +894,11 @@ export default function App() {
     };
 
     fetchData();
-  }, [user, month, year, className]);
+  }, [user, month, year, className, classesConfig]);
 
   const handleLogout = async () => {
     try {
-      if (isDirty.current) {
+      if (isDirty.current && confirm('Bạn có thay đổi chưa lưu. Bạn có muốn lưu trước khi đăng xuất không?')) {
         await handleSave(true);
       }
     } catch (err) {
@@ -992,9 +1036,8 @@ export default function App() {
   }
 
   // --- Handlers ---
-
+  
   const prevMonth = async () => {
-    if (isDirty.current) await handleSave(true);
     if (month === 0) {
       setMonth(11);
       setYear(y => y - 1);
@@ -1004,7 +1047,6 @@ export default function App() {
   };
 
   const nextMonth = async () => {
-    if (isDirty.current) await handleSave(true);
     if (month === 11) {
       setMonth(0);
       setYear(y => y + 1);
@@ -1014,7 +1056,6 @@ export default function App() {
   };
   
   const handleYearChange = async (newYear: number) => {
-    if (isDirty.current) await handleSave(true);
     setYear(newYear);
   };
 
