@@ -77,6 +77,7 @@ export default function App() {
   const [year, setYear] = useState(() => {
     return new Date().getFullYear();
   });
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [location, setLocation] = useState('Suối Lư');
   const [teacherName, setTeacherName] = useState('');
@@ -464,11 +465,13 @@ export default function App() {
   const handleSave = useCallback(async (silent = false) => {
     if (!user) return;
     if (!silent) setSaving(true);
+    
+    const currentUserId = viewingUserId || user.id;
 
     let { error } = await supabase
       .from('monthly_sheets')
       .upsert({
-        user_id: user.id,
+        user_id: currentUserId,
         month,
         year,
         class_name: className,
@@ -486,7 +489,7 @@ export default function App() {
       const fallbackResult = await supabase
         .from('monthly_sheets')
         .upsert({
-          user_id: user.id,
+          user_id: currentUserId,
           month,
           year,
           class_name: className,
@@ -711,10 +714,15 @@ export default function App() {
     if (!user) return;
     setIsLoadingSavedSheets(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('monthly_sheets')
-        .select('month, year, class_name, students, updated_at')
-        .eq('user_id', user.id);
+        .select('month, year, class_name, teacher_name, students, updated_at, user_id');
+
+      if (user.email !== 'vuhung@db.edu.vn') {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching saved sheets:', error);
@@ -734,13 +742,13 @@ export default function App() {
     }
   };
 
-  const handleDeleteSavedSheet = async (targetYear: number, targetMonth: number, classNameToDel: string) => {
+  const handleDeleteSavedSheet = async (targetYear: number, targetMonth: number, classNameToDel: string, targetUserId: string) => {
     if (!confirm(`Bạn có chắc chắn muốn xóa bảng chấm cơm của Lớp ${classNameToDel || ''} - Tháng ${targetMonth + 1}/${targetYear} không? Thao tác này sẽ xóa vĩnh viễn dữ liệu trên hệ thống.`)) return;
     try {
       const { error } = await supabase
         .from('monthly_sheets')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('year', targetYear)
         .eq('month', targetMonth)
         .eq('class_name', classNameToDel);
@@ -763,10 +771,11 @@ export default function App() {
     const fetchData = async () => {
       setIsDataFetching(true);
       try {
+        const currentUserId = viewingUserId || user.id;
         const { data, error } = await supabase
           .from('monthly_sheets')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', currentUserId)
           .eq('month', month)
           .eq('year', year)
           .eq('class_name', className)
@@ -861,7 +870,7 @@ export default function App() {
           const { data: latestData } = await supabase
             .from('monthly_sheets')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', currentUserId)
             .eq('class_name', className)
             .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
             .order('year', { ascending: false })
@@ -926,7 +935,7 @@ export default function App() {
             const { data: genericLatestData } = await supabase
               .from('monthly_sheets')
               .select('*')
-              .eq('user_id', user.id)
+              .eq('user_id', currentUserId)
               .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
               .order('year', { ascending: false })
               .order('month', { ascending: false })
@@ -986,7 +995,7 @@ export default function App() {
     };
 
     fetchData();
-  }, [user, month, year, className, classesConfig]);
+  }, [user, month, year, className, classesConfig, viewingUserId]);
 
   const handleLogout = async () => {
     try {
@@ -1326,11 +1335,13 @@ export default function App() {
   const syncFromPreviousMonth = async () => {
     if (!user) return;
     if (!confirm('Bạn có muốn cập nhật danh sách học sinh từ tháng trước không? Dữ liệu chấm cơm hiện tại của tháng này sẽ được giữ nguyên, chỉ thêm các học sinh mới hoặc cập nhật tên.')) return;
+    
+    const currentUserId = viewingUserId || user.id;
 
     const { data: latestData } = await supabase
       .from('monthly_sheets')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', currentUserId)
       .eq('class_name', className)
       .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
       .order('year', { ascending: false })
@@ -2261,7 +2272,23 @@ export default function App() {
         {/* Top bar of control panel for User Info */}
         <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-200 bg-indigo-50/70 rounded-t-xl shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="text-xs text-indigo-900/60 font-medium">Phần mềm Sổ Chấm Cơm Nội Trú</div>
+            <div className="text-xs text-indigo-900/60 font-medium flex items-center gap-2">
+              Phần mềm Sổ Chấm Cơm Nội Trú
+              {user?.email === 'vuhung@db.edu.vn' && viewingUserId && viewingUserId !== user.id && (
+                <div className="flex items-center gap-1">
+                  <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded text-[10px] font-bold">
+                    Đang xem: {teacherName || 'Giáo viên khác'}
+                  </span>
+                  <button 
+                    onClick={() => setViewingUserId(user.id)}
+                    className="text-[10px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded transition-colors"
+                    title="Thoát chế độ xem và quay về bảng của tôi"
+                  >
+                    Thoát
+                  </button>
+                </div>
+              )}
+            </div>
             {user?.email !== 'vuhung@db.edu.vn' && licenseExpiryDate && (
               <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/50 rounded-full border border-indigo-100/50">
                 <div className={`w-1.5 h-1.5 rounded-full ${isLicenseExpired ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
@@ -2961,6 +2988,9 @@ export default function App() {
                       <tr>
                         <th scope="col" className="px-4 py-3">Thời gian</th>
                         <th scope="col" className="px-4 py-3">Lớp</th>
+                        {user?.email === 'vuhung@db.edu.vn' && (
+                          <th scope="col" className="px-4 py-3">Giáo viên</th>
+                        )}
                         <th scope="col" className="px-4 py-3 text-center">Số học sinh</th>
                         <th scope="col" className="px-4 py-3">Lưu cuối</th>
                         <th scope="col" className="px-4 py-3 text-right">Thao tác</th>
@@ -2968,13 +2998,18 @@ export default function App() {
                     </thead>
                     <tbody>
                       {savedSheets.map((sheet) => (
-                        <tr key={`${sheet.year}-${sheet.month}-${sheet.class_name || 'default'}`} className="border-b hover:bg-indigo-50/30 transition-colors">
+                        <tr key={`${sheet.year}-${sheet.month}-${sheet.class_name || 'default'}-${sheet.user_id || 'no-user'}`} className="border-b hover:bg-indigo-50/30 transition-colors">
                           <td className="px-4 py-3 font-semibold text-gray-950">
                             Tháng {sheet.month + 1} / {sheet.year}
                           </td>
                           <td className="px-4 py-3 font-semibold text-indigo-700">
                             {sheet.class_name || 'Không rõ'}
                           </td>
+                          {user?.email === 'vuhung@db.edu.vn' && (
+                            <td className="px-4 py-3 font-medium text-gray-800">
+                              {sheet.teacher_name || 'Không rõ'}
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-center font-medium text-gray-700">
                             {sheet.students ? sheet.students.length : 0}
                           </td>
@@ -3000,6 +3035,9 @@ export default function App() {
                                 if (sheet.class_name) {
                                   setClassName(sheet.class_name);
                                 }
+                                if (sheet.user_id) {
+                                  setViewingUserId(sheet.user_id);
+                                }
                                 setIsSavedSheetsOpen(false);
                               }}
                               className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm"
@@ -3007,7 +3045,7 @@ export default function App() {
                               Xem bảng
                             </button>
                             <button
-                              onClick={() => handleDeleteSavedSheet(sheet.year, sheet.month, sheet.class_name)}
+                              onClick={() => handleDeleteSavedSheet(sheet.year, sheet.month, sheet.class_name, sheet.user_id)}
                               className="p-1 hover:bg-red-50 text-red-500 hover:text-red-700 rounded transition-colors border border-transparent hover:border-red-200"
                               title="Xóa dữ liệu tháng này"
                             >
