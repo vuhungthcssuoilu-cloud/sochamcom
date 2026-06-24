@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar, Settings } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 const Login = lazy(() => import('./components/Login'));
@@ -71,12 +71,6 @@ export default function App() {
     setClassNameInput(className);
   }, [className]);
 
-  const handleClassNameSubmit = useCallback(() => {
-    const trimmed = classNameInput.trim().toUpperCase();
-    if (trimmed && trimmed !== className) {
-      setClassName(trimmed);
-    }
-  }, [classNameInput, className]);
   const [month, setMonth] = useState(() => {
     return new Date().getMonth();
   });
@@ -95,6 +89,9 @@ export default function App() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [classesConfig, setClassesConfig] = useState<{ className: string; teacherName: string }[]>([]);
+  const [isClassConfigModalOpen, setIsClassConfigModalOpen] = useState(false);
+  const [tempClassesConfig, setTempClassesConfig] = useState<{ className: string; teacherName: string }[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
   const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
   const [clipboard, setClipboard] = useState<MealData | null>(null);
@@ -110,6 +107,33 @@ export default function App() {
   const hasShownInitialAlert = useRef(false);
   const hasRecordedAccess = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClassNameSubmit = useCallback(async () => {
+    const trimmed = classNameInput.trim().toUpperCase();
+    if (trimmed && trimmed !== className) {
+      setClassName(trimmed);
+      
+      // Auto-save the new class to the teacher's classes configuration if it doesn't exist
+      if (user && trimmed) {
+        const exists = classesConfig.some(c => c.className === trimmed);
+        if (!exists) {
+          const updatedConfig = [...classesConfig, { className: trimmed, teacherName: teacherName }];
+          setClassesConfig(updatedConfig);
+          try {
+            await supabase
+              .from('app_settings')
+              .upsert({
+                setting_key: `${user.id}_classes_config`,
+                setting_value: JSON.stringify(updatedConfig),
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'setting_key' });
+          } catch (e) {
+            console.error("Failed to auto-save class to config", e);
+          }
+        }
+      }
+    }
+  }, [classNameInput, className, classesConfig, teacherName, user]);
 
   const [savedSheets, setSavedSheets] = useState<any[]>([]);
   const [isSavedSheetsOpen, setIsSavedSheetsOpen] = useState(false);
@@ -160,6 +184,14 @@ export default function App() {
     }
     return days;
   }, [daysInMonth]);
+
+  const selectOptions = useMemo(() => {
+    const list = [...classesConfig];
+    if (className && !list.some(c => c.className === className)) {
+      list.push({ className, teacherName: teacherName });
+    }
+    return list;
+  }, [classesConfig, className, teacherName]);
 
   const scrollToToday = useCallback(() => {
     const today = new Date();
@@ -325,6 +357,70 @@ export default function App() {
     fetchFavicon();
   }, []);
 
+  // Save Classes Config function
+  const handleSaveClassesConfig = async (newConfig: { className: string; teacherName: string }[]) => {
+    if (!user) return;
+
+    // Filter out rows with empty className
+    const filtered = newConfig.map(c => ({
+      className: c.className.trim().toUpperCase(),
+      teacherName: c.teacherName.trim()
+    })).filter(c => c.className !== '');
+
+    // Check for duplicates
+    const names = filtered.map(c => c.className);
+    const hasDuplicates = names.some((name, idx) => names.indexOf(name) !== idx);
+    if (hasDuplicates) {
+      alert('Tên lớp không được trùng nhau!');
+      return;
+    }
+
+    if (filtered.length === 0) {
+      alert('Vui lòng thêm ít nhất một lớp học!');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          setting_key: `${user.id}_classes_config`,
+          setting_value: JSON.stringify(filtered),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'setting_key' });
+
+      if (error) {
+        console.error('Error saving classes config:', error);
+        alert('Lỗi khi lưu cấu hình lớp: ' + error.message);
+      } else {
+        setClassesConfig(filtered);
+        
+        // If the current selected class is not in the new config, switch to the first class in the config
+        if (!filtered.some(c => c.className === className)) {
+          const firstClass = filtered[0].className;
+          setClassName(firstClass);
+          setClassNameInput(firstClass);
+          setTeacherName(filtered[0].teacherName);
+        } else {
+          // If the current selected class is in the new config, update its GVCN name if it changed
+          const match = filtered.find(c => c.className === className);
+          if (match && match.teacherName !== teacherName) {
+            setTeacherName(match.teacherName);
+          }
+        }
+        
+        setIsClassConfigModalOpen(false);
+        alert('Đã lưu cấu hình lớp và GVCN thành công!');
+      }
+    } catch (err: any) {
+      console.error('Failed to save classes config:', err);
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Save function
   const handleSave = useCallback(async (silent = false) => {
     if (!user) return;
@@ -371,7 +467,7 @@ export default function App() {
     }
 
     // Save user preferences
-    const prefs = { markSymbol, signature, bookTitle };
+    const prefs = { markSymbol, signature, bookTitle, className, teacherName };
     const { error: prefsError } = await supabase
       .from('app_settings')
       .upsert({
@@ -398,7 +494,7 @@ export default function App() {
       isDirty.current = false; // Reset dirty flag after successful save
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle]);
 
   // Mark as dirty when data changes
   useEffect(() => {
@@ -440,11 +536,14 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const fetchPrefs = async () => {
+      let savedClassName = '';
+      let savedTeacherName = '';
+
       const { data } = await supabase
         .from('app_settings')
         .select('setting_value')
         .eq('setting_key', `${user.id}_preferences`)
-        .single();
+        .maybeSingle();
       
       if (data && data.setting_value) {
         try {
@@ -452,9 +551,53 @@ export default function App() {
           if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
           if (prefs.signature !== undefined) setSignature(prefs.signature);
           if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
+          if (prefs.className !== undefined) {
+            savedClassName = prefs.className;
+          }
+          if (prefs.teacherName !== undefined) {
+            savedTeacherName = prefs.teacherName;
+          }
         } catch (e) {
           console.error("Error parsing preferences", e);
         }
+      }
+
+      // Fetch classes configuration
+      const { data: classesData } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', `${user.id}_classes_config`)
+        .maybeSingle();
+
+      let classes: { className: string; teacherName: string }[] = [];
+      if (classesData && classesData.setting_value) {
+        try {
+          classes = JSON.parse(classesData.setting_value);
+        } catch (e) {
+          console.error("Error parsing classes config", e);
+        }
+      }
+
+      if (!classes || classes.length === 0) {
+        classes = [{ className: '8C1', teacherName: 'Vũ Văn Hùng' }];
+      }
+      setClassesConfig(classes);
+      
+      // Determine what class to use
+      if (savedClassName) {
+        setClassName(savedClassName);
+        setClassNameInput(savedClassName);
+        if (savedTeacherName) {
+          setTeacherName(savedTeacherName);
+        } else {
+          const match = classes.find(c => c.className === savedClassName);
+          if (match) setTeacherName(match.teacherName);
+        }
+      } else if (classes.length > 0) {
+        const first = classes[0];
+        setClassName(first.className);
+        setClassNameInput(first.className);
+        setTeacherName(first.teacherName);
       }
     };
     fetchPrefs();
@@ -2081,15 +2224,25 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] text-gray-700 whitespace-nowrap">Lớp:</span>
-                  <input 
-                    type="text" 
-                    value={classNameInput} 
-                    onChange={(e) => setClassNameInput(e.target.value.toUpperCase())}
-                    onBlur={handleClassNameSubmit}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
-                    className="border border-gray-300 rounded-md px-2 py-1.5 text-[14px] w-16 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm"
-                    placeholder="8C1"
-                  />
+                  <select
+                    value={className}
+                    onChange={(e) => {
+                      const selectedClass = e.target.value;
+                      setClassName(selectedClass);
+                      setClassNameInput(selectedClass);
+                      
+                      // Auto-update GVCN based on configuration
+                      const configured = classesConfig.find(c => c.className === selectedClass);
+                      if (configured) {
+                        setTeacherName(configured.teacherName);
+                      }
+                    }}
+                    className="border border-gray-300 rounded-md px-2 py-1.5 text-[14px] w-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm cursor-pointer"
+                  >
+                    {selectOptions.map((c) => (
+                      <option key={c.className} value={c.className}>{c.className}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] text-gray-700 whitespace-nowrap">GVCN:</span>
@@ -2101,6 +2254,17 @@ export default function App() {
                     placeholder="GVCN"
                   />
                 </div>
+                <button
+                  onClick={() => {
+                    setTempClassesConfig([...classesConfig]);
+                    setIsClassConfigModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-xs font-bold border border-slate-300 shadow-sm"
+                  title="Cấu hình danh sách lớp & giáo viên chủ nhiệm"
+                >
+                  <Settings className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Cấu hình Lớp</span>
+                </button>
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] text-gray-700 whitespace-nowrap">Ngày:</span>
                   <div className="flex items-center gap-1">
@@ -2396,6 +2560,117 @@ export default function App() {
               >
                 Xong
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Class & Teacher Configuration Modal */}
+      {isClassConfigModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:hidden p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4 border-b pb-2">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 uppercase">
+                <Settings className="w-5 h-5 text-indigo-600" />
+                Cấu hình danh sách Lớp & GVCN
+              </h3>
+              <button onClick={() => setIsClassConfigModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-4 text-xs text-indigo-800 leading-relaxed">
+              Thêm các lớp học và họ tên Giáo viên chủ nhiệm tương ứng tại đây. Khi chuyển lớp ở màn hình chính, hệ thống sẽ tự động cập nhật tên Giáo viên chủ nhiệm.
+            </div>
+
+            <div className="max-h-60 overflow-y-auto mb-4 border rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 text-gray-700 font-bold sticky top-0 border-b">
+                  <tr>
+                    <th className="p-2 text-left w-1/3">Tên lớp</th>
+                    <th className="p-2 text-left">Giáo viên chủ nhiệm</th>
+                    <th className="p-2 text-center w-12">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {tempClassesConfig.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="p-2">
+                        <input 
+                          type="text"
+                          value={item.className}
+                          onChange={(e) => {
+                            const newCfg = [...tempClassesConfig];
+                            newCfg[index].className = e.target.value.toUpperCase();
+                            setTempClassesConfig(newCfg);
+                          }}
+                          placeholder="VD: 8C1"
+                          className="w-full border border-gray-300 rounded px-2 py-1 uppercase font-bold"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input 
+                          type="text"
+                          value={item.teacherName}
+                          onChange={(e) => {
+                            const newCfg = [...tempClassesConfig];
+                            newCfg[index].teacherName = e.target.value;
+                            setTempClassesConfig(newCfg);
+                          }}
+                          placeholder="Họ và tên Giáo viên"
+                          className="w-full border border-gray-300 rounded px-2 py-1 font-medium"
+                        />
+                      </td>
+                      <td className="p-2 text-center">
+                        <button 
+                          onClick={() => {
+                            setTempClassesConfig(tempClassesConfig.filter((_, i) => i !== index));
+                          }}
+                          className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
+                          title="Xóa lớp này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {tempClassesConfig.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="p-4 text-center text-gray-500 italic">
+                        Chưa có lớp nào. Hãy bấm "Thêm lớp mới" bên dưới.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex gap-2 justify-between">
+              <button 
+                onClick={() => {
+                  setTempClassesConfig([...tempClassesConfig, { className: '', teacherName: '' }]);
+                }}
+                className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-bold text-sm bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm lớp mới
+              </button>
+              
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsClassConfigModalOpen(false)}
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={() => handleSaveClassesConfig(tempClassesConfig)}
+                  className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-bold text-sm flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Lưu cấu hình
+                </button>
+              </div>
             </div>
           </div>
         </div>
