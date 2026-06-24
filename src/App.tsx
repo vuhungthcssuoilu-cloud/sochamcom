@@ -78,12 +78,10 @@ export default function App() {
     }
   }, [classNameInput, className]);
   const [month, setMonth] = useState(() => {
-    const saved = localStorage.getItem('app_current_month');
-    return saved !== null ? parseInt(saved) : new Date().getMonth();
+    return new Date().getMonth();
   });
   const [year, setYear] = useState(() => {
-    const saved = localStorage.getItem('app_current_year');
-    return saved !== null ? parseInt(saved) : new Date().getFullYear();
+    return new Date().getFullYear();
   });
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [location, setLocation] = useState('Suối Lư');
@@ -364,7 +362,7 @@ export default function App() {
     }
 
     // Save user preferences
-    const prefs = { footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle };
+    const prefs = { markSymbol, signature, bookTitle };
     const { error: prefsError } = await supabase
       .from('app_settings')
       .upsert({
@@ -442,9 +440,6 @@ export default function App() {
       if (data && data.setting_value) {
         try {
           const prefs = JSON.parse(data.setting_value);
-          if (prefs.footerDay !== undefined) setFooterDay(prefs.footerDay);
-          if (prefs.footerMonth !== undefined) setFooterMonth(prefs.footerMonth);
-          if (prefs.footerYear !== undefined) setFooterYear(prefs.footerYear);
           if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
           if (prefs.signature !== undefined) setSignature(prefs.signature);
           if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
@@ -557,11 +552,18 @@ export default function App() {
             if (mPrefs.footerMonth !== undefined) setFooterMonth(mPrefs.footerMonth);
             if (mPrefs.footerYear !== undefined) setFooterYear(mPrefs.footerYear);
           } else {
-            // Default to end of month if no specific prefs saved
-            const lastDay = new Date(year, month + 1, 0).getDate();
-            setFooterDay(lastDay);
-            setFooterMonth(month + 1);
-            setFooterYear(year);
+            // Default to current date if selected month & year match today's date, otherwise default to end of month
+            const today = new Date();
+            if (month === today.getMonth() && year === today.getFullYear()) {
+              setFooterDay(today.getDate());
+              setFooterMonth(today.getMonth() + 1);
+              setFooterYear(today.getFullYear());
+            } else {
+              const lastDay = new Date(year, month + 1, 0).getDate();
+              setFooterDay(lastDay);
+              setFooterMonth(month + 1);
+              setFooterYear(year);
+            }
           }
 
           isDirty.current = false;
@@ -580,10 +582,17 @@ export default function App() {
             .maybeSingle();
 
           // Default date for new month
-          const lastDay = new Date(year, month + 1, 0).getDate();
-          setFooterDay(lastDay);
-          setFooterMonth(month + 1);
-          setFooterYear(year);
+          const today = new Date();
+          if (month === today.getMonth() && year === today.getFullYear()) {
+            setFooterDay(today.getDate());
+            setFooterMonth(today.getMonth() + 1);
+            setFooterYear(today.getFullYear());
+          } else {
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            setFooterDay(lastDay);
+            setFooterMonth(month + 1);
+            setFooterYear(year);
+          }
 
           if (latestData) {
             console.log(`Copying student list for ${className} from ${latestData.month + 1}/${latestData.year}`);
