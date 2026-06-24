@@ -64,6 +64,19 @@ export default function App() {
   const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LƯ');
   const [bookTitle, setBookTitle] = useState('SỔ CHẤM CƠM LỚP:');
   const [className, setClassName] = useState('8C1');
+  const [classNameInput, setClassNameInput] = useState('8C1');
+
+  // Sync local input with className state
+  useEffect(() => {
+    setClassNameInput(className);
+  }, [className]);
+
+  const handleClassNameSubmit = useCallback(() => {
+    const trimmed = classNameInput.trim().toUpperCase();
+    if (trimmed && trimmed !== className) {
+      setClassName(trimmed);
+    }
+  }, [classNameInput, className]);
   const [month, setMonth] = useState(() => {
     const saved = localStorage.getItem('app_current_month');
     return saved !== null ? parseInt(saved) : new Date().getMonth();
@@ -310,7 +323,7 @@ export default function App() {
     if (!user) return;
     if (!silent) setSaving(true);
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('monthly_sheets')
       .upsert({
         user_id: user.id,
@@ -323,7 +336,32 @@ export default function App() {
         students,
         standard_meals: standardMeals,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,month,year' });
+      }, { onConflict: 'user_id,month,year,class_name' });
+
+    if (error && (error.code === '42P10' || error.message?.includes('constraint') || error.message?.includes('ON CONFLICT'))) {
+      console.warn('Database unique constraint does not include class_name. Falling back to (user_id, month, year)...');
+      // Fallback upsert using the old unique constraint
+      const fallbackResult = await supabase
+        .from('monthly_sheets')
+        .upsert({
+          user_id: user.id,
+          month,
+          year,
+          class_name: className,
+          teacher_name: teacherName,
+          school_name: schoolName,
+          location,
+          students,
+          standard_meals: standardMeals,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,month,year' });
+      
+      error = fallbackResult.error;
+      
+      if (!error && !silent) {
+        alert('LƯU Ý: Hệ thống phát hiện cơ sở dữ liệu của bạn chưa được nâng cấp để hỗ trợ lưu nhiều lớp độc lập trong cùng một tháng.\n\nĐể kích hoạt tính năng này, vui lòng sao chép câu lệnh SQL trong tệp "supabase_schema.sql" và chạy trong tab SQL Editor trên trang quản trị Supabase của bạn.');
+      }
+    }
 
     // Save user preferences
     const prefs = { footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle };
@@ -453,7 +491,8 @@ export default function App() {
         .delete()
         .eq('user_id', user.id)
         .eq('year', targetYear)
-        .eq('month', targetMonth);
+        .eq('month', targetMonth)
+        .eq('class_name', classNameToDel);
 
       if (error) {
         alert('Lỗi khi xóa bảng: ' + error.message);
@@ -466,7 +505,7 @@ export default function App() {
     }
   };
 
-  // Fetch data when user, month, or year changes
+  // Fetch data when user, month, year, or className changes
   useEffect(() => {
     if (!user) return;
 
@@ -479,9 +518,10 @@ export default function App() {
           .eq('user_id', user.id)
           .eq('month', month)
           .eq('year', year)
-          .single();
+          .eq('class_name', className)
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "Row not found"
+        if (error) {
           console.error('Error fetching data:', error);
         }
 
@@ -527,11 +567,12 @@ export default function App() {
           isDirty.current = false;
           justFetchedRef.current = true;
         } else {
-          // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata
+          // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata for this SPECIFIC class
           const { data: latestData } = await supabase
             .from('monthly_sheets')
             .select('*')
             .eq('user_id', user.id)
+            .eq('class_name', className)
             .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
             .order('year', { ascending: false })
             .order('month', { ascending: false })
@@ -545,7 +586,7 @@ export default function App() {
           setFooterYear(year);
 
           if (latestData) {
-            console.log(`Copying student list from ${latestData.month + 1}/${latestData.year}`);
+            console.log(`Copying student list for ${className} from ${latestData.month + 1}/${latestData.year}`);
             let fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
             let fetchedLocation = latestData.location || 'Suối Lư';
 
@@ -558,7 +599,6 @@ export default function App() {
             }
 
             setSchoolName(fetchedSchoolName);
-            setClassName(latestData.class_name || '8C1');
             setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
             setLocation(fetchedLocation);
             setStandardMeals(latestData.standard_meals || { S: 0, T1: 0, T2: 0 });
@@ -571,6 +611,35 @@ export default function App() {
             isDirty.current = false;
             justFetchedRef.current = true;
           } else {
+            // No previous month's data for this specific class.
+            // Let's copy general metadata from the latest sheet of ANY class to save re-typing
+            const { data: genericLatestData } = await supabase
+              .from('monthly_sheets')
+              .select('*')
+              .eq('user_id', user.id)
+              .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
+              .order('year', { ascending: false })
+              .order('month', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (genericLatestData) {
+              let fetchedSchoolName = genericLatestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+              let fetchedLocation = genericLatestData.location || 'Suối Lư';
+
+              if (fetchedSchoolName.includes('SUỐI LỪ')) {
+                fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
+              }
+              if (fetchedLocation.includes('Suối Lừ')) {
+                fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
+              }
+
+              setSchoolName(fetchedSchoolName);
+              setTeacherName(genericLatestData.teacher_name || 'Vũ Văn Hùng');
+              setLocation(fetchedLocation);
+              setStandardMeals(genericLatestData.standard_meals || { S: 0, T1: 0, T2: 0 });
+            }
+
             setStudents(INITIAL_STUDENTS);
             isDirty.current = false;
             justFetchedRef.current = true;
@@ -582,7 +651,7 @@ export default function App() {
     };
 
     fetchData();
-  }, [user, month, year]);
+  }, [user, month, year, className]);
 
   const handleLogout = async () => {
     if (isDirty.current) {
@@ -906,6 +975,7 @@ export default function App() {
       .from('monthly_sheets')
       .select('*')
       .eq('user_id', user.id)
+      .eq('class_name', className)
       .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
       .order('year', { ascending: false })
       .order('month', { ascending: false })
@@ -1368,8 +1438,10 @@ export default function App() {
           />
           <input 
             type="text" 
-            value={className} 
-            onChange={(e) => setClassName(e.target.value.toUpperCase())}
+            value={classNameInput} 
+            onChange={(e) => setClassNameInput(e.target.value.toUpperCase())}
+            onBlur={handleClassNameSubmit}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
             className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-14 text-center bg-transparent inline-block mx-1"
           />
            THÁNG {month + 1}/{year}
@@ -1968,8 +2040,10 @@ export default function App() {
                   <span className="text-[14px] text-gray-700 whitespace-nowrap">Lớp:</span>
                   <input 
                     type="text" 
-                    value={className} 
-                    onChange={(e) => setClassName(e.target.value.toUpperCase())}
+                    value={classNameInput} 
+                    onChange={(e) => setClassNameInput(e.target.value.toUpperCase())}
+                    onBlur={handleClassNameSubmit}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
                     className="border border-gray-300 rounded-md px-2 py-1.5 text-[14px] w-16 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm"
                     placeholder="8C1"
                   />
@@ -2131,12 +2205,14 @@ export default function App() {
               onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
               className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-56 text-right bg-transparent inline-block"
             />
-            <input 
-              type="text" 
-              value={className} 
-              onChange={(e) => setClassName(e.target.value.toUpperCase())}
-              className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-16 text-center bg-transparent inline-block mx-1"
-            />
+          <input 
+            type="text" 
+            value={classNameInput} 
+            onChange={(e) => setClassNameInput(e.target.value.toUpperCase())}
+            onBlur={handleClassNameSubmit}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
+            className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-16 text-center bg-transparent inline-block mx-1"
+          />
              THÁNG {month + 1}/{year}
           </div>
         </div>
@@ -2324,7 +2400,7 @@ export default function App() {
                     </thead>
                     <tbody>
                       {savedSheets.map((sheet) => (
-                        <tr key={`${sheet.year}-${sheet.month}`} className="border-b hover:bg-indigo-50/30 transition-colors">
+                        <tr key={`${sheet.year}-${sheet.month}-${sheet.class_name || 'default'}`} className="border-b hover:bg-indigo-50/30 transition-colors">
                           <td className="px-4 py-3 font-semibold text-gray-950">
                             Tháng {sheet.month + 1} / {sheet.year}
                           </td>
@@ -2353,6 +2429,9 @@ export default function App() {
                                 }
                                 setMonth(sheet.month);
                                 setYear(sheet.year);
+                                if (sheet.class_name) {
+                                  setClassName(sheet.class_name);
+                                }
                                 setIsSavedSheetsOpen(false);
                               }}
                               className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm"
