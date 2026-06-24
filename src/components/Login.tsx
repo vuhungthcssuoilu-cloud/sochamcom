@@ -230,7 +230,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: '#e6f0fa', backgroundImage: 'radial-gradient(#d0e3f5 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: '#eef6fc', backgroundImage: 'radial-gradient(#c6dced 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
       {/* Header */}
       <header className="bg-[#0b5394] text-white text-center py-3 px-4">
         <h2 className="text-sm font-semibold uppercase mb-0.5">{uiConfigs.school_name}</h2>
