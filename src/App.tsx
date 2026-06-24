@@ -1784,14 +1784,14 @@ export default function App() {
           type="text" 
           value={schoolName} 
           onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
-          className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-[400px] bg-transparent"
+          className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[400px] bg-transparent"
         />
-        <div className="text-center font-bold uppercase text-base mt-2">
+        <div className="text-center font-bold uppercase text-base mt-2 flex justify-center items-center flex-wrap">
           <input 
             type="text" 
             value={bookTitle} 
             onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
-            className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-48 text-right bg-transparent inline-block"
+            className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-36 sm:w-48 text-right sm:text-right bg-transparent inline-block"
           />
           <input 
             type="text" 
@@ -2287,19 +2287,19 @@ export default function App() {
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-2.5 text-amber-800 text-xs sm:text-sm font-medium">
           <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
           <div>
-            <span className="font-bold text-amber-900">Lưu ý quan trọng:</span> Mọi thao tác và thiết lập xong của các tháng phải nhấn vào nút <span className="font-bold text-indigo-700 underline">Lưu dữ liệu</span> thì dữ liệu mới được ghi cho các tháng, muốn xem lại các tháng đã chấm thì chọn "Tháng đã lưu".
+            <span className="font-bold text-amber-900">Lưu ý quan trọng:</span> Mọi thiết lập xong của các tháng phải nhấn vào nút <span className="font-bold text-indigo-700 underline">Lưu dữ liệu</span> thì dữ liệu mới được ghi.
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-start gap-4 p-3">
-          <div className="flex items-center gap-3 mr-auto">
-            <h1 className="text-lg font-bold text-indigo-900 flex items-center gap-2 hidden lg:flex">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-3">
+          <div className="flex items-center flex-wrap gap-2 sm:gap-3 mr-auto w-full md:w-auto">
+            <h1 className="text-lg font-bold text-indigo-900 items-center gap-2 hidden lg:flex">
               <Save className="w-5 h-5" />
               Sổ Chấm Cơm
             </h1>
             <div className="flex items-center bg-gray-100 rounded-lg p-1 relative">
               <button onClick={prevMonth} className="p-1 hover:bg-white rounded"><ChevronLeft className="w-4 h-4" /></button>
-              <span className="px-3 text-sm font-medium min-w-[90px] text-center">Tháng {month + 1} / {year}</span>
+              <span className="px-2 sm:px-3 text-xs sm:text-sm font-medium min-w-[80px] sm:min-w-[90px] text-center">Tháng {month + 1} / {year}</span>
               <button onClick={nextMonth} className="p-1 hover:bg-white rounded"><ChevronRight className="w-4 h-4" /></button>
               {isDataFetching && (
                 <div className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -2308,13 +2308,13 @@ export default function App() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium hidden sm:inline">Năm:</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Năm:</span>
               <input 
                 type="number" 
                 value={year} 
                 onChange={(e) => handleYearChange(parseInt(e.target.value) || new Date().getFullYear())}
-                className="w-16 px-1 py-1 border rounded text-sm font-bold text-center"
+                className="w-14 sm:w-16 px-1 py-1 border rounded text-xs sm:text-sm font-bold text-center"
               />
             </div>
             <button
@@ -2324,10 +2324,10 @@ export default function App() {
                 setYear(today.getFullYear());
                 setTimeout(scrollToToday, 400);
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#A0522D] hover:bg-[#8B4513] text-white rounded-lg transition-colors text-xs font-bold shadow-sm"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-[#A0522D] hover:bg-[#8B4513] text-white rounded-lg transition-colors text-[10px] sm:text-xs font-bold shadow-sm whitespace-nowrap"
               title="Quay về tháng hiện tại và nhảy đến hôm nay"
             >
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
               <span>Hôm nay</span>
             </button>
             <button
@@ -2335,15 +2335,15 @@ export default function App() {
                 fetchSavedSheets();
                 setIsSavedSheetsOpen(true);
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-lg transition-colors text-xs font-bold border border-indigo-200 shadow-sm"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-lg transition-colors text-[10px] sm:text-xs font-bold border border-indigo-200 shadow-sm whitespace-nowrap"
               title="Xem danh sách các tháng đã lưu"
             >
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
               <span>Tháng đã lưu</span>
             </button>
           </div>
           
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center sm:justify-end w-full md:w-auto mt-2 md:mt-0">
             <button 
               onClick={clearMonth}
               className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-red-50 text-red-600 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
@@ -2431,32 +2431,32 @@ export default function App() {
 
         {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full mt-0 pt-3 border-t border-gray-200 px-6 bg-white overflow-x-auto no-scrollbar">
-            <div className="flex items-center justify-between gap-x-4 py-3 min-w-max">
+          <div className="w-full mt-0 pt-3 border-t border-gray-200 px-3 sm:px-6 bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-4 py-3">
               {/* Configuration Fields Group */}
-              <div className="flex items-center gap-x-5">
+              <div className="flex flex-wrap items-center gap-y-3 gap-x-3 sm:gap-x-5 w-full">
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Trường:</span>
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap hidden sm:inline">Trường:</span>
                   <input 
                     type="text" 
                     value={schoolName} 
                     onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
-                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-56 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-full sm:w-56 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
                     placeholder="Trường"
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Sổ:</span>
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap hidden sm:inline">Sổ:</span>
                   <input 
                     type="text" 
                     value={bookTitle} 
                     onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
-                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-full sm:w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
                     placeholder="Tên sổ"
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Lớp:</span>
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap hidden sm:inline">Lớp:</span>
                   <input 
                     type="text" 
                     value={classNameInput} 
@@ -2473,8 +2473,8 @@ export default function App() {
                     }}
                     onBlur={handleClassNameSubmit}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
-                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm uppercase"
-                    placeholder="8C1"
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-20 sm:w-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm uppercase"
+                    placeholder="LỚP (VD: 8C1)"
                   />
                   <datalist id="classes-datalist">
                     {selectOptions.map((c) => (
@@ -2482,13 +2482,13 @@ export default function App() {
                     ))}
                   </datalist>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-gray-700 whitespace-nowrap">GVCN:</span>
+                <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap hidden sm:inline">GVCN:</span>
                   <input 
                     type="text" 
                     value={teacherName} 
                     onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
-                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-44 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold uppercase shadow-sm"
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-full sm:w-44 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold uppercase shadow-sm"
                     placeholder="GVCN"
                   />
                 </div>
@@ -2497,14 +2497,15 @@ export default function App() {
                     setTempClassesConfig([...classesConfig]);
                     setIsClassConfigModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-xs font-bold border border-slate-300 shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-xs font-bold border border-slate-300 shadow-sm whitespace-nowrap"
                   title="Cấu hình danh sách lớp & giáo viên chủ nhiệm"
                 >
                   <Settings className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Cấu hình Lớp</span>
+                  <span className="hidden sm:inline">Cấu hình Lớp</span>
+                  <span className="sm:hidden">DS Lớp</span>
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Ngày:</span>
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap hidden sm:inline">Ngày:</span>
                   <div className="flex items-center gap-1">
                     <input 
                       type="number" 
@@ -2560,8 +2561,8 @@ export default function App() {
               </div>
 
               {/* Action Buttons Group */}
-              <div className="flex items-center gap-x-4">
-                <div className="h-8 w-[1px] bg-gray-300 mx-2" />
+              <div className="flex flex-wrap items-center gap-y-3 gap-x-3 sm:gap-x-4 w-full sm:w-auto">
+                <div className="hidden sm:block h-8 w-[1px] bg-gray-300 mx-2" />
 
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] font-bold text-gray-700 whitespace-nowrap">Ký hiệu:</span>
@@ -2581,7 +2582,7 @@ export default function App() {
 
                 <button 
                   onClick={syncFromPreviousMonth}
-                  className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md border border-indigo-200 hover:bg-indigo-100 transition-colors shadow-sm whitespace-nowrap"
+                  className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md border border-indigo-200 hover:bg-indigo-100 transition-colors shadow-sm whitespace-nowrap flex-grow sm:flex-grow-0"
                   title="Cập nhật danh sách học sinh từ tháng trước"
                 >
                   <ClipboardPaste className="w-4.5 h-4.5" />
@@ -2590,7 +2591,7 @@ export default function App() {
 
                 <button 
                   onClick={() => setIsQuotaModalOpen(true)}
-                  className="flex items-center gap-2 bg-[#9333ea] text-white px-4 py-2 rounded-md border border-[#7e22ce] hover:bg-[#7e22ce] transition-colors shadow-sm whitespace-nowrap"
+                  className="flex items-center justify-center gap-2 bg-[#9333ea] text-white px-4 py-2 rounded-md border border-[#7e22ce] hover:bg-[#7e22ce] transition-colors shadow-sm whitespace-nowrap flex-grow sm:flex-grow-0"
                 >
                   <span className="font-bold text-[14px]">Định mức</span>
                   <span className="bg-white/20 px-2 py-0.5 rounded text-[12px] font-bold">
@@ -2640,15 +2641,15 @@ export default function App() {
               type="text" 
               value={schoolName} 
               onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
-              className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-[400px] bg-transparent"
+              className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[400px] bg-transparent"
             />
           </div>
-          <div className="text-center font-bold uppercase text-lg mt-2">
+          <div className="text-center font-bold uppercase text-lg mt-2 flex flex-wrap justify-center items-center">
             <input 
               type="text" 
               value={bookTitle} 
               onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
-              className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-56 text-right bg-transparent inline-block"
+              className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-40 sm:w-56 text-right sm:text-right bg-transparent inline-block"
             />
           <input 
             type="text" 
