@@ -63,8 +63,8 @@ export default function App() {
 
   const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LƯ');
   const [bookTitle, setBookTitle] = useState('SỔ CHẤM CƠM LỚP:');
-  const [className, setClassName] = useState('8C1');
-  const [classNameInput, setClassNameInput] = useState('8C1');
+  const [className, setClassName] = useState('');
+  const [classNameInput, setClassNameInput] = useState('');
 
   // Sync local input with className state
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function App() {
   });
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [location, setLocation] = useState('Suối Lư');
-  const [teacherName, setTeacherName] = useState('Vũ Văn Hùng');
+  const [teacherName, setTeacherName] = useState('');
   const [standardMeals, setStandardMeals] = useState({ S: 0, T1: 0, T2: 0 });
   const [footerDay, setFooterDay] = useState(new Date().getDate());
   const [footerMonth, setFooterMonth] = useState(new Date().getMonth() + 1);
@@ -578,8 +578,8 @@ export default function App() {
         }
       }
 
-      if (!classes || classes.length === 0) {
-        classes = [{ className: '8C1', teacherName: 'Vũ Văn Hùng' }];
+      if (!classes) {
+        classes = [];
       }
       setClassesConfig(classes);
       
@@ -598,6 +598,10 @@ export default function App() {
         setClassName(first.className);
         setClassNameInput(first.className);
         setTeacherName(first.teacherName);
+      } else {
+        setClassName('');
+        setClassNameInput('');
+        setTeacherName('');
       }
     };
     fetchPrefs();
@@ -685,8 +689,8 @@ export default function App() {
           }
 
           setSchoolName(fetchedSchoolName);
-          setClassName(data.class_name || '8C1');
-          setTeacherName(data.teacher_name || 'Vũ Văn Hùng');
+          setClassName(data.class_name || '');
+          setTeacherName(data.teacher_name || '');
           setLocation(fetchedLocation);
           setStudents(data.students || INITIAL_STUDENTS);
           setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
@@ -760,7 +764,7 @@ export default function App() {
             }
 
             setSchoolName(fetchedSchoolName);
-            setTeacherName(latestData.teacher_name || 'Vũ Văn Hùng');
+            setTeacherName(latestData.teacher_name || '');
             setLocation(fetchedLocation);
             setStandardMeals(latestData.standard_meals || { S: 0, T1: 0, T2: 0 });
             // Copy students but clear their meal data for the new month
@@ -796,7 +800,7 @@ export default function App() {
               }
 
               setSchoolName(fetchedSchoolName);
-              setTeacherName(genericLatestData.teacher_name || 'Vũ Văn Hùng');
+              setTeacherName(genericLatestData.teacher_name || '');
               setLocation(fetchedLocation);
               setStandardMeals(genericLatestData.standard_meals || { S: 0, T1: 0, T2: 0 });
             }
