@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save, Lock, RefreshCw, History, User as UserIcon, Calendar } from 'lucide-react';
+import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save, Lock, RefreshCw, History, User as UserIcon, Calendar, Settings } from 'lucide-react';
 
 export default function Admin({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<'keys' | 'history'>('keys');
@@ -13,6 +13,18 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [faviconUrl, setFaviconUrl] = useState('');
   const [savingFavicon, setSavingFavicon] = useState(false);
+  const [savingUiConfigs, setSavingUiConfigs] = useState(false);
+  
+  // UI Configs
+  const [uiConfigs, setUiConfigs] = useState({
+    school_name: 'TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
+    header_title: 'HỆ THỐNG QUẢN LÝ NỘI TRÚ - SỔ CHẤM CƠM',
+    school_year: 'NĂM HỌC 2024 - 2025',
+    footer_line1: 'DỮ LIỆU CHÍNH THỨC TỪ TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
+    footer_line2: 'Mọi thắc mắc về phần mềm xin liên hệ quản trị viên',
+    footer_line3: 'Application developed by: Vũ Hùng - Email: vuhung@db.edu.vn - SĐT: 0984.246.993'
+  });
+
   const [resettingPassword, setResettingPassword] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,13 +48,48 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   const fetchSettings = async () => {
     const { data } = await supabase
       .from('app_settings')
-      .select('setting_value')
-      .eq('setting_key', 'global_favicon')
-      .single();
+      .select('setting_key, setting_value');
     
     if (data) {
-      setFaviconUrl(data.setting_value);
+      const faviconObj = data.find((d: any) => d.setting_key === 'global_favicon');
+      if (faviconObj) setFaviconUrl(faviconObj.setting_value);
+      
+      setUiConfigs(prev => {
+        const newConfigs = { ...prev };
+        let hasChanges = false;
+        
+        data.forEach((d: any) => {
+          if (Object.keys(newConfigs).includes(d.setting_key)) {
+            (newConfigs as any)[d.setting_key] = d.setting_value;
+            hasChanges = true;
+          }
+        });
+        
+        return hasChanges ? newConfigs : prev;
+      });
     }
+  };
+
+  const saveUiConfigs = async () => {
+    setSavingUiConfigs(true);
+    
+    const updates = Object.entries(uiConfigs).map(([key, value]) => ({
+      setting_key: key,
+      setting_value: value,
+      updated_at: new Date().toISOString()
+    }));
+    
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert(updates, { onConflict: 'setting_key' });
+      
+    if (error) {
+      alert('Lỗi lưu Cấu hình giao diện: ' + error.message);
+    } else {
+      alert('Đã cập nhật Cấu hình giao diện thành công!');
+    }
+    
+    setSavingUiConfigs(false);
   };
 
   const saveFavicon = async () => {
@@ -168,7 +215,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-white p-8">
       <div className="w-full mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -298,6 +345,79 @@ export default function Admin({ onBack }: { onBack: () => void }) {
               <p className="text-xs text-gray-500 mt-2 italic">
                 * Favicon sẽ được áp dụng cho toàn bộ hệ thống. Nên sử dụng ảnh vuông (1:1), định dạng .ico, .png hoặc .svg.
               </p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-indigo-600" />
+                Cấu hình Tiêu đề & Chân trang (Trang đăng nhập)
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên trường (Header)</label>
+                  <input 
+                    type="text" 
+                    value={uiConfigs.school_name}
+                    onChange={(e) => setUiConfigs({...uiConfigs, school_name: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề chính (Header)</label>
+                  <input 
+                    type="text" 
+                    value={uiConfigs.header_title}
+                    onChange={(e) => setUiConfigs({...uiConfigs, header_title: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Năm học (Header)</label>
+                  <input 
+                    type="text" 
+                    value={uiConfigs.school_year}
+                    onChange={(e) => setUiConfigs({...uiConfigs, school_year: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dòng 1 (Footer)</label>
+                  <input 
+                    type="text" 
+                    value={uiConfigs.footer_line1}
+                    onChange={(e) => setUiConfigs({...uiConfigs, footer_line1: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dòng 2 (Footer)</label>
+                  <input 
+                    type="text" 
+                    value={uiConfigs.footer_line2}
+                    onChange={(e) => setUiConfigs({...uiConfigs, footer_line2: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dòng 3 (Footer)</label>
+                  <input 
+                    type="text" 
+                    value={uiConfigs.footer_line3}
+                    onChange={(e) => setUiConfigs({...uiConfigs, footer_line3: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={saveUiConfigs}
+                  disabled={savingUiConfigs}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {savingUiConfigs ? 'Đang lưu...' : 'Lưu cấu hình'}
+                </button>
+              </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

@@ -52,31 +52,45 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [bgImage, setBgImage] = useState(() => {
-    return localStorage.getItem('loginBgImage') || 'https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80';
-  });
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Fetch global background image setting on load
+  // UI Config state
+  const [uiConfigs, setUiConfigs] = useState({
+    school_name: 'TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
+    header_title: 'HỆ THỐNG QUẢN LÝ NỘI TRÚ - SỔ CHẤM CƠM',
+    school_year: 'NĂM HỌC 2024 - 2025',
+    footer_line1: 'DỮ LIỆU CHÍNH THỨC TỪ TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
+    footer_line2: 'Mọi thắc mắc về phần mềm xin liên hệ quản trị viên',
+    footer_line3: 'Application developed by: Vũ Hùng - Email: vuhung@db.edu.vn - SĐT: 0984.246.993'
+  });
+
   useEffect(() => {
-    const fetchBgImage = async () => {
+    const fetchConfigs = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('app_settings')
-          .select('setting_value')
-          .eq('setting_key', 'login_bg_image')
-          .single();
-          
-        if (data && data.setting_value) {
-          setBgImage(data.setting_value);
-          localStorage.setItem('loginBgImage', data.setting_value);
+          .select('setting_key, setting_value');
+        
+        if (data) {
+          setUiConfigs(prev => {
+            const newConfigs = { ...prev };
+            let hasChanges = false;
+            
+            data.forEach((d: any) => {
+              if (Object.keys(newConfigs).includes(d.setting_key)) {
+                (newConfigs as any)[d.setting_key] = d.setting_value;
+                hasChanges = true;
+              }
+            });
+            
+            return hasChanges ? newConfigs : prev;
+          });
         }
       } catch (err) {
-        console.error('Error fetching background image:', err);
+        console.error('Error fetching UI configs:', err);
       }
     };
     
-    fetchBgImage();
+    fetchConfigs();
   }, []);
   
   // Captcha state
@@ -215,344 +229,199 @@ export default function Login() {
     setLoading(false);
   };
 
-  const saveBgImageToDb = async (url: string) => {
-    try {
-      // Try to update first
-      const { data, error } = await supabase
-        .from('app_settings')
-        .update({ setting_value: url })
-        .eq('setting_key', 'login_bg_image')
-        .select();
-        
-      if (error) {
-        console.error('Error updating background image:', error);
-        alert('Lỗi khi lưu ảnh lên hệ thống. Vui lòng kiểm tra lại cơ sở dữ liệu Supabase (bảng app_settings).');
-        return;
-      }
-        
-      // If no rows updated, it means the key doesn't exist, so insert it
-      if (!data || data.length === 0) {
-        const { error: insertError } = await supabase
-          .from('app_settings')
-          .insert([{ setting_key: 'login_bg_image', setting_value: url }]);
-          
-        if (insertError) {
-          console.error('Error inserting background image:', insertError);
-          alert('Lỗi khi lưu ảnh lên hệ thống. Vui lòng kiểm tra lại cơ sở dữ liệu Supabase (bảng app_settings).');
-        }
-      }
-    } catch (err) {
-      console.error('Error saving background image to DB:', err);
-      alert('Lỗi kết nối khi lưu ảnh lên hệ thống.');
-    }
-  };
-
-  const handleConfigImage = async () => {
-    const newUrl = window.prompt('Nhập đường dẫn (URL) hình ảnh mới (hoặc để trống để quay về mặc định):', bgImage);
-    if (newUrl !== null && newUrl.trim() !== '') {
-      const url = newUrl.trim();
-      setBgImage(url);
-      localStorage.setItem('loginBgImage', url);
-      await saveBgImageToDb(url);
-    } else if (newUrl === '') {
-      // Reset to default if empty
-      const defaultImg = 'https://images.unsplash.com/photo-1552089123-2d26226fc2b7?auto=format&fit=crop&w=1200&q=80';
-      setBgImage(defaultImg);
-      localStorage.removeItem('loginBgImage');
-      await saveBgImageToDb(defaultImg);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        alert('File quá lớn! Vui lòng chọn file dưới 2MB.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        setBgImage(base64);
-        localStorage.setItem('loginBgImage', base64);
-        await saveBgImageToDb(base64);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden pb-24">
-      {/* Background pattern similar to the original if needed, but we'll keep it simple gray */}
-      
-      <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-300 relative z-10">
-        
-        {/* Header Section */}
-        <div className="relative h-32 sm:h-40 flex items-center justify-center border-b-[3px] border-gray-300 overflow-hidden group">
-          {/* Background Image - Hoa Ban Dien Bien */}
-          <div 
-            className="absolute inset-0 w-full h-full" 
-            style={{ 
-              backgroundImage: `url('${bgImage}')`, 
-              backgroundSize: 'cover', 
-              backgroundPosition: 'center 30%',
-            }}
-          ></div>
+    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: '#e6f0fa', backgroundImage: 'radial-gradient(#d0e3f5 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+      {/* Header */}
+      <header className="bg-[#0b5394] text-white text-center py-3 px-4">
+        <h2 className="text-sm font-semibold uppercase mb-0.5">{uiConfigs.school_name}</h2>
+        <h1 className="text-xl font-bold uppercase mb-1 tracking-wide">{uiConfigs.header_title}</h1>
+        <div className="bg-[#cc0000] text-white inline-block px-3 py-0.5 text-xs font-bold shadow-sm">{uiConfigs.school_year}</div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center p-4">
+        <div className="bg-white rounded shadow-xl w-full max-w-md overflow-hidden border border-gray-200">
+          {/* Top Blue Border */}
+          <div className="h-1.5 bg-[#0b5394] w-full"></div>
           
-          {/* Gradient overlay to match the original warm tone */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#fff8e1]/80 via-[#ffe082]/60 to-transparent"></div>
-          
-          {/* Text */}
-          <div className="relative z-10 text-center flex flex-col items-center justify-center w-full px-4">
-            <h2 className="text-lg sm:text-xl font-bold text-[#8B4513] uppercase tracking-wide" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
-              Hệ thống quản lý nội trú
-            </h2>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#8B4513] uppercase tracking-wider mt-1" style={{ textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 2px 2px 4px rgba(0,0,0,0.3)' }}>
-              Sổ Chấm Cơm
-            </h1>
-          </div>
-
-          {/* Config Image Button for specific user */}
-          {email === 'vuhung@db.edu.vn' && (
-            <div className="absolute top-2 right-2 z-20 flex gap-2">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-all opacity-50 hover:opacity-100"
-                title="Tải ảnh lên từ máy tính"
-              >
-                <Upload className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={handleConfigImage}
-                className="bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-all opacity-50 hover:opacity-100"
-                title="Nhập URL hình ảnh nền"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept="image/*"
-                className="hidden"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Form Section */}
-        <div className="p-8 sm:p-12 relative">
-          {/* Yellow wave at bottom right */}
-          <div className="absolute bottom-0 right-0 w-full h-full overflow-hidden pointer-events-none z-0">
-            <svg className="absolute bottom-0 right-0 w-3/4 h-48 sm:h-64" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M100,100 L100,0 C60,80 20,90 0,100 Z" fill="#fef08a" opacity="0.6" />
-              <path d="M100,100 L100,20 C50,80 10,95 0,100 Z" fill="#fde047" opacity="0.8" />
-              <path d="M100,100 L100,40 C40,80 5,95 0,100 Z" fill="#eab308" opacity="0.9" />
-            </svg>
-          </div>
-
-          <form className="space-y-4 max-w-md mx-auto relative z-10" onSubmit={isRegisterMode ? handleSignUp : handleLogin}>
-            {isRegisterMode && (
-              <>
-                <div className="flex flex-col sm:flex-row sm:items-center">
-                  <label htmlFor="full-name" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Họ và tên:</label>
-                  <div className="w-full sm:w-2/3">
+          <div className="p-6 sm:p-8">
+            <h3 className="text-lg text-[#0b5394] font-bold mb-4 pb-3 border-b border-gray-100 text-center sm:text-left">
+              {isRegisterMode ? 'Đăng ký tài khoản' : 'Nhập thông tin đăng nhập'}
+            </h3>
+            
+            <form className="space-y-4" onSubmit={isRegisterMode ? handleSignUp : handleLogin}>
+              {isRegisterMode && (
+                <>
+                  <div className="flex flex-col">
+                    <label htmlFor="full-name" className="text-sm text-gray-700 font-medium mb-1.5">
+                      Họ và tên <span className="text-red-500">*</span>
+                    </label>
                     <input
                       id="full-name"
                       name="fullName"
                       type="text"
                       required={isRegisterMode}
-                      className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Nhập họ và tên"
                     />
                   </div>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center">
-                  <label htmlFor="phone-number" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Số điện thoại:</label>
-                  <div className="w-full sm:w-2/3">
+                  
+                  <div className="flex flex-col">
+                    <label htmlFor="phone-number" className="text-sm text-gray-700 font-medium mb-1.5">
+                      Số điện thoại <span className="text-red-500">*</span>
+                    </label>
                     <input
                       id="phone-number"
                       name="phoneNumber"
                       type="tel"
                       required={isRegisterMode}
-                      className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="VD: 0984246993"
                     />
                   </div>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-start">
-                  <label htmlFor="license-key" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal mt-1.5">Mã bản quyền:</label>
-                  <div className="w-full sm:w-2/3">
+                  
+                  <div className="flex flex-col">
+                    <label htmlFor="license-key" className="text-sm text-gray-700 font-medium mb-1.5">
+                      Mã bản quyền <span className="text-red-500">*</span>
+                    </label>
                     <input
                       id="license-key"
                       name="licenseKey"
                       type="text"
                       required={isRegisterMode}
-                      className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none uppercase"
+                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors uppercase"
                       value={licenseKey}
                       onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
                       placeholder="VD: SL-XXXX-XXXX"
                     />
                     {checkingLicense ? (
-                      <p className="text-xs text-gray-500 mt-1">Đang kiểm tra mã...</p>
+                      <p className="text-xs text-gray-500 mt-1.5">Đang kiểm tra mã...</p>
                     ) : licenseInfo ? (
-                      <p className={`text-xs mt-1 font-medium ${licenseInfo.duration > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <p className={`text-xs mt-1.5 font-medium ${licenseInfo.duration > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {licenseInfo.text}
                       </p>
                     ) : null}
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
 
-            <div className="flex flex-col sm:flex-row sm:items-center">
-              <label htmlFor="email-address" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Tài khoản Gmail:</label>
-              <div className="w-full sm:w-2/3">
+              <div className="flex flex-col">
+                <label htmlFor="email-address" className="text-sm text-gray-700 font-medium mb-1.5">
+                  Tài khoản Gmail <span className="text-red-500">*</span>
+                </label>
                 <input
                   id="email-address"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
-                  className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Nhập email của bạn"
                 />
               </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row sm:items-center">
-              <label htmlFor="password" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">Mật khẩu:</label>
-              <div className="w-full sm:w-2/3">
+              
+              <div className="flex flex-col">
+                <label htmlFor="password" className="text-sm text-gray-700 font-medium mb-1.5">
+                  Mật khẩu <span className="text-red-500">*</span>
+                </label>
                 <input
                   id="password"
                   name="password"
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="w-full border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu"
                 />
               </div>
-            </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center">
-              <div className="hidden sm:block sm:w-1/3"></div>
-              <div className="w-full sm:w-2/3 flex items-center">
-                <input type="checkbox" id="remember" className="mr-2 cursor-pointer w-4 h-4 sm:w-auto sm:h-auto" />
-                <label htmlFor="remember" className="text-sm text-black cursor-pointer">Nhớ mật khẩu</label>
-              </div>
-            </div>
+              {!isRegisterMode && (
+                <div className="flex items-center">
+                  <input type="checkbox" id="remember" className="mr-2 cursor-pointer w-4 h-4 text-[#0b5394] focus:ring-[#0b5394] border-gray-300 rounded" />
+                  <label htmlFor="remember" className="text-sm text-gray-700 cursor-pointer select-none">Nhớ mật khẩu</label>
+                </div>
+              )}
 
-            <div className="flex flex-col sm:flex-row sm:items-center mt-2">
-              <label htmlFor="captcha" className="w-full sm:w-1/3 text-left sm:text-right pr-4 text-sm text-black mb-1 sm:mb-0 font-medium sm:font-normal">
-                Xác nhận ({captchaQuestion} = ?):
-              </label>
-              <div className="w-full sm:w-2/3 flex items-center gap-2">
+              <div className="flex flex-col">
+                <label htmlFor="captcha" className="text-sm text-gray-700 font-medium mb-1.5 flex items-center justify-between">
+                  <span>Mã xác nhận ({captchaQuestion} = ?) <span className="text-red-500">*</span></span>
+                  <button 
+                    type="button" 
+                    onClick={generateCaptcha}
+                    className="text-xs text-[#0b5394] hover:text-blue-800 hover:underline"
+                    tabIndex={-1}
+                  >
+                    Đổi mã
+                  </button>
+                </label>
                 <input
                   id="captcha"
                   type="text"
                   required
-                  className="w-20 border border-gray-400 px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:border-blue-500 text-sm bg-white rounded-md sm:rounded-none"
+                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-[#0b5394] focus:ring-1 focus:ring-[#0b5394] rounded text-sm transition-colors"
                   value={userCaptchaInput}
                   onChange={(e) => setUserCaptchaInput(e.target.value)}
-                  placeholder="Kết quả"
+                  placeholder="Nhập kết quả phép tính"
                 />
-                <button 
-                  type="button" 
-                  onClick={generateCaptcha}
-                  className="text-xs text-blue-600 hover:text-blue-800 underline whitespace-nowrap"
-                >
-                  Đổi mã
-                </button>
               </div>
-            </div>
 
-            {error && (
-              <div className="flex flex-col sm:flex-row sm:items-center mt-2">
-                <div className="hidden sm:block sm:w-1/3"></div>
-                <div className="w-full sm:w-2/3 text-red-600 text-xs font-medium">
+              {error && (
+                <div className="text-red-600 text-sm font-medium p-3 bg-red-50 rounded border border-red-100">
                   {error}
                 </div>
-              </div>
-            )}
+              )}
 
-            {successMsg && (
-              <div className="flex flex-col sm:flex-row sm:items-center mt-2">
-                <div className="hidden sm:block sm:w-1/3"></div>
-                <div className="w-full sm:w-2/3 text-emerald-600 text-xs font-medium">
+              {successMsg && (
+                <div className="text-emerald-700 text-sm font-medium p-3 bg-emerald-50 rounded border border-emerald-100">
                   {successMsg}
                 </div>
+              )}
+              
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#0b5394] hover:bg-[#094074] text-white font-bold py-2 px-4 rounded shadow transition-colors text-base"
+                >
+                  {loading ? 'Đang xử lý...' : (isRegisterMode ? 'Đăng ký tài khoản' : 'Đăng nhập')}
+                </button>
+                
+                <div className="mt-3 text-center">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsRegisterMode(!isRegisterMode);
+                      setError(null);
+                      setSuccessMsg(null);
+                      generateCaptcha();
+                    }} 
+                    disabled={loading}
+                    className="text-sm text-[#0b5394] hover:text-[#094074] hover:underline font-medium"
+                  >
+                    {isRegisterMode ? 'Đã có tài khoản? Quay lại đăng nhập' : 'Chưa có tài khoản? Đăng ký ngay'}
+                  </button>
+                </div>
               </div>
-            )}
-            
-            <div className="flex flex-col sm:flex-row sm:items-center mt-6 pt-4">
-              <div className="hidden sm:block sm:w-1/3"></div>
-              <div className="w-full sm:w-2/3 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-                {isRegisterMode ? (
-                  <>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
-                    >
-                      {loading ? 'Đang xử lý...' : 'Đăng ký'}
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setIsRegisterMode(false);
-                        setError(null);
-                        generateCaptcha();
-                      }} 
-                      disabled={loading}
-                      className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
-                    >
-                      Quay lại
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full sm:w-auto bg-[#A0522D] hover:bg-[#8B4513] text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
-                    >
-                      {loading ? 'Đang xử lý...' : 'Đăng nhập'}
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setIsRegisterMode(true);
-                        setError(null);
-                        setSuccessMsg(null);
-                        generateCaptcha();
-                      }} 
-                      disabled={loading}
-                      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-1.5 px-6 shadow-md transition-colors text-sm rounded-md sm:rounded-none"
-                    >
-                      Đăng ký
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
+      </main>
       
-      {/* Footer info */}
-      <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500">
-        <p className="font-medium">Ứng dụng được phát triển bởi: Vũ Văn Hùng</p>
-        <p>SĐT: 0984 246 993 - Đơn vị công tác tại trường PTDTBT TH và THCS Suối Lư</p>
-      </div>
+      {/* Footer */}
+      <footer className="bg-[#0b5394] text-white text-center py-3 px-4 border-t border-[#094074]">
+        <p className="font-bold text-sm sm:text-base mb-1 uppercase">{uiConfigs.footer_line1}</p>
+        <p className="text-xs sm:text-sm mb-0.5 text-blue-100">{uiConfigs.footer_line2}</p>
+        <p className="text-[11px] sm:text-xs text-blue-200">{uiConfigs.footer_line3}</p>
+      </footer>
     </div>
   );
 }
+
