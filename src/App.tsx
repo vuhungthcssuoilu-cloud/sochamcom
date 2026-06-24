@@ -418,14 +418,18 @@ export default function App() {
       const { data, error } = await supabase
         .from('monthly_sheets')
         .select('month, year, class_name, students, updated_at')
-        .eq('user_id', user.id)
-        .order('year', { ascending: false })
-        .order('month', { ascending: false });
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error fetching saved sheets:', error);
       } else {
-        setSavedSheets(data || []);
+        const sortedData = (data || []).sort((a, b) => {
+          if (b.year !== a.year) {
+            return b.year - a.year;
+          }
+          return b.month - a.month;
+        });
+        setSavedSheets(sortedData);
       }
     } catch (err) {
       console.error('Failed to fetch saved sheets:', err);
