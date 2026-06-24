@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 const Login = lazy(() => import('./components/Login'));
@@ -99,6 +99,10 @@ export default function App() {
   const hasShownInitialAlert = useRef(false);
   const hasRecordedAccess = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [savedSheets, setSavedSheets] = useState<any[]>([]);
+  const [isSavedSheetsOpen, setIsSavedSheetsOpen] = useState(false);
+  const [isLoadingSavedSheets, setIsLoadingSavedSheets] = useState(false);
 
   // Record user access
   useEffect(() => {
@@ -218,37 +222,16 @@ export default function App() {
       setUser(null);
       setIsInitializing(false);
       
-      // Prevent infinite reload loops
-      const reloadCount = parseInt(sessionStorage.getItem('auth_reload_count') || '0');
-      if (reloadCount < 2) {
-        sessionStorage.setItem('auth_reload_count', (reloadCount + 1).toString());
-        window.location.href = '/';
-      } else {
-        console.error('Auth reload loop detected. Stopping.');
-      }
+      // Notify Supabase client to clear its state
+      supabase.auth.signOut().catch(() => {});
     };
 
     // Check active session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Session error:', error);
-        const errorMsg = error.message || '';
-        const isRefreshTokenError = 
-          errorMsg.includes('Refresh Token Not Found') || 
-          errorMsg.includes('refresh_token_not_found') ||
-          errorMsg.includes('Invalid Refresh Token') ||
-          errorMsg.includes('session_not_found') ||
-          errorMsg.includes('Invalid token');
-
-        if (isRefreshTokenError) {
-          clearStaleSession();
-          return;
-        }
-        
-        supabase.auth.signOut().catch(() => {
-          setUser(null);
-          setIsInitializing(false);
-        });
+        clearStaleSession();
+        return;
       }
       setUser(session?.user ?? null);
       setIsInitializing(false);
@@ -256,29 +239,19 @@ export default function App() {
       sessionStorage.removeItem('auth_reload_count');
     }).catch(err => {
       console.error('Unexpected session error:', err);
-      const errorMsg = err.message || '';
-      const isRefreshTokenError = 
-        errorMsg.includes('Refresh Token Not Found') || 
-        errorMsg.includes('Invalid Refresh Token') ||
-        errorMsg.includes('session_not_found') ||
-        errorMsg.includes('Invalid token');
-
-      if (isRefreshTokenError) {
-        clearStaleSession();
-      } else {
-        setUser(null);
-        setIsInitializing(false);
-      }
+      clearStaleSession();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
+        setIsInitializing(false);
       } else if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
       } else if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
         if (session?.user) {
           setUser(session.user);
+          setIsInitializing(false);
         }
       }
     });
@@ -438,6 +411,50 @@ export default function App() {
     fetchPrefs();
   }, [user]);
 
+  const fetchSavedSheets = async () => {
+    if (!user) return;
+    setIsLoadingSavedSheets(true);
+    try {
+      const { data, error } = await supabase
+        .from('monthly_sheets')
+        .select('month, year, class_name, students, updated_at')
+        .eq('user_id', user.id)
+        .order('year', { ascending: false })
+        .order('month', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching saved sheets:', error);
+      } else {
+        setSavedSheets(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch saved sheets:', err);
+    } finally {
+      setIsLoadingSavedSheets(false);
+    }
+  };
+
+  const handleDeleteSavedSheet = async (targetYear: number, targetMonth: number, classNameToDel: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa bảng chấm cơm của Lớp ${classNameToDel || ''} - Tháng ${targetMonth + 1}/${targetYear} không? Thao tác này sẽ xóa vĩnh viễn dữ liệu trên hệ thống.`)) return;
+    try {
+      const { error } = await supabase
+        .from('monthly_sheets')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('year', targetYear)
+        .eq('month', targetMonth);
+
+      if (error) {
+        alert('Lỗi khi xóa bảng: ' + error.message);
+      } else {
+        alert('Đã xóa bảng chấm cơm thành công!');
+        fetchSavedSheets();
+      }
+    } catch (err: any) {
+      alert('Lỗi: ' + err.message);
+    }
+  };
+
   // Fetch data when user, month, or year changes
   useEffect(() => {
     if (!user) return;
@@ -562,7 +579,7 @@ export default function App() {
 
   if (isInitializing || licenseCheckLoading) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="flex flex-col items-center">
           <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
           <div className="text-gray-600 font-medium">Đang kết nối dữ liệu...</div>
@@ -574,7 +591,7 @@ export default function App() {
   if (!user) {
     return (
       <Suspense fallback={
-        <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
           <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       }>
@@ -617,7 +634,7 @@ export default function App() {
 
   if (isLicenseExpired) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8" />
@@ -666,7 +683,7 @@ export default function App() {
   if (showAdmin) {
     return (
       <Suspense fallback={
-        <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
           <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       }>
@@ -1740,7 +1757,8 @@ export default function App() {
   );
 
   return (
-    <div className={`min-h-screen bg-transparent font-sans text-gray-900 print:bg-white print:p-4 ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'}`}>
+    <div className={`min-h-screen bg-white ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'} text-gray-900 print:p-4`}>
+      <div className="font-sans">
       {/* Controls - Hidden on Print */}
       <div className={`w-full mb-3 bg-white rounded-xl shadow-md border border-gray-300 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
@@ -1808,6 +1826,17 @@ export default function App() {
                 className="w-16 px-1 py-1 border rounded text-sm font-bold text-center"
               />
             </div>
+            <button
+              onClick={() => {
+                fetchSavedSheets();
+                setIsSavedSheetsOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-lg transition-colors text-xs font-bold border border-indigo-200 shadow-sm"
+              title="Xem danh sách các tháng đã lưu"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Tháng đã lưu</span>
+            </button>
           </div>
           
           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -2238,6 +2267,112 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Saved Sheets History Modal */}
+      {isSavedSheetsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:hidden p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
+              <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                <Calendar className="text-indigo-600 w-5 h-5" />
+                LỊCH SỬ CÁC THÁNG ĐÃ LƯU
+              </h3>
+              <button 
+                onClick={() => setIsSavedSheetsOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {isLoadingSavedSheets ? (
+              <div className="py-12 flex flex-col items-center justify-center">
+                <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <p className="text-sm text-gray-500 font-medium">Đang tải danh sách các tháng...</p>
+              </div>
+            ) : savedSheets.length === 0 ? (
+              <div className="py-12 text-center text-gray-500">
+                <p className="mb-2 font-medium">Chưa có bảng chấm cơm nào được lưu trước đó.</p>
+                <p className="text-xs text-gray-400">Các bảng chấm cơm bạn lưu sẽ tự động hiển thị tại đây.</p>
+              </div>
+            ) : (
+              <div className="max-h-[350px] overflow-y-auto pr-1">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left text-gray-500">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                      <tr>
+                        <th scope="col" className="px-4 py-3">Thời gian</th>
+                        <th scope="col" className="px-4 py-3">Lớp</th>
+                        <th scope="col" className="px-4 py-3 text-center">Số học sinh</th>
+                        <th scope="col" className="px-4 py-3">Lưu cuối</th>
+                        <th scope="col" className="px-4 py-3 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {savedSheets.map((sheet) => (
+                        <tr key={`${sheet.year}-${sheet.month}`} className="border-b hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-gray-950">
+                            Tháng {sheet.month + 1} / {sheet.year}
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-indigo-700">
+                            {sheet.class_name || 'Không rõ'}
+                          </td>
+                          <td className="px-4 py-3 text-center font-medium text-gray-700">
+                            {sheet.students ? sheet.students.length : 0}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-400">
+                            {sheet.updated_at ? new Date(sheet.updated_at).toLocaleString('vi-VN', { 
+                              hour: '2-digit', 
+                              minute: '2-digit', 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            }) : 'Không rõ'}
+                          </td>
+                          <td className="px-4 py-3 text-right flex justify-end gap-2">
+                            <button
+                              onClick={async () => {
+                                if (isDirty.current) {
+                                  if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang tháng khác không?')) {
+                                    await handleSave(true);
+                                  }
+                                }
+                                setMonth(sheet.month);
+                                setYear(sheet.year);
+                                setIsSavedSheetsOpen(false);
+                              }}
+                              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm"
+                            >
+                              Xem bảng
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSavedSheet(sheet.year, sheet.month, sheet.class_name)}
+                              className="p-1 hover:bg-red-50 text-red-500 hover:text-red-700 rounded transition-colors border border-transparent hover:border-red-200"
+                              title="Xóa dữ liệu tháng này"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end border-t pt-4">
+              <button 
+                onClick={() => setIsSavedSheetsOpen(false)}
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors font-medium text-sm border"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 }
