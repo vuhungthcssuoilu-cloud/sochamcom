@@ -2283,6 +2283,14 @@ export default function App() {
           </div>
         </div>
 
+        {/* Warning Banner */}
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-2.5 text-amber-800 text-xs sm:text-sm font-medium">
+          <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-bold text-amber-900">Lưu ý quan trọng:</span> Mọi thiết lập xong của các tháng phải nhấn vào nút <span className="font-bold text-indigo-700 underline">Lưu dữ liệu</span> thì dữ liệu mới được ghi.
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center justify-start gap-4 p-3">
           <div className="flex items-center gap-3 mr-auto">
             <h1 className="text-lg font-bold text-indigo-900 flex items-center gap-2 hidden lg:flex">
@@ -2382,10 +2390,11 @@ export default function App() {
 
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-blue-600 text-white rounded-xl border-2 border-blue-800 hover:bg-blue-700 transition-all shadow-md"
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-blue-600 text-white rounded-xl border-2 border-blue-800 hover:bg-blue-700 transition-all shadow-md px-0.5"
+              title="Nhập danh sách học sinh"
             >
               <Upload className="w-4 h-4" />
-              <span className="text-[10px] font-bold leading-tight text-center">Nhập<br/>Excel</span>
+              <span className="text-[8px] font-bold leading-none text-center">Nhập danh<br/>sách<br/>học sinh</span>
             </button>
 
             <button 
