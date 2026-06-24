@@ -2224,25 +2224,30 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] text-gray-700 whitespace-nowrap">Lớp:</span>
-                  <select
-                    value={className}
+                  <input 
+                    type="text" 
+                    value={classNameInput} 
+                    list="classes-datalist"
                     onChange={(e) => {
-                      const selectedClass = e.target.value;
-                      setClassName(selectedClass);
-                      setClassNameInput(selectedClass);
-                      
-                      // Auto-update GVCN based on configuration
-                      const configured = classesConfig.find(c => c.className === selectedClass);
-                      if (configured) {
-                        setTeacherName(configured.teacherName);
+                      const val = e.target.value.toUpperCase();
+                      setClassNameInput(val);
+                      // Auto-update GVCN if the typed value matches a configured class
+                      const match = classesConfig.find(c => c.className === val);
+                      if (match) {
+                        setTeacherName(match.teacherName);
+                        setClassName(val);
                       }
                     }}
-                    className="border border-gray-300 rounded-md px-2 py-1.5 text-[14px] w-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm cursor-pointer"
-                  >
+                    onBlur={handleClassNameSubmit}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm uppercase"
+                    placeholder="8C1"
+                  />
+                  <datalist id="classes-datalist">
                     {selectOptions.map((c) => (
-                      <option key={c.className} value={c.className}>{c.className}</option>
+                      <option key={c.className} value={c.className}>{c.teacherName ? `GV: ${c.teacherName}` : ''}</option>
                     ))}
-                  </select>
+                  </datalist>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] text-gray-700 whitespace-nowrap">GVCN:</span>
