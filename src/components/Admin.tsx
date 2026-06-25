@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save, Lock, RefreshCw, History, User as UserIcon, Calendar, Settings } from 'lucide-react';
 
-export default function Admin({ onBack }: { onBack: () => void }) {
+export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onViewSheet?: (userId: string, year: number, month: number, className: string) => void }) {
   const [activeTab, setActiveTab] = useState<'keys' | 'history' | 'classes'>('keys');
   const [keys, setKeys] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
@@ -884,6 +884,7 @@ export default function Admin({ onBack }: { onBack: () => void }) {
                                 <th className="p-3 text-left">Lớp</th>
                                 <th className="p-3 text-center">Sĩ số</th>
                                 <th className="p-3 text-right">Cập nhật cuối</th>
+                                {onViewSheet && <th className="p-3 text-right w-24">Thao tác</th>}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -903,6 +904,17 @@ export default function Admin({ onBack }: { onBack: () => void }) {
                                       hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
                                     }) : '-'}
                                   </td>
+                                  {onViewSheet && (
+                                    <td className="p-3 text-right">
+                                      <button
+                                        onClick={() => onViewSheet(selectedTeacherId, sheet.year, sheet.month, sheet.class_name || '')}
+                                        className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                                        title="Xem bảng chấm cơm chi tiết"
+                                      >
+                                        Xem chi tiết
+                                      </button>
+                                    </td>
+                                  )}
                                 </tr>
                               ))}
                             </tbody>
