@@ -1,566 +1,3125 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save, Lock, RefreshCw, History, User as UserIcon, Calendar, Settings } from 'lucide-react';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-export default function Admin({ onBack }: { onBack: () => void }) {
-  const [activeTab, setActiveTab] = useState<'keys' | 'history'>('keys');
-  const [keys, setKeys] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingLogs, setLoadingLogs] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [newKeyDuration, setNewKeyDuration] = useState(365);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [faviconUrl, setFaviconUrl] = useState('');
-  const [savingFavicon, setSavingFavicon] = useState(false);
-  const [savingUiConfigs, setSavingUiConfigs] = useState(false);
-  
-  // UI Configs
-  const [uiConfigs, setUiConfigs] = useState({
-    school_name: 'TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
-    header_title: 'HỆ THỐNG QUẢN LÝ NỘI TRÚ - SỔ CHẤM CƠM',
-    school_year: 'NĂM HỌC 2024 - 2025',
-    footer_line1: 'DỮ LIỆU CHÍNH THỨC TỪ TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
-    footer_line2: 'Mọi thắc mắc về phần mềm xin liên hệ quản trị viên',
-    footer_line3: 'Application developed by: Vũ Hùng - Email: vuhung@db.edu.vn - SĐT: 0984.246.993'
-  });
+import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+import { createPortal } from 'react-dom';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar, Settings } from 'lucide-react';
+import { supabase } from './lib/supabase';
 
-  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
+import Login from './components/Login';
+const Admin = lazy(() => import('./components/Admin'));
 
+// --- Types ---
+
+type MealType = 'S' | 'T1' | 'T2'; // Sáng, Trưa, Tối
+
+interface MealData {
+  [date: number]: {
+    S: boolean;
+    T1: boolean;
+    T2: boolean;
+  };
+}
+
+interface Student {
+  id: string;
+  name: string;
+  meals: MealData;
+}
+
+// --- Constants ---
+
+const MEAL_LABELS: Record<MealType, string> = {
+  S: 'S',
+  T1: 'T',
+  T2: 'T',
+};
+
+const DAYS_OF_WEEK = ['CN', '2', '3', '4', '5', '6', '7'];
+
+// --- Helper Functions ---
+
+const getDaysInMonth = (month: number, year: number) => {
+  return new Date(year, month + 1, 0).getDate();
+};
+
+const getDayOfWeek = (day: number, month: number, year: number) => {
+  const date = new Date(year, month, day);
+  return DAYS_OF_WEEK[date.getDay()];
+};
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
+const INITIAL_STUDENTS: Student[] = [];
+
+export default function App() {
+  // --- State ---
+  const [user, setUser] = useState<any>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isDataFetching, setIsDataFetching] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LƯ');
+  const [bookTitle, setBookTitle] = useState('SỔ CHẤM CƠM LỚP:');
+  const [className, setClassName] = useState('');
+  const [classNameInput, setClassNameInput] = useState('');
+
+  // Sync local input with className state
   useEffect(() => {
-    fetchKeys();
-    fetchSettings();
-    fetchLogs();
+    setClassNameInput(className);
+  }, [className]);
+
+  const [month, setMonth] = useState(() => {
+    return new Date().getMonth();
+  });
+  const [year, setYear] = useState(() => {
+    return new Date().getFullYear();
+  });
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
+  const [location, setLocation] = useState('Suối Lư');
+  const [teacherName, setTeacherName] = useState('');
+  const [standardMeals, setStandardMeals] = useState({ S: 0, T1: 0, T2: 0 });
+  const [footerDay, setFooterDay] = useState(new Date().getDate());
+  const [footerMonth, setFooterMonth] = useState(new Date().getMonth() + 1);
+  const [footerYear, setFooterYear] = useState(new Date().getFullYear());
+  const [isEditingHeader, setIsEditingHeader] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [classesConfig, setClassesConfig] = useState<{ className: string; teacherName: string }[]>([]);
+  const [isClassConfigModalOpen, setIsClassConfigModalOpen] = useState(false);
+  const [tempClassesConfig, setTempClassesConfig] = useState<{ className: string; teacherName: string }[]>([]);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [markSymbol, setMarkSymbol] = useState<'x' | '+' | '1'>('+'); // New state for mark symbol
+  const [clipboard, setClipboard] = useState<MealData | null>(null);
+  const [columnClipboard, setColumnClipboard] = useState<boolean[] | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
+  const [isLicenseExpired, setIsLicenseExpired] = useState(false);
+  const [renewalKey, setRenewalKey] = useState('');
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [licenseCheckLoading, setLicenseCheckLoading] = useState(false);
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState<string | null>(null);
+  const [licenseDuration, setLicenseDuration] = useState<number | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+  const [hoveredStudentId, setHoveredStudentId] = useState<string | null>(null);
+  const hasShownInitialAlert = useRef(false);
+  const hasRecordedAccess = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [savedSheets, setSavedSheets] = useState<any[]>([]);
+  const [isSavedSheetsOpen, setIsSavedSheetsOpen] = useState(false);
+  const [isLoadingSavedSheets, setIsLoadingSavedSheets] = useState(false);
+
+  // Record user access
+  useEffect(() => {
+    if (user && !isInitializing && !hasRecordedAccess.current) {
+      const recordAccess = async () => {
+        try {
+          let ip = 'Unknown';
+          try {
+            const ipRes = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipRes.json();
+            ip = ipData.ip;
+          } catch (e) {
+            console.warn('Could not fetch IP address:', e);
+          }
+
+          await supabase.from('access_logs').insert([{
+            user_id: user.id,
+            email: user.email,
+            access_time: new Date().toISOString(),
+            ip_address: ip
+          }]);
+          hasRecordedAccess.current = true;
+        } catch (err) {
+          console.error('Failed to record access log:', err);
+        }
+      };
+      recordAccess();
+    }
+  }, [user, isInitializing]);
+
+  // --- Computed ---
+  const daysInMonth = useMemo(() => getDaysInMonth(month, year), [month, year]);
+  
+  const firstHalfDays = useMemo(() => {
+    const days = [];
+    for (let i = 1; i <= 16; i++) days.push(i);
+    return days;
   }, []);
 
-  const fetchLogs = async () => {
-    setLoadingLogs(true);
-    const { data, error } = await supabase
-      .from('access_logs')
-      .select('*')
-      .order('access_time', { ascending: false })
-      .limit(200);
-    
-    if (data) setLogs(data);
-    setLoadingLogs(false);
-  };
+  const secondHalfDays = useMemo(() => {
+    const days = [];
+    for (let i = 17; i <= daysInMonth; i++) {
+      if (i <= daysInMonth) days.push(i);
+    }
+    return days;
+  }, [daysInMonth]);
 
-  const fetchSettings = async () => {
-    const { data } = await supabase
-      .from('app_settings')
-      .select('setting_key, setting_value');
-    
-    if (data) {
-      const faviconObj = data.find((d: any) => d.setting_key === 'global_favicon');
-      if (faviconObj) setFaviconUrl(faviconObj.setting_value);
-      
-      setUiConfigs(prev => {
-        const newConfigs = { ...prev };
-        let hasChanges = false;
-        
-        data.forEach((d: any) => {
-          if (Object.keys(newConfigs).includes(d.setting_key)) {
-            (newConfigs as any)[d.setting_key] = d.setting_value;
-            hasChanges = true;
+  const selectOptions = useMemo(() => {
+    const list = [...classesConfig];
+    if (className && !list.some(c => c.className === className)) {
+      list.push({ className, teacherName: teacherName });
+    }
+    return list;
+  }, [classesConfig, className, teacherName]);
+
+  const scrollToToday = useCallback(() => {
+    const today = new Date();
+    const todayDay = today.getDate();
+    const element = document.getElementById(`day-col-${todayDay}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, []);
+
+  // --- Auth & Data Fetching ---
+  
+  // Ref to track if data has been modified
+  const isDirty = useRef(false);
+  const lastSavedDataRef = useRef<string>('');
+
+  // Check license expiration
+  useEffect(() => {
+    if (user) {
+      if (user.email === 'vuhung@db.edu.vn') {
+        setIsLicenseExpired(false);
+        return;
+      }
+
+      const checkLicense = async () => {
+        setLicenseCheckLoading(true);
+        try {
+          // Fetch the latest license key used by this user
+          const { data, error } = await supabase
+            .from('license_keys')
+            .select('used_at, duration_days')
+            .eq('used_by', user.id)
+            .order('used_at', { ascending: false })
+            .limit(1);
+          
+          if (error) {
+            console.error('Error fetching license key:', error);
+            setIsLicenseExpired(true);
+          } else if (data && data.length > 0 && data[0].used_at) {
+            const usedAtDate = new Date(data[0].used_at);
+            const duration = data[0].duration_days || 365;
+            const expirationDate = new Date(usedAtDate);
+            expirationDate.setDate(expirationDate.getDate() + duration);
+            
+            setLicenseExpiryDate(expirationDate.toLocaleDateString('vi-VN'));
+            setLicenseDuration(duration);
+
+            if (new Date() > expirationDate) {
+              setIsLicenseExpired(true);
+            } else {
+              setIsLicenseExpired(false);
+            }
+          } else {
+             setIsLicenseExpired(true);
           }
-        });
-        
-        return hasChanges ? newConfigs : prev;
-      });
-    }
-  };
-
-  const saveUiConfigs = async () => {
-    setSavingUiConfigs(true);
-    
-    const updates = Object.entries(uiConfigs).map(([key, value]) => ({
-      setting_key: key,
-      setting_value: value,
-      updated_at: new Date().toISOString()
-    }));
-    
-    const { error } = await supabase
-      .from('app_settings')
-      .upsert(updates, { onConflict: 'setting_key' });
+        } catch (err) {
+          console.error('Failed to check license:', err);
+        } finally {
+          setLicenseCheckLoading(false);
+        }
+      };
       
-    if (error) {
-      alert('Lỗi lưu Cấu hình giao diện: ' + error.message);
+      checkLicense();
     } else {
-      alert('Đã cập nhật Cấu hình giao diện thành công!');
+      setIsLicenseExpired(false);
     }
+  }, [user]);
+
+  useEffect(() => {
+    const clearStaleSession = () => {
+      console.warn('Clearing stale session due to refresh token error');
+      // Manually clear any supabase related items from localStorage to be safe
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+          localStorage.removeItem(key);
+        }
+      });
+      // Also clear session storage
+      sessionStorage.clear();
+      
+      setUser(null);
+      setIsInitializing(false);
+      
+      // Notify Supabase client to clear its state locally first to avoid remote requests with invalid token
+      supabase.auth.signOut({ scope: 'local' }).catch(() => {
+        supabase.auth.signOut().catch(() => {});
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      if (reason) {
+        const errorMsg = typeof reason === 'string' 
+          ? reason 
+          : (reason.message || reason.error_description || reason.error || '');
+        if (
+          errorMsg.includes('Invalid Refresh Token') || 
+          errorMsg.includes('Refresh Token Not Found') ||
+          errorMsg.includes('invalid_grant')
+        ) {
+          event.preventDefault();
+          console.warn('Caught refresh token error in unhandled rejection:', reason);
+          clearStaleSession();
+        }
+      }
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      const errorMsg = event.message || '';
+      if (
+        errorMsg.includes('Invalid Refresh Token') || 
+        errorMsg.includes('Refresh Token Not Found') ||
+        errorMsg.includes('invalid_grant')
+      ) {
+        event.preventDefault();
+        console.warn('Caught refresh token error in error event:', errorMsg);
+        clearStaleSession();
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
+
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session error:', error);
+        clearStaleSession();
+        return;
+      }
+      setUser(session?.user ?? null);
+      setIsInitializing(false);
+      // Reset reload count on successful session check
+      sessionStorage.removeItem('auth_reload_count');
+    }).catch(err => {
+      console.error('Unexpected session error:', err);
+      clearStaleSession();
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsInitializing(false);
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      } else if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+        if (session?.user) {
+          setUser(session.user);
+          setIsInitializing(false);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+    };
+  }, []);
+
+  // Persist month/year changes
+  useEffect(() => {
+    localStorage.setItem('app_current_month', month.toString());
+    localStorage.setItem('app_current_year', year.toString());
+  }, [month, year]);
+
+  // Show quota warning on successful login
+  useEffect(() => {
+    if (user && !isInitializing && !hasShownInitialAlert.current) {
+      // Small delay to ensure UI is ready and not jarring
+      const timer = setTimeout(() => {
+        setIsQuotaModalOpen(true);
+        hasShownInitialAlert.current = true;
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, isInitializing]);
+
+  // Update tab title and favicon
+  useEffect(() => {
+    document.title = "Chấm ăn học sinh nội trú";
     
-    setSavingUiConfigs(false);
+    // Fetch global favicon
+    const fetchFavicon = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'global_favicon')
+        .single();
+      
+      if (data && data.setting_value) {
+        const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (link) {
+          link.href = data.setting_value;
+        } else {
+          const newLink = document.createElement('link');
+          newLink.rel = 'icon';
+          newLink.href = data.setting_value;
+          document.head.appendChild(newLink);
+        }
+      }
+    };
+    fetchFavicon();
+  }, []);
+
+  // Save Classes Config function
+  const handleSaveClassesConfig = async (newConfig: { className: string; teacherName: string }[]) => {
+    if (!user) return;
+
+    // Filter out rows with empty className
+    const filtered = newConfig.map(c => ({
+      className: c.className.trim().toUpperCase(),
+      teacherName: c.teacherName.trim()
+    })).filter(c => c.className !== '');
+
+    // Check for duplicates
+    const names = filtered.map(c => c.className);
+    const hasDuplicates = names.some((name, idx) => names.indexOf(name) !== idx);
+    if (hasDuplicates) {
+      alert('Tên lớp không được trùng nhau!');
+      return;
+    }
+
+    if (filtered.length === 0) {
+      alert('Vui lòng thêm ít nhất một lớp học!');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const targetUserId = viewingUserId || user.id;
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          setting_key: `${targetUserId}_classes_config`,
+          setting_value: JSON.stringify(filtered),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'setting_key' });
+
+      if (error) {
+        console.error('Error saving classes config:', error);
+        alert('Lỗi khi lưu cấu hình lớp: ' + error.message);
+      } else {
+        setClassesConfig(filtered);
+        
+        // If the current selected class is not in the new config, switch to the first class in the config
+        if (!filtered.some(c => c.className === className)) {
+          const firstClass = filtered[0].className;
+          setClassName(firstClass);
+          setClassNameInput(firstClass);
+          setTeacherName(filtered[0].teacherName);
+        } else {
+          // If the current selected class is in the new config, update its GVCN name if it changed
+          const match = filtered.find(c => c.className === className);
+          if (match && match.teacherName !== teacherName) {
+            setTeacherName(match.teacherName);
+          }
+        }
+        
+        setIsClassConfigModalOpen(false);
+        alert('Đã lưu cấu hình lớp và GVCN thành công!');
+      }
+    } catch (err: any) {
+      console.error('Failed to save classes config:', err);
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const saveFavicon = async () => {
-    setSavingFavicon(true);
-    const { error } = await supabase
+  const captureStateString = useCallback((overrides: any = {}) => {
+    return JSON.stringify({
+      students: overrides.students !== undefined ? overrides.students : students,
+      className: overrides.className !== undefined ? overrides.className : className,
+      bookTitle: overrides.bookTitle !== undefined ? overrides.bookTitle : bookTitle,
+      teacherName: overrides.teacherName !== undefined ? overrides.teacherName : teacherName,
+      schoolName: overrides.schoolName !== undefined ? overrides.schoolName : schoolName,
+      location: overrides.location !== undefined ? overrides.location : location,
+      standardMeals: overrides.standardMeals !== undefined ? overrides.standardMeals : standardMeals,
+      footerDay: overrides.footerDay !== undefined ? overrides.footerDay : footerDay,
+      footerMonth: overrides.footerMonth !== undefined ? overrides.footerMonth : footerMonth,
+      footerYear: overrides.footerYear !== undefined ? overrides.footerYear : footerYear,
+      markSymbol: overrides.markSymbol !== undefined ? overrides.markSymbol : markSymbol,
+      signature: overrides.signature !== undefined ? overrides.signature : signature,
+    });
+  }, [students, className, bookTitle, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature]);
+
+  const getIsDirty = useCallback(() => {
+    if (!user || isInitializing || isDataFetching || !lastSavedDataRef.current) return false;
+    return lastSavedDataRef.current !== captureStateString();
+  }, [user, isInitializing, isDataFetching, captureStateString]);
+
+  // Keep isDirty.current in sync
+  useEffect(() => {
+    isDirty.current = getIsDirty();
+  }, [getIsDirty]);
+
+  // Save function
+  const handleSave = useCallback(async (silent = false) => {
+    if (!user) return;
+    if (!silent) setSaving(true);
+    
+    const currentUserId = viewingUserId || user.id;
+
+    let { error } = await supabase
+      .from('monthly_sheets')
+      .upsert({
+        user_id: currentUserId,
+        month,
+        year,
+        class_name: className,
+        teacher_name: teacherName,
+        school_name: schoolName,
+        location,
+        students,
+        standard_meals: standardMeals,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,month,year,class_name' });
+
+    if (error && (error.code === '42P10' || error.message?.includes('constraint') || error.message?.includes('ON CONFLICT'))) {
+      console.warn('Database unique constraint does not include class_name. Falling back to (user_id, month, year)...');
+      // Fallback upsert using the old unique constraint
+      const fallbackResult = await supabase
+        .from('monthly_sheets')
+        .upsert({
+          user_id: currentUserId,
+          month,
+          year,
+          class_name: className,
+          teacher_name: teacherName,
+          school_name: schoolName,
+          location,
+          students,
+          standard_meals: standardMeals,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,month,year' });
+      
+      error = fallbackResult.error;
+      
+      if (!error && !silent) {
+        alert('LƯU Ý: Hệ thống phát hiện cơ sở dữ liệu của bạn chưa được nâng cấp để hỗ trợ lưu nhiều lớp độc lập trong cùng một tháng.\n\nĐể kích hoạt tính năng này, vui lòng sao chép câu lệnh SQL trong tệp "supabase_schema.sql" và chạy trong tab SQL Editor trên trang quản trị Supabase của bạn.');
+      }
+    }
+
+    // Save user preferences
+    const prefs = { markSymbol, signature, bookTitle, className, teacherName };
+    const { error: prefsError } = await supabase
       .from('app_settings')
       .upsert({
-        setting_key: 'global_favicon',
-        setting_value: faviconUrl,
+        setting_key: `${user.id}_preferences`,
+        setting_value: JSON.stringify(prefs),
         updated_at: new Date().toISOString()
       }, { onConflict: 'setting_key' });
-    
-    if (error) {
-      alert('Lỗi lưu Favicon: ' + error.message);
+
+    // Save month-specific preferences
+    const monthPrefs = { footerDay, footerMonth, footerYear };
+    const { error: monthPrefsError } = await supabase
+      .from('app_settings')
+      .upsert({
+        setting_key: `${user.id}_prefs_${year}_${month}`,
+        setting_value: JSON.stringify(monthPrefs),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'setting_key' });
+
+    if (error || prefsError || monthPrefsError) {
+      console.error('Error saving data:', error || prefsError || monthPrefsError);
+      if (!silent) alert(`Lỗi khi lưu dữ liệu! Chi tiết: ${(error || prefsError || monthPrefsError)?.message}`);
     } else {
-      // Update the favicon in real-time for the admin too
-      const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (link) {
-        link.href = faviconUrl;
-      } else {
-        const newLink = document.createElement('link');
-        newLink.rel = 'icon';
-        newLink.href = faviconUrl;
-        document.head.appendChild(newLink);
+      // Sync current className and teacherName to classesConfig if changed
+      if (className) {
+        const trimmedClass = className.trim().toUpperCase();
+        const trimmedTeacher = teacherName.trim();
+        const existingIdx = classesConfig.findIndex(c => c.className === trimmedClass);
+        let updatedConfig = [...classesConfig];
+        let needsConfigSave = false;
+
+        if (existingIdx !== -1) {
+          if (classesConfig[existingIdx].teacherName !== trimmedTeacher) {
+            updatedConfig[existingIdx] = { className: trimmedClass, teacherName: trimmedTeacher };
+            needsConfigSave = true;
+          }
+        } else {
+          updatedConfig.push({ className: trimmedClass, teacherName: trimmedTeacher });
+          needsConfigSave = true;
+        }
+
+        if (needsConfigSave) {
+          setClassesConfig(updatedConfig);
+          try {
+            const targetUserId = viewingUserId || user.id;
+            await supabase
+              .from('app_settings')
+              .upsert({
+                setting_key: `${targetUserId}_classes_config`,
+                setting_value: JSON.stringify(updatedConfig),
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'setting_key' });
+          } catch (e) {
+            console.error("Failed to auto-save class to config on manual save", e);
+          }
+        }
       }
-      alert('Đã cập nhật Favicon thành công!');
+
+      // Update the last saved state for dirty checking
+      lastSavedDataRef.current = captureStateString();
+      isDirty.current = false; // Reset dirty flag after successful save
+
+      if (!silent) alert('Đã lưu dữ liệu thành công!');
     }
-    setSavingFavicon(false);
+    if (!silent) setSaving(false);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle, classesConfig, captureStateString, viewingUserId]);
+
+  const handleClassNameSubmit = useCallback(async () => {
+    const trimmed = classNameInput.trim().toUpperCase();
+    if (trimmed && trimmed !== className) {
+      if (isDirty.current) {
+        if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang lớp khác không?')) {
+          await handleSave(true);
+        }
+      }
+      setClassName(trimmed);
+      
+      // Auto-save the new class to the teacher's classes configuration if it doesn't exist
+      if (user && trimmed) {
+        const exists = classesConfig.some(c => c.className === trimmed);
+        if (!exists) {
+          const updatedConfig = [...classesConfig, { className: trimmed, teacherName: teacherName }];
+          setClassesConfig(updatedConfig);
+          try {
+            const targetUserId = viewingUserId || user.id;
+            await supabase
+              .from('app_settings')
+              .upsert({
+                setting_key: `${targetUserId}_classes_config`,
+                setting_value: JSON.stringify(updatedConfig),
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'setting_key' });
+          } catch (e) {
+            console.error("Failed to auto-save class to config", e);
+          }
+        }
+      }
+    }
+  }, [classNameInput, className, classesConfig, teacherName, user, handleSave, viewingUserId]);
+
+
+
+
+
+  // Warn before closing tab if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  const [isGridMounted, setIsGridMounted] = useState(false);
+
+  useEffect(() => {
+    if (!isInitializing && !isDataFetching && user) {
+      // Small delay to allow the shell to paint first
+      const timer = setTimeout(() => {
+        setIsGridMounted(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitializing, isDataFetching, user]);
+
+  // Fetch user preferences and classes configuration sequentially on mount or user change
+  useEffect(() => {
+    if (!user) return;
+    
+    let isCurrent = true;
+
+    const fetchUserData = async () => {
+      try {
+        const targetUserId = viewingUserId || user.id;
+
+        // 1. Fetch classes config
+        const { data: classesData } = await supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', `${targetUserId}_classes_config`)
+          .maybeSingle();
+
+        if (!isCurrent) return;
+
+        let classes: { className: string; teacherName: string }[] = [];
+        if (classesData && classesData.setting_value) {
+          try {
+            classes = JSON.parse(classesData.setting_value);
+          } catch (e) {
+            console.error("Error parsing classes config", e);
+          }
+        }
+        setClassesConfig(classes);
+
+        // 2. Fetch general preferences
+        const { data: prefsData } = await supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', `${user.id}_preferences`)
+          .maybeSingle();
+
+        if (!isCurrent) return;
+
+        let preferredClassName = '';
+        let preferredTeacherName = '';
+
+        if (prefsData && prefsData.setting_value) {
+          try {
+            const prefs = JSON.parse(prefsData.setting_value);
+            if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
+            if (prefs.signature !== undefined) setSignature(prefs.signature);
+            if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
+            if (prefs.className !== undefined) {
+              preferredClassName = prefs.className;
+            }
+            if (prefs.teacherName !== undefined) {
+              preferredTeacherName = prefs.teacherName;
+            }
+          } catch (e) {
+            console.error("Error parsing preferences", e);
+          }
+        }
+
+        // 3. Determine final active className and teacherName
+        let finalClassName = '';
+        let finalTeacherName = '';
+
+        if (classes.length > 0) {
+          // If there's a saved preferred class and it exists in the user's config, use it
+          const hasPreferredClass = classes.some(c => c.className === preferredClassName);
+          if (preferredClassName && hasPreferredClass) {
+            finalClassName = preferredClassName;
+            finalTeacherName = preferredTeacherName || classes.find(c => c.className === preferredClassName)?.teacherName || '';
+          } else {
+            // Otherwise, fallback to the first class in config
+            const first = classes[0];
+            finalClassName = first.className;
+            finalTeacherName = first.teacherName;
+          }
+        } else {
+          // No classes configured yet, fallback to preferred class if exists
+          finalClassName = preferredClassName || '';
+          finalTeacherName = preferredTeacherName || '';
+        }
+
+        setClassName(finalClassName);
+        setClassNameInput(finalClassName);
+        setTeacherName(finalTeacherName);
+
+      } catch (err) {
+        console.error("Error loading user initial data:", err);
+      }
+    };
+
+    fetchUserData();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [user, viewingUserId]);
+
+  const fetchSavedSheets = async () => {
+    if (!user) return;
+    setIsLoadingSavedSheets(true);
+    try {
+      let query = supabase
+        .from('monthly_sheets')
+        .select('month, year, class_name, teacher_name, students, updated_at, user_id');
+
+      if (user.email !== 'vuhung@db.edu.vn') {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching saved sheets:', error);
+      } else {
+        const sortedData = (data || []).sort((a, b) => {
+          if (b.year !== a.year) {
+            return b.year - a.year;
+          }
+          return b.month - a.month;
+        });
+        setSavedSheets(sortedData);
+      }
+    } catch (err) {
+      console.error('Failed to fetch saved sheets:', err);
+    } finally {
+      setIsLoadingSavedSheets(false);
+    }
   };
 
-  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDeleteSavedSheet = async (targetYear: number, targetMonth: number, classNameToDel: string, targetUserId: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa bảng chấm cơm của Lớp ${classNameToDel || ''} - Tháng ${targetMonth + 1}/${targetYear} không? Thao tác này sẽ xóa vĩnh viễn dữ liệu trên hệ thống.`)) return;
+    try {
+      const { error } = await supabase
+        .from('monthly_sheets')
+        .delete()
+        .eq('user_id', targetUserId)
+        .eq('year', targetYear)
+        .eq('month', targetMonth)
+        .eq('class_name', classNameToDel);
+
+      if (error) {
+        alert('Lỗi khi xóa bảng: ' + error.message);
+      } else {
+        alert('Đã xóa bảng chấm cơm thành công!');
+        fetchSavedSheets();
+      }
+    } catch (err: any) {
+      alert('Lỗi: ' + err.message);
+    }
+  };
+
+  // Fetch data when user, month, year, or className changes
+  useEffect(() => {
+    if (!user) return;
+
+    // If className is empty, do not query monthly_sheets as it represents a transitional loading state or no configured classes
+    if (!className) {
+      setStudents(INITIAL_STUDENTS);
+      return;
+    }
+
+    let isCurrent = true;
+
+    const fetchData = async () => {
+      setIsDataFetching(true);
+      try {
+        const currentUserId = viewingUserId || user.id;
+        const { data, error } = await supabase
+          .from('monthly_sheets')
+          .select('*')
+          .eq('user_id', currentUserId)
+          .eq('month', month)
+          .eq('year', year)
+          .eq('class_name', className)
+          .maybeSingle();
+
+        if (!isCurrent) return;
+
+        if (error) {
+          console.error('Error fetching data:', error);
+        }
+
+        if (data) {
+          let fetchedSchoolName = data.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+          let fetchedLocation = data.location || 'Suối Lư';
+          
+          // Auto-correct typo if found
+          if (fetchedSchoolName.includes('SUỐI LỪ')) {
+            fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
+          }
+          if (fetchedLocation.includes('Suối Lừ')) {
+            fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
+          }
+
+          setSchoolName(fetchedSchoolName);
+          setClassName(data.class_name || '');
+          
+          // Use configured GVCN if available in classesConfig, otherwise use saved one
+          const configMatch = classesConfig.find(c => c.className === (data.class_name || className));
+          const finalTeacherName = configMatch ? configMatch.teacherName : (data.teacher_name || '');
+          setTeacherName(finalTeacherName);
+          
+          setLocation(fetchedLocation);
+          setStudents(data.students || INITIAL_STUDENTS);
+          setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
+          
+          // Fetch month-specific preferences (footer date)
+          const { data: monthPrefsData } = await supabase
+            .from('app_settings')
+            .select('setting_value')
+            .eq('setting_key', `${user.id}_prefs_${year}_${month}`)
+            .maybeSingle();
+          
+          if (!isCurrent) return;
+
+          let fDay = new Date().getDate();
+          let fMonth = new Date().getMonth() + 1;
+          let fYear = new Date().getFullYear();
+
+          if (monthPrefsData && monthPrefsData.setting_value) {
+            const mPrefs = JSON.parse(monthPrefsData.setting_value);
+            if (mPrefs.footerDay !== undefined) { fDay = mPrefs.footerDay; setFooterDay(mPrefs.footerDay); }
+            if (mPrefs.footerMonth !== undefined) { fMonth = mPrefs.footerMonth; setFooterMonth(mPrefs.footerMonth); }
+            if (mPrefs.footerYear !== undefined) { fYear = mPrefs.footerYear; setFooterYear(mPrefs.footerYear); }
+          } else {
+            // Default to current date if selected month & year match today's date, otherwise default to end of month
+            const today = new Date();
+            if (month === today.getMonth() && year === today.getFullYear()) {
+              fDay = today.getDate();
+              fMonth = today.getMonth() + 1;
+              fYear = today.getFullYear();
+              setFooterDay(today.getDate());
+              setFooterMonth(today.getMonth() + 1);
+              setFooterYear(today.getFullYear());
+            } else {
+              const lastDay = new Date(year, month + 1, 0).getDate();
+              fDay = lastDay;
+              fMonth = month + 1;
+              fYear = year;
+              setFooterDay(lastDay);
+              setFooterMonth(month + 1);
+              setFooterYear(year);
+            }
+          }
+
+          lastSavedDataRef.current = JSON.stringify({
+            students: data.students || INITIAL_STUDENTS,
+            className: data.class_name || '',
+            bookTitle,
+            teacherName: finalTeacherName,
+            schoolName: fetchedSchoolName,
+            location: fetchedLocation,
+            standardMeals: data.standard_meals || { S: 0, T1: 0, T2: 0 },
+            footerDay: fDay,
+            footerMonth: fMonth,
+            footerYear: fYear,
+            markSymbol,
+            signature,
+          });
+          isDirty.current = false;
+        } else {
+          // Find if there is a configured GVCN for this class in classesConfig
+          const configMatch = classesConfig.find(c => c.className === className);
+          const configuredTeacherName = configMatch ? configMatch.teacherName : '';
+
+          // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata for this SPECIFIC class
+          const { data: latestData } = await supabase
+            .from('monthly_sheets')
+            .select('*')
+            .eq('user_id', currentUserId)
+            .eq('class_name', className)
+            .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
+            .order('year', { ascending: false })
+            .order('month', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!isCurrent) return;
+
+          // Default date for new month
+          let fDay = new Date().getDate();
+          let fMonth = new Date().getMonth() + 1;
+          let fYear = new Date().getFullYear();
+          const today = new Date();
+          if (month === today.getMonth() && year === today.getFullYear()) {
+            fDay = today.getDate();
+            fMonth = today.getMonth() + 1;
+            fYear = today.getFullYear();
+            setFooterDay(today.getDate());
+            setFooterMonth(today.getMonth() + 1);
+            setFooterYear(today.getFullYear());
+          } else {
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            fDay = lastDay;
+            fMonth = month + 1;
+            fYear = year;
+            setFooterDay(lastDay);
+            setFooterMonth(month + 1);
+            setFooterYear(year);
+          }
+
+          let copiedStudents = INITIAL_STUDENTS;
+          let fetchedSchoolName = 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+          let fetchedLocation = 'Suối Lư';
+          let finalTeacherName = configuredTeacherName;
+
+          if (latestData) {
+            console.log(`Copying student list for ${className} from ${latestData.month + 1}/${latestData.year}`);
+            fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+            fetchedLocation = latestData.location || 'Suối Lư';
+
+            // Auto-correct typo if found
+            if (fetchedSchoolName.includes('SUỐI LỪ')) {
+              fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
+            }
+            if (fetchedLocation.includes('Suối Lừ')) {
+              fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
+            }
+
+            setSchoolName(fetchedSchoolName);
+            finalTeacherName = configuredTeacherName || latestData.teacher_name || '';
+            setTeacherName(finalTeacherName);
+            setLocation(fetchedLocation);
+            setStandardMeals({ S: 0, T1: 0, T2: 0 });
+            // Copy students but clear their meal data for the new month
+            copiedStudents = (latestData.students || []).map((s: any) => ({
+              ...s,
+              meals: {}
+            }));
+            setStudents(copiedStudents);
+          } else {
+            // No previous month's data for this specific class.
+            // Let's copy general metadata from the latest sheet of ANY class to save re-typing
+            const { data: genericLatestData } = await supabase
+              .from('monthly_sheets')
+              .select('*')
+              .eq('user_id', currentUserId)
+              .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
+              .order('year', { ascending: false })
+              .order('month', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (!isCurrent) return;
+
+            if (genericLatestData) {
+              fetchedSchoolName = genericLatestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
+              fetchedLocation = genericLatestData.location || 'Suối Lư';
+
+              if (fetchedSchoolName.includes('SUỐI LỪ')) {
+                fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
+              }
+              if (fetchedLocation.includes('Suối Lừ')) {
+                fetchedLocation = fetchedLocation.replace('Suối Lừ', 'Suối Lư');
+              }
+
+              setSchoolName(fetchedSchoolName);
+              finalTeacherName = configuredTeacherName || genericLatestData.teacher_name || '';
+              setTeacherName(finalTeacherName);
+              setLocation(fetchedLocation);
+              setStandardMeals({ S: 0, T1: 0, T2: 0 });
+            } else {
+              finalTeacherName = configuredTeacherName;
+              setTeacherName(configuredTeacherName);
+              setStandardMeals({ S: 0, T1: 0, T2: 0 });
+            }
+
+            copiedStudents = INITIAL_STUDENTS;
+            setStudents(INITIAL_STUDENTS);
+          }
+
+          lastSavedDataRef.current = JSON.stringify({
+            students: copiedStudents,
+            className: className,
+            bookTitle,
+            teacherName: finalTeacherName,
+            schoolName: fetchedSchoolName,
+            location: fetchedLocation,
+            standardMeals: { S: 0, T1: 0, T2: 0 },
+            footerDay: fDay,
+            footerMonth: fMonth,
+            footerYear: fYear,
+            markSymbol,
+            signature,
+          });
+          isDirty.current = false;
+        }
+
+        const today = new Date();
+        if (month === today.getMonth() && year === today.getFullYear()) {
+          setTimeout(scrollToToday, 500);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsDataFetching(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [user, month, year, className, classesConfig, viewingUserId]);
+
+  const handleLogout = async () => {
+    try {
+      if (isDirty.current && confirm('Bạn có thay đổi chưa lưu. Bạn có muốn lưu trước khi đăng xuất không?')) {
+        await handleSave(true);
+      }
+    } catch (err) {
+      console.error('Error saving before logout:', err);
+    }
+    
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Error signing out from server, clearing local session...', err);
+      // Manually clear local storage session as fallback
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+          localStorage.removeItem(key);
+        }
+      });
+      sessionStorage.clear();
+      setUser(null);
+    }
+  };
+
+  if (isInitializing || licenseCheckLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="text-gray-600 font-medium">Đang kết nối dữ liệu...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  const handleRenewLicense = async () => {
+    if (!renewalKey.trim()) {
+      alert('Vui lòng nhập mã bản quyền mới.');
+      return;
+    }
+
+    setIsRenewing(true);
+    try {
+      const { data, error } = await supabase.rpc('activate_new_license_key', {
+        license_key_text: renewalKey.trim()
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        const durationText = data.duration_days === 30 ? '30 ngày (Dùng thử)' : '1 năm (Bản quyền)';
+        alert(`${data.message}\nThời hạn sử dụng: ${durationText}`);
+        setRenewalKey('');
+        setIsLicenseExpired(false);
+        // Re-check license to be sure
+        window.location.reload();
+      } else {
+        alert(data.message);
+      }
+    } catch (err: any) {
+      console.error('Renewal error:', err);
+      alert('Lỗi kích hoạt: ' + err.message);
+    } finally {
+      setIsRenewing(false);
+    }
+  };
+
+  if (isLicenseExpired) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Hết hạn bản quyền</h2>
+          <p className="text-gray-600 mb-6 text-sm">
+            Mã bản quyền của bạn đã hết hạn sử dụng. Vui lòng nhập mã bản quyền mới để tiếp tục sử dụng. 
+            <br/><span className="font-bold text-indigo-600">Dữ liệu cũ của bạn sẽ được giữ nguyên sau khi gia hạn.</span>
+          </p>
+          
+          <div className="mb-6 text-left">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Nhập mã gia hạn mới:</label>
+            <input 
+              type="text"
+              value={renewalKey}
+              onChange={(e) => setRenewalKey(e.target.value.toUpperCase())}
+              placeholder="SL-XXXX-XXXX"
+              className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-0 transition-all font-mono text-center text-lg"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleRenewLicense}
+              disabled={isRenewing}
+              className="w-full bg-indigo-600 text-white rounded-lg py-3 font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isRenewing ? 'Đang kích hoạt...' : 'Gia hạn ngay'}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full bg-gray-100 text-gray-600 rounded-lg py-2 font-medium hover:bg-gray-200 transition-colors"
+            >
+              Đăng xuất
+            </button>
+          </div>
+          
+          <p className="mt-6 text-xs text-gray-400">
+            Liên hệ quản trị viên để nhận mã gia hạn mới.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showAdmin) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }>
+        <Admin onBack={() => setShowAdmin(false)} />
+      </Suspense>
+    );
+  }
+
+  // --- Handlers ---
+  
+  const prevMonth = async () => {
+    if (isDirty.current) {
+      if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang tháng khác không?')) {
+        await handleSave(true);
+      }
+    }
+    if (month === 0) {
+      setMonth(11);
+      setYear(y => y - 1);
+    } else {
+      setMonth(m => m - 1);
+    }
+  };
+
+  const nextMonth = async () => {
+    if (isDirty.current) {
+      if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang tháng khác không?')) {
+        await handleSave(true);
+      }
+    }
+    if (month === 11) {
+      setMonth(0);
+      setYear(y => y + 1);
+    } else {
+      setMonth(m => m + 1);
+    }
+  };
+  
+  const handleYearChange = async (newYear: number) => {
+    if (isDirty.current) {
+      if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang năm khác không?')) {
+        await handleSave(true);
+      }
+    }
+    setYear(newYear);
+  };
+
+  const toggleMeal = (studentId: string, day: number, meal: MealType) => {
+    setStudents(prev => prev.map(s => {
+      if (s.id !== studentId) return s;
+      const currentMeals = s.meals[day] || { S: false, T1: false, T2: false };
+      return {
+        ...s,
+        meals: {
+          ...s.meals,
+          [day]: {
+            ...currentMeals,
+            [meal]: !currentMeals[meal]
+          }
+        }
+      };
+    }));
+  };
+
+  const copyMeals = (student: Student) => {
+    setClipboard(JSON.parse(JSON.stringify(student.meals)));
+  };
+
+  const pasteMeals = (studentId: string) => {
+    if (!clipboard) return;
+    setStudents(prev => prev.map(s => {
+      if (s.id === studentId) {
+        return { ...s, meals: JSON.parse(JSON.stringify(clipboard)) };
+      }
+      return s;
+    }));
+  };
+
+  const pasteToAll = () => {
+    if (!clipboard || !confirm('Bạn có muốn dán dữ liệu này cho TẤT CẢ học sinh không?')) return;
+    setStudents(prev => prev.map(s => ({
+      ...s,
+      meals: JSON.parse(JSON.stringify(clipboard))
+    })));
+  };
+
+  const copyColumn = (day: number, meal: MealType) => {
+    const values = students.map(s => !!s.meals[day]?.[meal]);
+    setColumnClipboard(values);
+  };
+
+  const pasteColumn = (day: number, meal: MealType) => {
+    if (!columnClipboard) return;
+    setStudents(prev => prev.map((s, idx) => {
+      const currentMeals = s.meals[day] || { S: false, T1: false, T2: false };
+      return {
+        ...s,
+        meals: {
+          ...s.meals,
+          [day]: {
+            ...currentMeals,
+            [meal]: columnClipboard[idx] || false
+          }
+        }
+      };
+    }));
+  };
+
+  const fillColumn = (day: number, meal: MealType) => {
+    setStudents(prev => prev.map(s => {
+      const currentMeals = s.meals[day] || { S: false, T1: false, T2: false };
+      return {
+        ...s,
+        meals: {
+          ...s.meals,
+          [day]: {
+            ...currentMeals,
+            [meal]: true
+          }
+        }
+      };
+    }));
+  };
+
+  const clearColumn = (day: number, meal: MealType) => {
+    setStudents(prev => prev.map(s => {
+      const currentMeals = s.meals[day] || { S: false, T1: false, T2: false };
+      return {
+        ...s,
+        meals: {
+          ...s.meals,
+          [day]: {
+            ...currentMeals,
+            [meal]: false
+          }
+        }
+      };
+    }));
+  };
+
+  const clearDay = (day: number) => {
+    if (!confirm(`Xóa toàn bộ chấm cơm ngày ${day}?`)) return;
+    setStudents(prev => prev.map(s => {
+      const newMeals = { ...s.meals };
+      delete newMeals[day];
+      return { ...s, meals: newMeals };
+    }));
+  };
+
+  const clearMonth = () => {
+    if (!confirm('Bạn có chắc chắn muốn XÓA HẾT dữ liệu chấm cơm của cả tháng này không? Thao tác này không thể hoàn tác.')) return;
+    setStudents(prev => prev.map(s => ({ ...s, meals: {} })));
+  };
+
+  const clearAllStudents = () => {
+    if (!confirm('CẢNH BÁO: Bạn đang chọn xóa TOÀN BỘ danh sách học sinh. Mọi tên học sinh và dữ liệu chấm cơm sẽ bị mất. Bạn có chắc chắn không?')) return;
+    setStudents([]);
+  };
+
+  const updateStudentName = (id: string, newName: string) => {
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, name: newName } : s));
+  };
+
+  const addStudent = () => {
+    setStudents(prev => [...prev, { id: generateId(), name: 'Học sinh mới', meals: {} }]);
+  };
+
+  const removeStudent = (id: string) => {
+    if (confirm('Xóa học sinh này?')) {
+      setStudents(prev => prev.filter(s => s.id !== id));
+    }
+  };
+
+  const autoFillMeals = () => {
+    if (!confirm('Bạn có muốn chấm tự động cho tất cả học sinh trong tháng này không? (Sẽ tự động bỏ qua chiều T6, T7 và CN)')) return;
+    
+    setStudents(prev => prev.map(s => {
+      const newMeals: MealData = { ...s.meals };
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dow = getDayOfWeek(day, month, year);
+        
+        // Skip Saturday and Sunday completely
+        if (dow === '7' || dow === 'CN') {
+          continue;
+        }
+        
+        const currentMeals = newMeals[day] || { S: false, T1: false, T2: false };
+        
+        // If Friday, skip T2 (Tối)
+        if (dow === '6') {
+          newMeals[day] = {
+            ...currentMeals,
+            S: true,
+            T1: true,
+            T2: false // Skip Friday evening
+          };
+        } else {
+          // Monday to Thursday: all meals
+          newMeals[day] = {
+            ...currentMeals,
+            S: true,
+            T1: true,
+            T2: true
+          };
+        }
+      }
+      
+      return { ...s, meals: newMeals };
+    }));
+  };
+
+  const syncFromPreviousMonth = async () => {
+    if (!user) return;
+    if (!confirm('Bạn có muốn cập nhật danh sách học sinh từ tháng trước không? Dữ liệu chấm cơm hiện tại của tháng này sẽ được giữ nguyên, chỉ thêm các học sinh mới hoặc cập nhật tên.')) return;
+    
+    const currentUserId = viewingUserId || user.id;
+
+    const { data: latestData } = await supabase
+      .from('monthly_sheets')
+      .select('*')
+      .eq('user_id', currentUserId)
+      .eq('class_name', className)
+      .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestData && latestData.students) {
+      const prevStudents = latestData.students as Student[];
+      setStudents(prev => {
+        const currentStudents = [...prev];
+        const newStudents = [...currentStudents];
+
+        prevStudents.forEach(ps => {
+          const exists = currentStudents.find(cs => cs.id === ps.id);
+          if (!exists) {
+            newStudents.push({ ...ps, meals: {} });
+          } else {
+            // Update name if changed
+            const idx = newStudents.findIndex(ns => ns.id === ps.id);
+            newStudents[idx] = { ...newStudents[idx], name: ps.name };
+          }
+        });
+
+        return newStudents;
+      });
+      alert('Đã cập nhật danh sách học sinh thành công!');
+    } else {
+      alert('Không tìm thấy dữ liệu tháng trước để cập nhật.');
+    }
+  };
+
+  const calculateStudentTotals = (student: Student) => {
+    let sCount = 0;
+    let t1Count = 0;
+    let t2Count = 0;
+
+    Object.values(student.meals).forEach(dayMeals => {
+      if (dayMeals.S) sCount++;
+      if (dayMeals.T1) t1Count++;
+      if (dayMeals.T2) t2Count++;
+    });
+
+    const uS = standardMeals.S - sCount;
+    const uT1 = standardMeals.T1 - t1Count;
+    const uT2 = standardMeals.T2 - t2Count;
+
+    return { S: sCount, T1: t1Count, T2: t2Count, uS, uT1, uT2 };
+  };
+
+  const calculateDayTotals = (day: number, meal: MealType) => {
+    return students.reduce((acc, s) => {
+      return acc + (s.meals[day]?.[meal] ? 1 : 0);
+    }, 0);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 200 * 1024) {
-      alert('Dung lượng ảnh quá lớn (vui lòng chọn ảnh dưới 200KB)');
+    try {
+      const { read, utils } = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = read(data);
+      
+      // Try to find a sheet that has data
+      let jsonData: any[][] = [];
+      for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        if (rows.length > 0) {
+          jsonData = rows;
+          break;
+        }
+      }
+
+      if (jsonData.length === 0) {
+        alert('File Excel không có dữ liệu.');
+        return;
+      }
+
+      let nameColIndex = -1;
+      let startRow = 0;
+
+      // 1. Try to find a header row
+      const headerKeywords = ['họ và tên', 'họ tên', 'tên học sinh', 'học sinh', 'tên'];
+      for (let i = 0; i < Math.min(jsonData.length, 20); i++) {
+        const row = jsonData[i];
+        if (!row) continue;
+        
+        const idx = row.findIndex((cell: any) => 
+          typeof cell === 'string' && 
+          headerKeywords.some(k => cell.toLowerCase().includes(k))
+        );
+        
+        if (idx !== -1) {
+          nameColIndex = idx;
+          startRow = i + 1;
+          break;
+        }
+      }
+
+      // 2. If no header found, look for the first column that looks like names
+      if (nameColIndex === -1) {
+        // Find a column where most entries are strings and not numbers
+        const colStats: { [key: number]: number } = {};
+        for (let i = 0; i < Math.min(jsonData.length, 50); i++) {
+          const row = jsonData[i];
+          if (!row) continue;
+          row.forEach((cell, idx) => {
+            if (typeof cell === 'string' && cell.trim().length > 3 && isNaN(Number(cell))) {
+              colStats[idx] = (colStats[idx] || 0) + 1;
+            }
+          });
+        }
+        
+        // Pick the column with the most "name-like" strings
+        let maxCount = 0;
+        Object.entries(colStats).forEach(([idx, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            nameColIndex = Number(idx);
+          }
+        });
+        
+        // If we found a column, start from the first row that has a string in it
+        if (nameColIndex !== -1) {
+          for (let i = 0; i < jsonData.length; i++) {
+            if (typeof jsonData[i][nameColIndex] === 'string') {
+              startRow = i;
+              break;
+            }
+          }
+        }
+      }
+
+      if (nameColIndex === -1) {
+        alert('Không tìm thấy cột chứa tên học sinh. Vui lòng đảm bảo file có cột "Họ và tên".');
+        return;
+      }
+
+      const newStudents: Student[] = [];
+      const skipKeywords = ['stt', 'tổng', 'cộng', 'lớp', 'trường', 'giáo viên', 'năm học', 'tháng'];
+      
+      for (let i = startRow; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (!row) continue;
+        
+        const rawName = row[nameColIndex];
+        if (rawName && typeof rawName === 'string') {
+          const name = rawName.trim();
+          // Basic validation: length > 2 and not a header/footer keyword
+          if (name.length > 2 && !skipKeywords.some(k => name.toLowerCase().includes(k))) {
+            newStudents.push({
+              id: generateId(),
+              name: name,
+              meals: {}
+            });
+          }
+        }
+      }
+
+      if (newStudents.length > 0) {
+        if (confirm(`Tìm thấy ${newStudents.length} học sinh. Bạn có muốn thay thế danh sách hiện tại không?`)) {
+          setStudents(newStudents);
+        }
+      } else {
+        alert('Không tìm thấy danh sách học sinh hợp lệ trong file.');
+      }
+    } catch (error) {
+      console.error('Error reading file:', error);
+      alert('Lỗi khi đọc file Excel. Vui lòng kiểm tra định dạng file.');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleExportExcel = async () => {
+    const { default: ExcelJS } = await import('exceljs');
+    const { saveAs } = await import('file-saver');
+    
+    const workbook = new ExcelJS.Workbook();
+    
+    let signatureId: number | null = null;
+    if (signature) {
+      try {
+        const extension = signature.split(';')[0].split('/')[1] as 'png' | 'jpeg' | 'gif';
+        signatureId = workbook.addImage({
+          base64: signature.split(',')[1],
+          extension: extension,
+        });
+      } catch (e) {
+        console.error("Error adding signature to Excel:", e);
+      }
+    }
+
+    const createSheet = (sheetName: string, days: number[], isSecondHalf: boolean) => {
+      const sheet = workbook.addWorksheet(sheetName, {
+        pageSetup: { 
+          paperSize: 9, // A4
+          orientation: 'landscape',
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+          margins: {
+            left: 0.2, right: 0.2, top: 0.2, bottom: 0.2,
+            header: 0, footer: 0
+          }
+        },
+        views: [{ state: 'normal', zoomScale: 100 }]
+      });
+
+      const lastColIdx = 2 + days.length * 3 + (isSecondHalf ? 6 : 0);
+
+      // Row 1: School Name
+      const schoolRow = sheet.addRow([schoolName]);
+      schoolRow.font = { name: 'Times New Roman', size: 11, bold: true };
+      sheet.mergeCells(1, 1, 1, 5);
+
+      // Row 2: Title
+      const titleRow = sheet.addRow(['', '', `${bookTitle} ${className} THÁNG ${month + 1}/${year}`]);
+      titleRow.getCell(3).font = { name: 'Times New Roman', size: 14, bold: true };
+      titleRow.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.mergeCells(2, 3, 2, lastColIdx);
+      titleRow.height = 30;
+
+      // Row 3: Day Numbers
+      const row3Vals = ['STT', 'Ngày', ...days.flatMap(d => [String(d), '', ''])];
+      if (isSecondHalf) row3Vals.push('Số ngày ăn trong tháng', '', '', '', '', '');
+      const row3 = sheet.addRow(row3Vals);
+
+      // Row 4: Day of Week
+      const row4Vals = ['', 'Thứ', ...days.flatMap(d => [getDayOfWeek(d, month, year), '', ''])];
+      if (isSecondHalf) row4Vals.push('Số ngày báo ăn', '', '', 'Số ngày không báo ăn', '', '');
+      const row4 = sheet.addRow(row4Vals);
+
+      // Row 5: Họ và tên & S, T, T
+      const row5Vals = ['', 'Họ và tên', ...days.flatMap(() => ['S', 'T', 'T'])];
+      if (isSecondHalf) row5Vals.push('S', 'T', 'T', 'S', 'T', 'T');
+      const row5 = sheet.addRow(row5Vals);
+
+      // Merges based on image
+      sheet.mergeCells(3, 1, 5, 1); // STT spans 3 rows (3, 4, 5)
+      sheet.mergeCells(3, 2, 4, 2); // Diagonal cell spans 2 rows (3, 4)
+      
+      // Diagonal line for cell B3:B4
+      const diagonalCell = sheet.getCell(3, 2);
+      diagonalCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      diagonalCell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+        diagonal: { up: false, down: true, style: 'thin' }
+      };
+      diagonalCell.value = {
+        'richText': [
+          {'text': 'Ngày', 'font': {'size': 10, 'name': 'Times New Roman'}},
+          {'text': '\n\n\n'},
+          {'text': 'Thứ', 'font': {'size': 10, 'name': 'Times New Roman'}}
+        ]
+      };
+
+      let colIdx = 3;
+      days.forEach(() => {
+        sheet.mergeCells(3, colIdx, 3, colIdx + 2); // Day Num
+        sheet.mergeCells(4, colIdx, 4, colIdx + 2); // DOW
+        colIdx += 3;
+      });
+
+      if (isSecondHalf) {
+        sheet.mergeCells(3, colIdx, 3, colIdx + 5); // "Số ngày ăn..."
+        sheet.mergeCells(4, colIdx, 4, colIdx + 2); // "Có báo"
+        sheet.mergeCells(4, colIdx + 3, 4, colIdx + 5); // "Không báo"
+      }
+
+      // Styling Headers (Rows 3, 4, 5)
+      [3, 4, 5].forEach(r => {
+        const row = sheet.getRow(r);
+        row.font = { name: 'Times New Roman', size: 11, bold: true };
+        row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        row.height = 25;
+
+        days.forEach((d, i) => {
+          if (getDayOfWeek(d, month, year) === 'CN') {
+            const startCol = 3 + i * 3;
+            for (let c = startCol; c < startCol + 3; c++) {
+              row.getCell(c).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF3F4F6' }
+              };
+            }
+          }
+        });
+      });
+
+      // --- Data Rows ---
+      students.forEach((student, index) => {
+        const totals = calculateStudentTotals(student);
+        const rowValues = [index + 1, student.name];
+        
+        days.forEach(d => {
+          const meals = student.meals[d];
+          rowValues.push(meals?.S ? markSymbol : "", meals?.T1 ? markSymbol : "", meals?.T2 ? markSymbol : "");
+        });
+
+        if (isSecondHalf) {
+          rowValues.push(totals.S, totals.T1, totals.T2, totals.uS, totals.uT1, totals.uT2);
+        }
+
+        const row = sheet.addRow(rowValues);
+        row.font = { name: 'Times New Roman', size: 11 };
+        row.alignment = { vertical: 'middle', horizontal: 'center' };
+        row.getCell(2).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        row.height = 22;
+
+        days.forEach((d, i) => {
+          if (getDayOfWeek(d, month, year) === 'CN') {
+            const startCol = 3 + i * 3;
+            for (let c = startCol; c < startCol + 3; c++) {
+              row.getCell(c).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF9FAFB' }
+              };
+            }
+          }
+        });
+      });
+
+      // --- Totals Row ---
+      const totalRowValues = ['CỘNG', ''];
+      days.forEach(d => {
+        totalRowValues.push(
+          calculateDayTotals(d, 'S'),
+          calculateDayTotals(d, 'T1'),
+          calculateDayTotals(d, 'T2')
+        );
+      });
+      if (isSecondHalf) totalRowValues.push('', '', '', '', '', '');
+      const totalRow = sheet.addRow(totalRowValues);
+      totalRow.font = { name: 'Times New Roman', size: 11, bold: true };
+      totalRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.mergeCells(totalRow.number, 1, totalRow.number, 2);
+      totalRow.height = 25;
+
+      // Borders
+      const lastRowIdx = totalRow.number;
+      for (let r = 3; r <= lastRowIdx; r++) {
+        for (let c = 1; c <= lastColIdx; c++) {
+          const cell = sheet.getCell(r, c);
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        }
+      }
+
+      // Footer
+      if (isSecondHalf) {
+        const footerStartRow = lastRowIdx + 2;
+        const quotaRow = sheet.getRow(footerStartRow);
+        quotaRow.getCell(2).value = `Định mức ăn: S: ${standardMeals.S}, T: ${standardMeals.T1}, T: ${standardMeals.T2}`;
+        quotaRow.font = { name: 'Times New Roman', size: 11, italic: true };
+        
+        const sigRowIdx = footerStartRow;
+        const sigColStart = lastColIdx - 8;
+        sheet.mergeCells(sigRowIdx, sigColStart, sigRowIdx, lastColIdx);
+        const dateCell = sheet.getCell(sigRowIdx, sigColStart);
+        dateCell.value = `${location}, ngày ${footerDay} tháng ${footerMonth} năm ${footerYear}`;
+        dateCell.alignment = { horizontal: 'center' };
+        dateCell.font = { name: 'Times New Roman', size: 11, italic: true };
+
+        const roleRowIdx = sigRowIdx + 1;
+        sheet.mergeCells(roleRowIdx, sigColStart, roleRowIdx, lastColIdx);
+        const roleCell = sheet.getCell(roleRowIdx, sigColStart);
+        roleCell.value = "GIÁO VIÊN CHỦ NHIỆM";
+        roleCell.alignment = { horizontal: 'center' };
+        roleCell.font = { name: 'Times New Roman', size: 11, bold: true };
+
+        // Add signature image if exists
+        if (signatureId !== null) {
+          // Center the signature within the merged area (sigColStart to lastColIdx)
+          // sigColStart and lastColIdx are 1-indexed.
+          // tl and br are 0-indexed.
+          sheet.addImage(signatureId, {
+            tl: { col: sigColStart + 0.5, row: roleRowIdx + 0.2 } as any,
+            br: { col: lastColIdx - 1.5, row: roleRowIdx + 4.8 } as any,
+            editAs: 'oneCell'
+          });
+        }
+
+        const nameRowIdx = roleRowIdx + 5;
+        sheet.mergeCells(nameRowIdx, sigColStart, nameRowIdx, lastColIdx);
+        const nameCell = sheet.getCell(nameRowIdx, sigColStart);
+        nameCell.value = teacherName;
+        nameCell.alignment = { horizontal: 'center' };
+        nameCell.font = { name: 'Times New Roman', size: 11, bold: true };
+      }
+
+      // Column Widths
+      sheet.getColumn(1).width = 4; // STT
+      sheet.getColumn(2).width = 25; // Name
+      for (let c = 3; c <= lastColIdx; c++) {
+        sheet.getColumn(c).width = 3.2;
+      }
+      if (isSecondHalf) {
+        for (let c = lastColIdx - 5; c <= lastColIdx; c++) {
+          sheet.getColumn(c).width = 5;
+        }
+      }
+    };
+
+    createSheet('Trang 1', firstHalfDays, false);
+    createSheet('Trang 2', secondHalfDays, true);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `So_Cham_Com_${className}_Thang_${month + 1}_${year}.xlsx`);
+  };
+
+
+  // --- Render Helpers ---
+
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 500 * 1024) {
+      alert('Dung lượng ảnh chữ ký quá lớn (vui lòng chọn ảnh dưới 500KB)');
       return;
     }
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFaviconUrl(reader.result as string);
+      setSignature(reader.result as string);
     };
     reader.readAsDataURL(file);
   };
 
-  const fetchKeys = async () => {
-    const { data, error } = await supabase
-      .from('license_keys')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data) setKeys(data);
-    setLoading(false);
-  };
+  const renderTableHalf = (days: number[], isSecondHalf: boolean) => {
+    const today = new Date();
+    const isCurrentMonthYear = month === today.getMonth() && year === today.getFullYear();
+    const todayDay = today.getDate();
 
-  const generateKey = async () => {
-    setGenerating(true);
-    const newKey = 'SL-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    
-    const { error } = await supabase
-      .from('license_keys')
-      .insert([{ key: newKey, duration_days: newKeyDuration }]);
-      
-    if (!error) {
-      fetchKeys();
-    } else {
-      alert('Lỗi tạo mã: ' + error.message);
-    }
-    setGenerating(false);
-  };
+    return (
+      <div className="bg-white relative w-full overflow-x-auto print:overflow-visible flex flex-col print-page-container">
+      <div className={`flex-col mb-2 px-2 print:px-0 ${isPreviewMode ? 'flex' : 'hidden print:flex'}`}>
+        <input 
+          type="text" 
+          value={schoolName} 
+          onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
+          className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[400px] bg-transparent"
+        />
+        <div className="text-center font-bold uppercase text-base mt-2 flex justify-center items-center flex-wrap">
+          <input 
+            type="text" 
+            value={bookTitle} 
+            onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
+            className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-36 sm:w-48 text-right sm:text-right bg-transparent inline-block"
+          />
+          <input 
+            type="text" 
+            value={classNameInput} 
+            onChange={(e) => setClassNameInput(e.target.value.toUpperCase())}
+            onBlur={handleClassNameSubmit}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
+            className="font-bold text-base uppercase border-none focus:ring-0 p-0 w-14 text-center bg-transparent inline-block mx-1"
+          />
+           THÁNG {month + 1}/{year}
+        </div>
+      </div>
+      <table className="w-full border-collapse text-[12px] print:text-[13px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full attendance-table">
+        <colgroup>
+          <col className="w-8 print:w-[30px]" /><col className="w-40 print:w-[180px]" />
+          {days.map(d => (
+            <React.Fragment key={d}>
+              <col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" />
+            </React.Fragment>
+          ))}
+          {isSecondHalf && (
+            <>
+              <col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" />
+              <col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" />
+            </>
+          )}
+        </colgroup>
+        <thead>
+          {/* Header Row 1: STT, Diagonal, Day Numbers */}
+          <tr>
+            <th rowSpan={2} className="border-[1px] border-gray-400 text-center font-bold text-[13px] sticky left-0 print:left-0 print:relative bg-slate-100 z-20 w-8 print:w-[30px] print:border-black">STT</th>
+            <th rowSpan={2} className="border-[1px] border-gray-400 text-center relative sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none w-40 print:w-[180px] overflow-hidden print:border-black">
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                <line x1="0" y1="0" x2="100%" y2="100%" stroke="currentColor" className="text-gray-400 print:text-black" strokeWidth="1" />
+              </svg>
+              <span className="absolute top-2 right-2 text-[13px] print:text-[13px] font-bold">Ngày</span>
+              <span className="absolute bottom-2 left-2 text-[13px] print:text-[13px] font-bold">Thứ</span>
+            </th>
+            {days.map(d => (
+              <th 
+                key={d} 
+                id={`day-col-${d}`}
+                colSpan={3} 
+                onMouseEnter={() => setHoveredDay(d)}
+                onMouseLeave={() => setHoveredDay(null)}
+                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold relative group/d print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-100 ring-2 ring-indigo-500 text-indigo-950 font-extrabold shadow-inner' : 'bg-slate-50')}`}
+              >
+                {d}
+                <button 
+                  onClick={() => clearDay(d)}
+                  className="absolute -top-1 -right-1 p-0.5 bg-white text-red-500 opacity-0 group-hover/d:opacity-100 hover:bg-red-50 rounded-full shadow-sm border border-red-100 transition-all print:hidden"
+                  title={`Xóa ngày ${d}`}
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                </button>
+              </th>
+            ))}
+            {isSecondHalf && (
+              <th colSpan={6} className="border-[1px] border-gray-400 text-center text-[11px] font-bold bg-slate-50 print:border-black">Số ngày ăn trong tháng</th>
+            )}
+          </tr>
+          {/* Header Row 2: Day of Week */}
+          <tr>
+            {days.map(d => (
+              <th 
+                key={d} 
+                colSpan={3} 
+                onMouseEnter={() => setHoveredDay(d)}
+                onMouseLeave={() => setHoveredDay(null)}
+                className={`border-[1px] border-gray-400 text-center py-0.5 font-bold text-[11px] print:border-black ${hoveredDay === d ? 'bg-blue-100' : (getDayOfWeek(d, month, year) === 'CN' ? 'bg-gray-200' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-800' : 'bg-slate-50'))}`}
+              >
+                {getDayOfWeek(d, month, year)}
+              </th>
+            ))}
+            {isSecondHalf && (
+              <>
+                <th colSpan={3} className="border-[1px] border-gray-400 text-center bg-gray-100 font-bold text-[10px] print:border-black">Số ngày<br/>báo ăn</th>
+                <th colSpan={3} className="border-[1px] border-gray-400 text-center bg-gray-100 font-bold text-[10px] print:border-black">Số ngày<br/>không báo ăn</th>
+              </>
+            )}
+          </tr>
+          {/* Header Row 4: Họ và tên & Meal Labels */}
+          <tr>
+            <th className="border-[1px] border-gray-400 sticky left-0 print:left-0 print:relative bg-slate-100 z-20 h-5 w-8 print:w-[30px] print:border-black"></th>
+            <th className="border-[1px] border-gray-400 text-center font-bold py-0.5 sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none relative h-5 w-40 print:w-[180px] print:border-black">
+              <div className="flex items-center justify-center px-1 w-full h-full print:text-[13px]">
+                <span>Họ và tên</span>
+                {clipboard && (
+                  <button 
+                    onClick={pasteToAll}
+                    className="absolute right-1 p-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 print:hidden z-30"
+                    title="Dán mẫu cho tất cả học sinh"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </th>
+            {days.map(d => (
+              <React.Fragment key={d}>
+                <th 
+                  onMouseEnter={() => setHoveredDay(d)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[8px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-850 font-black' : 'bg-slate-50')}`}
+                >
+                  <div className="flex flex-col h-full items-center justify-center">
+                    <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
+                      <button onClick={() => fillColumn(d, 'S')} className="hover:bg-emerald-50 text-emerald-600 rounded transition-colors flex items-center justify-center" title="Chọn tất cả Sáng"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'S')} className="hover:bg-indigo-50 text-indigo-600 rounded transition-colors flex items-center justify-center" title="Sao chép cột Sáng"><Copy className="w-2.5 h-2.5" /></button>
+                      {columnClipboard ? (
+                        <button onClick={() => pasteColumn(d, 'S')} className="hover:bg-orange-50 text-orange-600 rounded transition-colors flex items-center justify-center" title="Dán cột Sáng"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                      ) : (
+                        <div></div>
+                      )}
+                      <button onClick={() => clearColumn(d, 'S')} className="hover:bg-red-50 text-red-600 rounded transition-colors flex items-center justify-center" title="Xóa tất cả Sáng"><Trash2 className="w-2.5 h-2.5" /></button>
+                    </div>
+                    <span className="font-bold text-[11px] leading-none">S</span>
+                  </div>
+                </th>
+                <th 
+                  onMouseEnter={() => setHoveredDay(d)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-850 font-black' : 'bg-slate-50')}`}
+                >
+                  <div className="flex flex-col h-full items-center justify-center">
+                    <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
+                      <button onClick={() => fillColumn(d, 'T1')} className="hover:bg-emerald-50 text-emerald-600 rounded transition-colors flex items-center justify-center" title="Chọn tất cả Trưa"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'T1')} className="hover:bg-indigo-50 text-indigo-600 rounded transition-colors flex items-center justify-center" title="Sao chép cột Trưa"><Copy className="w-2.5 h-2.5" /></button>
+                      {columnClipboard ? (
+                        <button onClick={() => pasteColumn(d, 'T1')} className="hover:bg-orange-50 text-orange-600 rounded transition-colors flex items-center justify-center" title="Dán cột Trưa"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                      ) : (
+                        <div></div>
+                      )}
+                      <button onClick={() => clearColumn(d, 'T1')} className="hover:bg-red-50 text-red-600 rounded transition-colors flex items-center justify-center" title="Xóa tất cả Trưa"><Trash2 className="w-2.5 h-2.5" /></button>
+                    </div>
+                    <span className="font-bold text-[11px] leading-none">T</span>
+                  </div>
+                </th>
+                <th 
+                  onMouseEnter={() => setHoveredDay(d)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`border-[1px] border-gray-400 text-center font-normal text-[10px] relative group/h h-5 print:border-black ${hoveredDay === d ? 'bg-blue-100' : (isCurrentMonthYear && d === todayDay ? 'bg-amber-50 text-indigo-850 font-black' : 'bg-slate-50')}`}
+                >
+                  <div className="flex flex-col h-full items-center justify-center">
+                    <div className="absolute top-0 left-0 w-full h-full grid grid-cols-2 gap-0.5 opacity-0 group-hover/h:opacity-100 transition-opacity print:hidden bg-white/90 z-10 p-0.5">
+                      <button onClick={() => fillColumn(d, 'T2')} className="hover:bg-emerald-50 text-emerald-600 rounded transition-colors flex items-center justify-center" title="Chọn tất cả Tối"><Plus className="w-2.5 h-2.5" /></button>
+                      <button onClick={() => copyColumn(d, 'T2')} className="hover:bg-indigo-50 text-indigo-600 rounded transition-colors flex items-center justify-center" title="Sao chép cột Tối"><Copy className="w-2.5 h-2.5" /></button>
+                      {columnClipboard ? (
+                        <button onClick={() => pasteColumn(d, 'T2')} className="hover:bg-orange-50 text-orange-600 rounded transition-colors flex items-center justify-center" title="Dán cột Tối"><ClipboardPaste className="w-2.5 h-2.5" /></button>
+                      ) : (
+                        <div></div>
+                      )}
+                      <button onClick={() => clearColumn(d, 'T2')} className="hover:bg-red-50 text-red-600 rounded transition-colors flex items-center justify-center" title="Xóa tất cả Tối"><Trash2 className="w-2.5 h-2.5" /></button>
+                    </div>
+                    <span className="font-bold text-[11px] leading-none">T</span>
+                  </div>
+                </th>
+              </React.Fragment>
+            ))}
+            {isSecondHalf && (
+              <>
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
+                  <div className="flex items-center justify-center h-full w-full leading-none">S</div>
+                </th>
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
+                  <div className="flex items-center justify-center h-full w-full leading-none">S</div>
+                </th>
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
+                <th className="border-[1px] border-gray-400 text-center align-middle font-normal text-[8px] h-5 bg-slate-50 print:border-black">
+                  <div className="flex items-center justify-center h-full w-full leading-none">T</div>
+                </th>
+              </>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {!isGridMounted ? (
+            <tr>
+              <td colSpan={daysInMonth + 9} className="text-center py-8 text-gray-500">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  Đang tải danh sách...
+                </div>
+              </td>
+            </tr>
+          ) : students.map((student, idx) => {
+            const totals = calculateStudentTotals(student);
+            const hasMeals = Object.values(student.meals).some(day => {
+              const d = day as { S: boolean; T1: boolean; T2: boolean };
+              return d.S || d.T1 || d.T2;
+            });
+            const isStudentEmpty = (!student.name.trim() || student.name === 'Học sinh mới') && !hasMeals;
+            return (
+              <tr 
+                key={student.id} 
+                onMouseEnter={() => setHoveredStudentId(student.id)}
+                onMouseLeave={() => setHoveredStudentId(null)}
+                className={`hover:bg-blue-50 group h-5 student-row ${isStudentEmpty ? 'is-empty' : ''}`}
+              >
+                <td className={`border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative z-10 w-8 print:w-[30px] student-stt transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900 font-bold' : 'bg-white group-hover:bg-blue-50'}`}></td>
+                <td className={`border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900' : 'bg-white group-hover:bg-blue-50'}`}>
+                  <div className="flex items-center gap-1 h-full">
+                    <input 
+                      type="text" 
+                      value={student.name} 
+                      onChange={(e) => updateStudentName(student.id, e.target.value)}
+                      className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-[12px] print:text-[13px] h-full min-w-0 print:font-normal"
+                    />
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                      <button
+                        onClick={() => copyMeals(student)}
+                        className="p-0.5 hover:bg-indigo-100 text-indigo-600 rounded"
+                        title="Sao chép mẫu chấm cơm"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                      {clipboard && (
+                        <button
+                          onClick={() => pasteMeals(student.id)}
+                          className="p-0.5 hover:bg-orange-100 text-orange-600 rounded"
+                          title="Dán mẫu chấm cơm"
+                        >
+                          <ClipboardPaste className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeStudent(student.id); }}
+                        className="p-0.5 hover:bg-red-100 text-red-500 rounded"
+                        title="Xóa học sinh"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </td>
+                {days.map(d => {
+                  const isHoveredRow = hoveredStudentId === student.id;
+                  const isHoveredCol = hoveredDay === d;
+                  const isToday = isCurrentMonthYear && d === todayDay;
 
-  const deleteKey = async (id: string, isUsed: boolean, email: string | null) => {
-    const msg = isUsed 
-      ? `CẢNH BÁO: Mã này đang được sử dụng bởi ${email || 'một người dùng'}. Nếu xóa, người này sẽ bị thu hồi quyền truy cập ngay lập tức. Bạn có chắc chắn muốn xóa?`
-      : 'Xóa mã bản quyền này?';
-      
-    if (!confirm(msg)) return;
-    await supabase.from('license_keys').delete().eq('id', id);
-    fetchKeys();
-  };
+                  const getBgClass = (meal: MealType) => {
+                    if (isHoveredRow && isHoveredCol) return '!bg-amber-200 text-indigo-950 font-extrabold';
+                    if (isHoveredRow) return '!bg-blue-50/80 text-blue-950';
+                    if (isHoveredCol) return '!bg-blue-100 text-blue-900';
+                    if (isToday) return 'bg-amber-50';
+                    if (student.meals[d]?.[meal]) return 'bg-gray-50';
+                    return '';
+                  };
 
-  const copyToClipboard = (key: string, id: string) => {
-    navigator.clipboard.writeText(key);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+                  return (
+                    <React.Fragment key={d}>
+                      <td 
+                        onClick={() => toggleMeal(student.id, d, 'S')}
+                        onMouseEnter={() => {
+                          setHoveredDay(d);
+                          setHoveredStudentId(student.id);
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredDay(null);
+                          setHoveredStudentId(null);
+                        }}
+                        className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 transition-colors duration-75 ${student.meals[d]?.S ? 'font-bold' : ''} ${getBgClass('S')}`}
+                      >
+                        <div className="flex items-center justify-center h-full w-full leading-none">
+                          {student.meals[d]?.S ? markSymbol : ''}
+                        </div>
+                      </td>
+                      <td 
+                        onClick={() => toggleMeal(student.id, d, 'T1')}
+                        onMouseEnter={() => {
+                          setHoveredDay(d);
+                          setHoveredStudentId(student.id);
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredDay(null);
+                          setHoveredStudentId(null);
+                        }}
+                        className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 transition-colors duration-75 ${student.meals[d]?.T1 ? 'font-bold' : ''} ${getBgClass('T1')}`}
+                      >
+                        <div className="flex items-center justify-center h-full w-full leading-none">
+                          {student.meals[d]?.T1 ? markSymbol : ''}
+                        </div>
+                      </td>
+                      <td 
+                        onClick={() => toggleMeal(student.id, d, 'T2')}
+                        onMouseEnter={() => {
+                          setHoveredDay(d);
+                          setHoveredStudentId(student.id);
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredDay(null);
+                          setHoveredStudentId(null);
+                        }}
+                        className={`border-[0.5px] border-black text-center align-middle cursor-pointer select-none h-5 transition-colors duration-75 ${student.meals[d]?.T2 ? 'font-bold' : ''} ${getBgClass('T2')}`}
+                      >
+                        <div className="flex items-center justify-center h-full w-full leading-none">
+                          {student.meals[d]?.T2 ? markSymbol : ''}
+                        </div>
+                      </td>
+                    </React.Fragment>
+                  );
+                })}
+                {isSecondHalf && (
+                  <>
+                    <td className={`border-[0.5px] border-black text-center align-middle font-medium h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.S}</div>
+                    </td>
+                    <td className={`border-[0.5px] border-black text-center align-middle font-medium h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.T1}</div>
+                    </td>
+                    <td className={`border-[0.5px] border-black text-center align-middle font-medium h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.T2}</div>
+                    </td>
+                    <td className={`border-[0.5px] border-black text-center align-middle text-gray-500 h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.uS}</div>
+                    </td>
+                    <td className={`border-[0.5px] border-black text-center align-middle text-gray-500 h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT1}</div>
+                    </td>
+                    <td className={`border-[0.5px] border-black text-center align-middle text-gray-500 h-5 transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-950' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-center h-full w-full leading-none">{totals.uT2}</div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            );
+          })}
+          {/* Add Student Row */}
+          {!isPreviewMode && (
+            <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
+              <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:relative bg-white z-10">+</td>
+              <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:relative bg-white z-10">
+                Thêm học sinh mới...
+              </td>
+            </tr>
+          )}
+          {/* Footer Row: Totals */}
+          <tr className="bg-gray-50 font-bold h-6">
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
+            {days.map(d => (
+              <React.Fragment key={d}>
+                <td className={`border-[0.5px] border-black text-center align-middle h-6 ${isCurrentMonthYear && d === todayDay ? 'bg-amber-100 font-extrabold' : ''}`}>
+                  <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'S')}</div>
+                </td>
+                <td className={`border-[0.5px] border-black text-center align-middle h-6 ${isCurrentMonthYear && d === todayDay ? 'bg-amber-100 font-extrabold' : ''}`}>
+                  <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'T1')}</div>
+                </td>
+                <td className={`border-[0.5px] border-black text-center align-middle h-6 ${isCurrentMonthYear && d === todayDay ? 'bg-amber-100 font-extrabold' : ''}`}>
+                  <div className="flex items-center justify-center h-full w-full leading-none">{calculateDayTotals(d, 'T2')}</div>
+                </td>
+              </React.Fragment>
+            ))}
+            {isSecondHalf && (
+              <td colSpan={6} className="border-[0.5px] border-black"></td>
+            )}
+          </tr>
+        </tbody>
+      </table>
 
-  const handleResetPassword = async (userId: string, email: string) => {
-    const newPassword = prompt(`Nhập mật khẩu mới cho người dùng ${email}:`);
-    if (!newPassword) return;
-    if (newPassword.length < 6) {
-      alert('Mật khẩu phải có ít nhất 6 ký tự.');
-      return;
-    }
+      {isSecondHalf && (
+        <div className="flex flex-col">
+          <div className="print-signature-spacer"></div>
+          <div className="pt-4 pb-4 print:break-inside-avoid">
+            <div className="flex justify-end pr-8">
+              <div className="text-center w-80 print:break-inside-avoid">
+                <p className="italic text-[13px] mb-1 flex items-center justify-center gap-0.5">
+                  <input 
+                    type="text" 
+                    value={location} 
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="border-none focus:ring-0 p-0 min-w-[60px] text-right bg-transparent italic"
+                    style={{ width: `${Math.max(location.length * 9, 60)}px` }}
+                  />
+                  , ngày 
+                  <input 
+                    type="text" 
+                    value={footerDay} 
+                    onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[35px] text-center bg-transparent italic"
+                  />
+                  tháng 
+                  <input 
+                    type="text" 
+                    value={footerMonth} 
+                    onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[35px] text-center bg-transparent italic"
+                  />
+                  năm 
+                  <input 
+                    type="text" 
+                    value={footerYear} 
+                    onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                    className="border-none focus:ring-0 p-0 w-[45px] text-center bg-transparent italic"
+                  />
+                </p>
+                <p className="font-bold uppercase text-[13px] leading-tight">GIÁO VIÊN CHỦ NHIỆM</p>
+                <div className="relative h-20 flex items-center justify-center group/sig">
+                  {signature ? (
+                    <div className="relative h-full">
+                      <img 
+                        src={signature} 
+                        alt="Chữ ký" 
+                        className="h-full object-contain mix-blend-multiply"
+                      />
+                      <button 
+                        onClick={() => setSignature(null)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/sig:opacity-100 transition-opacity print:hidden"
+                        title="Xóa chữ ký"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer border-2 border-dashed border-gray-200 rounded-lg w-full h-full flex flex-col items-center justify-center text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-all print:hidden">
+                      <Upload className="w-5 h-5 mb-1" />
+                      <span className="text-[10px] font-medium">Tải chữ ký</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleSignatureUpload} 
+                        className="hidden" 
+                      />
+                    </label>
+                  )}
+                  {!signature && <div className="hidden print:block h-16"></div>}
+                </div>
+                <input 
+                  type="text" 
+                  value={teacherName} 
+                  onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
+                  className="font-bold text-[13px] border-none focus:ring-0 p-0 w-full text-center bg-transparent uppercase"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-    setResettingPassword(userId);
-    try {
-      const { data, error } = await supabase.rpc('admin_reset_user_password', {
-        target_user_id: userId,
-        new_password: newPassword
-      });
-
-      if (error) {
-        alert('Lỗi đặt lại mật khẩu: ' + error.message);
-      } else if (data && !data.success) {
-        alert(data.message);
-      } else {
-        alert('Đã đặt lại mật khẩu thành công cho ' + email);
-      }
-    } catch (e: any) {
-      alert('Lỗi hệ thống: ' + e.message);
-    } finally {
-      setResettingPassword(null);
-    }
-  };
-
-  const getExpirationDate = (usedAt: string | null, duration: number) => {
-    if (!usedAt) return '-';
-    const date = new Date(usedAt);
-    date.setDate(date.getDate() + (duration || 365));
-    return date.toLocaleDateString('vi-VN');
+      {/* Watermark-like Page Label */}
+      {!isPreviewMode && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] text-8xl font-bold select-none print:hidden">
+          Page {isSecondHalf ? '2' : '1'}
+        </div>
+      )}
+    </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-white p-8">
-      <div className="w-full mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className={`min-h-screen bg-white ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'} text-gray-900 print:p-4`}>
+      <div className="font-sans">
+      {/* Controls - Hidden on Print */}
+      <div className={`w-full mb-3 bg-white rounded-xl shadow-md border border-gray-300 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
+        
+        {/* Top bar of control panel for User Info */}
+        <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-200 bg-indigo-50/70 rounded-t-xl shadow-sm">
           <div className="flex items-center gap-4">
+            <div className="text-xs text-indigo-900/60 font-medium flex items-center gap-2">
+              Phần mềm Sổ Chấm Cơm Nội Trú
+              {user?.email === 'vuhung@db.edu.vn' && viewingUserId && viewingUserId !== user.id && (
+                <div className="flex items-center gap-1">
+                  <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded text-[10px] font-bold">
+                    Đang xem: {teacherName || 'Giáo viên khác'}
+                  </span>
+                  <button 
+                    onClick={() => setViewingUserId(user.id)}
+                    className="text-[10px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded transition-colors"
+                    title="Thoát chế độ xem và quay về bảng của tôi"
+                  >
+                    Thoát
+                  </button>
+                </div>
+              )}
+            </div>
+            {user?.email !== 'vuhung@db.edu.vn' && licenseExpiryDate && (
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/50 rounded-full border border-indigo-100/50">
+                <div className={`w-1.5 h-1.5 rounded-full ${isLicenseExpired ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                <span className="text-[10px] font-bold text-indigo-800/70">
+                  {licenseDuration === 30 ? 'Dùng thử' : 'Bản quyền'}: Hết hạn {licenseExpiryDate}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {user?.email === 'vuhung@db.edu.vn' && (
+              <button 
+                onClick={() => setShowAdmin(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded-full transition-colors text-xs font-bold border border-indigo-200"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>Quản lý mã bản quyền</span>
+              </button>
+            )}
+            <div className="flex items-center gap-1.5 text-indigo-700 bg-white px-2.5 py-1 rounded-full shadow-sm border border-indigo-100">
+              <UserIcon className="w-3.5 h-3.5" />
+              <span className="text-xs font-bold">{user?.user_metadata?.full_name || user?.email}</span>
+            </div>
             <button 
-              onClick={onBack}
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-full transition-colors text-xs font-bold border border-red-100"
+              title="Đăng xuất"
             >
-              <ArrowLeft className="w-6 h-6 text-gray-600" />
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Đăng xuất</span>
             </button>
-            <div className="flex flex-col">
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                {activeTab === 'keys' ? (
-                  <>
-                    <Key className="w-6 h-6 text-indigo-600" />
-                    Quản lý Mã Bản Quyền
-                  </>
-                ) : (
-                  <>
-                    <History className="w-6 h-6 text-indigo-600" />
-                    Lịch sử Truy cập
-                  </>
-                )}
-              </h1>
-              <div className="flex gap-4 mt-2">
-                <button 
-                  onClick={() => setActiveTab('keys')}
-                  className={`text-sm font-medium pb-1 border-b-2 transition-colors ${activeTab === 'keys' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          </div>
+        </div>
+
+        {/* Warning Banner */}
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-2.5 text-amber-800 text-xs sm:text-sm font-medium">
+          <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-bold text-amber-900">Lưu ý quan trọng:</span> Mọi thiết lập xong của các tháng phải nhấn vào nút <span className="font-bold text-indigo-700 underline">Lưu dữ liệu</span> thì dữ liệu mới được ghi.
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-4 p-3">
+          <div className="flex items-center flex-wrap gap-2 sm:gap-3 mr-auto w-full md:w-auto">
+            <h1 className="text-lg font-bold text-indigo-900 items-center gap-2 hidden lg:flex">
+              <Save className="w-5 h-5" />
+              Sổ Chấm Cơm
+            </h1>
+            <div className="flex items-center bg-gray-100 rounded-lg p-1 relative">
+              <button onClick={prevMonth} className="p-1 hover:bg-white rounded"><ChevronLeft className="w-4 h-4" /></button>
+              <span className="px-2 sm:px-3 text-xs sm:text-sm font-medium min-w-[80px] sm:min-w-[90px] text-center">Tháng {month + 1} / {year}</span>
+              <button onClick={nextMonth} className="p-1 hover:bg-white rounded"><ChevronRight className="w-4 h-4" /></button>
+              {isDataFetching && (
+                <div className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Năm:</span>
+              <input 
+                type="number" 
+                value={year} 
+                onChange={(e) => handleYearChange(parseInt(e.target.value) || new Date().getFullYear())}
+                className="w-14 sm:w-16 px-1 py-1 border rounded text-xs sm:text-sm font-bold text-center"
+              />
+            </div>
+            <button
+              onClick={() => {
+                const today = new Date();
+                setMonth(today.getMonth());
+                setYear(today.getFullYear());
+                setTimeout(scrollToToday, 400);
+              }}
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-[#A0522D] hover:bg-[#8B4513] text-white rounded-lg transition-colors text-[10px] sm:text-xs font-bold shadow-sm whitespace-nowrap"
+              title="Quay về tháng hiện tại và nhảy đến hôm nay"
+            >
+              <Calendar className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+              <span>Hôm nay</span>
+            </button>
+            <button
+              onClick={() => {
+                fetchSavedSheets();
+                setIsSavedSheetsOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-lg transition-colors text-[10px] sm:text-xs font-bold border border-indigo-200 shadow-sm whitespace-nowrap"
+              title="Xem danh sách các tháng đã lưu"
+            >
+              <Calendar className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+              <span>Tháng đã lưu</span>
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center sm:justify-end w-full md:w-auto mt-2 md:mt-0">
+            <button 
+              onClick={clearMonth}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-red-50 text-red-600 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
+              title="Xóa toàn bộ dữ liệu chấm cơm tháng này"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Xóa hết<br/>tháng</span>
+            </button>
+
+            <button 
+              onClick={clearAllStudents}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-red-50 text-red-700 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all shadow-md group"
+              title="Xóa toàn bộ danh sách học sinh"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Xóa danh<br/>sách</span>
+            </button>
+
+            <button 
+              onClick={autoFillMeals}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-amber-50 text-amber-700 rounded-xl border-2 border-amber-300 hover:bg-amber-100 transition-all shadow-md group"
+              title="Chấm tự động cả tháng (Trừ chiều T6, T7, CN)"
+            >
+              <ClipboardPaste className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Chấm<br/>tự động</span>
+            </button>
+
+            <button 
+              onClick={() => handleSave()}
+              disabled={saving}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-indigo-600 text-white rounded-xl border-2 border-indigo-800 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">{saving ? 'Đang lưu...' : <>Lưu<br/>dữ liệu</>}</span>
+            </button>
+
+            <button 
+              onClick={addStudent}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-emerald-600 text-white rounded-xl border-2 border-emerald-800 hover:bg-emerald-700 transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Thêm<br/>học sinh</span>
+            </button>
+
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-blue-600 text-white rounded-xl border-2 border-blue-800 hover:bg-blue-700 transition-all shadow-md px-0.5"
+              title="Nhập danh sách học sinh"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="text-[8px] font-bold leading-none text-center">Nhập danh<br/>sách<br/>học sinh</span>
+            </button>
+
+            <button 
+              onClick={() => window.print()}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-slate-700 text-white rounded-xl border-2 border-slate-900 hover:bg-slate-800 transition-all shadow-md"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">In sổ<br/>(PDF)</span>
+            </button>
+
+            <button 
+              onClick={handleExportExcel}
+              className="flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] bg-green-600 text-white rounded-xl border-2 border-green-800 hover:bg-green-700 transition-all shadow-md"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">Xuất<br/>Excel</span>
+            </button>
+
+            <button 
+              onClick={() => setIsPreviewMode(!isPreviewMode)}
+              className={`flex flex-col items-center justify-center gap-1 w-[64px] h-[64px] rounded-xl border-2 transition-all shadow-md ${isPreviewMode ? 'bg-orange-600 text-white border-orange-800' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'}`}
+            >
+              <Maximize2 className="w-4 h-4" />
+              <span className="text-[10px] font-bold leading-tight text-center">{isPreviewMode ? 'Thoát xem' : <>Xem trước<br/>khi in</>}</span>
+            </button>
+
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl border-2 border-slate-300 p-1 h-[64px] ml-0.5 shadow-md">
+              <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">-</button>
+              <span className="text-[11px] font-bold w-10 text-center text-slate-700">{zoomLevel}%</span>
+              <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-6 h-full hover:bg-white rounded-lg text-sm font-bold flex items-center justify-center text-slate-700">+</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
+        {(!isPreviewMode && !isFullScreen) && (
+          <div className="w-full mt-0 pt-3 border-t border-gray-200 px-3 sm:px-6 bg-white overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
+            <div className="flex items-center justify-between gap-x-4 py-3 min-w-max">
+              {/* Configuration Fields Group */}
+              <div className="flex items-center gap-x-3 sm:gap-x-5 flex-nowrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Trường:</span>
+                  <input 
+                    type="text" 
+                    value={schoolName} 
+                    onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-48 sm:w-56 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
+                    placeholder="Trường"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Sổ:</span>
+                  <input 
+                    type="text" 
+                    value={bookTitle} 
+                    onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-40 sm:w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-sm"
+                    placeholder="Tên sổ"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Lớp:</span>
+                  <input 
+                    type="text" 
+                    value={classNameInput} 
+                    list="classes-datalist"
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setClassNameInput(val);
+                      // Auto-update GVCN if the typed value matches a configured class
+                      const match = classesConfig.find(c => c.className === val);
+                      if (match) {
+                        setTeacherName(match.teacherName);
+                        setClassName(val);
+                      }
+                    }}
+                    onBlur={handleClassNameSubmit}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-20 sm:w-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-center font-bold shadow-sm uppercase"
+                    placeholder="LỚP (VD: 8C1)"
+                  />
+                  <datalist id="classes-datalist">
+                    {selectOptions.map((c) => (
+                      <option key={c.className} value={c.className}>{c.teacherName ? `GV: ${c.teacherName}` : ''}</option>
+                    ))}
+                  </datalist>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">GVCN:</span>
+                  <input 
+                    type="text" 
+                    value={teacherName} 
+                    onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
+                    className="border border-gray-300 rounded-md px-2.5 py-1.5 text-[14px] w-36 sm:w-44 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold uppercase shadow-sm"
+                    placeholder="GVCN"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setTempClassesConfig([...classesConfig]);
+                    setIsClassConfigModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-xs font-bold border border-slate-300 shadow-sm whitespace-nowrap"
+                  title="Cấu hình danh sách lớp & giáo viên chủ nhiệm"
                 >
-                  Mã bản quyền
+                  <Settings className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Cấu hình Lớp</span>
                 </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Ngày:</span>
+                  <div className="flex items-center gap-1">
+                    <input 
+                      type="number" 
+                      value={footerDay} 
+                      onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                      className="border border-gray-300 rounded-md px-1 py-1.5 text-[14px] w-12 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm"
+                    />
+                    <span className="text-gray-400 text-lg">/</span>
+                    <input 
+                      type="number" 
+                      value={footerMonth} 
+                      onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                      className="border border-gray-300 rounded-md px-1 py-1.5 text-[14px] w-12 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm"
+                    />
+                    <span className="text-gray-400 text-lg">/</span>
+                    <input 
+                      type="number" 
+                      value={footerYear} 
+                      onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                      className="border border-gray-300 rounded-md px-1 py-1.5 text-[14px] w-20 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-gray-700 whitespace-nowrap">Ký:</span>
+                  {signature ? (
+                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-gray-300 shadow-sm group/sig-top">
+                      <img src={signature} alt="Signature" className="h-6 object-contain mix-blend-multiply" />
+                      <button 
+                        onClick={() => setSignature(null)} 
+                        className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors"
+                        title="Xóa chữ ký"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => handleSignatureUpload(e as any);
+                        input.click();
+                      }}
+                      className="flex items-center gap-2 bg-white text-gray-600 px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap text-[13px] font-medium"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Tải lên
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons Group */}
+              <div className="flex items-center gap-x-3 sm:gap-x-4 flex-nowrap">
+                <div className="h-8 w-[1px] bg-gray-300 mx-2" />
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-bold text-gray-700 whitespace-nowrap">Ký hiệu:</span>
+                  <div className="bg-white px-3 py-1.5 rounded-md border border-gray-300 shadow-sm flex items-center">
+                    <select 
+                      value={markSymbol} 
+                      onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
+                      className="border-none bg-transparent text-[14px] font-bold text-indigo-700 focus:ring-0 cursor-pointer p-0 appearance-none pr-6 relative"
+                      style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%234338ca\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")', backgroundPosition: 'right 0 center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+                    >
+                      <option value="+">(+)</option>
+                      <option value="x">(x)</option>
+                      <option value="1">(1)</option>
+                    </select>
+                  </div>
+                </div>
+
                 <button 
-                  onClick={() => setActiveTab('history')}
-                  className={`text-sm font-medium pb-1 border-b-2 transition-colors ${activeTab === 'history' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  onClick={syncFromPreviousMonth}
+                  className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md border border-indigo-200 hover:bg-indigo-100 transition-colors shadow-sm whitespace-nowrap"
+                  title="Cập nhật danh sách học sinh từ tháng trước"
                 >
-                  Lịch sử truy cập
+                  <ClipboardPaste className="w-4.5 h-4.5" />
+                  <span className="font-bold text-[14px]">Đồng bộ DS</span>
+                </button>
+
+                <button 
+                  onClick={() => setIsQuotaModalOpen(true)}
+                  className="flex items-center justify-center gap-2 bg-[#9333ea] text-white px-4 py-2 rounded-md border border-[#7e22ce] hover:bg-[#7e22ce] transition-colors shadow-sm whitespace-nowrap"
+                >
+                  <span className="font-bold text-[14px]">Định mức</span>
+                  <span className="bg-white/20 px-2 py-0.5 rounded text-[12px] font-bold">
+                    {standardMeals.S}|{standardMeals.T1}|{standardMeals.T2}
+                  </span>
                 </button>
               </div>
             </div>
           </div>
-          {activeTab === 'keys' && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1">
-                <button 
-                  onClick={() => setNewKeyDuration(365)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${newKeyDuration === 365 ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  Bản quyền (1 năm)
-                </button>
-                <button 
-                  onClick={() => setNewKeyDuration(30)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${newKeyDuration === 30 ? 'bg-orange-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  Dùng thử (30 ngày)
-                </button>
-              </div>
-              <button
-                onClick={generateKey}
-                disabled={generating}
-                className={`flex items-center gap-2 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${newKeyDuration === 30 ? 'bg-orange-600 hover:bg-orange-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-              >
-                <Plus className="w-5 h-5" />
-                {generating ? 'Đang tạo...' : 'Tạo mã mới'}
-              </button>
-            </div>
-          )}
-          {activeTab === 'history' && (
-            <button
-              onClick={fetchLogs}
-              disabled={loadingLogs}
-              className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 font-medium"
-            >
-              <RefreshCw className={`w-4 h-4 ${loadingLogs ? 'animate-spin' : ''}`} />
-              Làm mới
-            </button>
-          )}
+        )}
+      </div>
+
+      {/* Close button for preview mode or fullscreen */}
+      {(isPreviewMode || isFullScreen) && createPortal(
+        <button 
+          onClick={() => {
+            setIsPreviewMode(false);
+            setIsFullScreen(false);
+          }}
+          className="fixed top-6 right-6 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-2xl z-[9999] print:hidden flex items-center gap-2 transition-all hover:scale-105 group"
+          title={isPreviewMode ? 'Thoát xem trước' : 'Thoát phóng to'}
+        >
+          <Minimize2 className="w-6 h-6" />
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap">Thoát</span>
+        </button>,
+        document.body
+      )}
+
+      {/* Main Sheet */}
+      <div className={`transition-all duration-300 ${
+        isPreviewMode 
+          ? 'fixed inset-0 z-50 overflow-auto bg-black/80 backdrop-blur-md flex items-start justify-center p-8' 
+          : isFullScreen
+            ? 'fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-start p-4 overflow-auto'
+            : ''
+      }`}>
+        <div 
+          className={`bg-white shadow-2xl p-2 print:shadow-none print:p-0 overflow-x-auto excel-grid transition-all duration-500 border border-gray-300 rounded-xl ${
+            isPreviewMode ? 'w-full scale-90 origin-top is-preview' : isFullScreen ? 'w-fit h-fit min-w-[95%] rounded-xl my-8' : 'w-full'
+          }`}
+          style={{ zoom: isPreviewMode ? undefined : `${zoomLevel}%` }}
+        >
+        {/* Header Section */}
+        <div className="flex flex-col mb-2 px-2 print:hidden">
+          <div className="text-left">
+            <input 
+              type="text" 
+              value={schoolName} 
+              onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
+              className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[400px] bg-transparent"
+            />
+          </div>
+          <div className="text-center font-bold uppercase text-lg mt-2 flex flex-wrap justify-center items-center">
+            <input 
+              type="text" 
+              value={bookTitle} 
+              onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
+              className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-40 sm:w-56 text-right sm:text-right bg-transparent inline-block"
+            />
+          <input 
+            type="text" 
+            value={classNameInput} 
+            onChange={(e) => setClassNameInput(e.target.value.toUpperCase())}
+            onBlur={handleClassNameSubmit}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
+            className="font-bold text-lg uppercase border-none focus:ring-0 p-0 w-16 text-center bg-transparent inline-block mx-1"
+          />
+             THÁNG {month + 1}/{year}
+          </div>
         </div>
 
-        {activeTab === 'keys' ? (
-          <>
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 mb-6 flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium">Lưu ý về mã bản quyền:</p>
-                <p className="text-sm mt-1">Mỗi mã bản quyền chỉ được sử dụng <strong>1 lần duy nhất</strong> cho 1 máy hoặc 1 tài khoản đăng ký. Thời hạn sử dụng tùy thuộc vào loại mã (30 ngày đối với bản dùng thử hoặc 1 năm đối với bản quyền chính thức) kể từ ngày kích hoạt.</p>
+        {/* Tables Container - Stacked layout to increase display size */}
+        <div className="flex flex-col gap-4 relative print:block">
+          {/* Left Half: Days 1-16 */}
+          <div className="relative print:w-full overflow-x-auto print:overflow-visible">
+            {renderTableHalf(firstHalfDays, false)}
+          </div>
+
+          {/* Right Half: Days 17-End */}
+          <div className="relative print:w-full overflow-x-auto print:overflow-visible">
+            {renderTableHalf(secondHalfDays, true)}
+          </div>
+        </div>
+        </div>
+
+        {/* Hidden File Input for Excel Upload */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept=".xlsx, .xls"
+          className="hidden"
+        />
+      </div>
+
+      {/* Footer Info / Instructions */}
+      {!isPreviewMode && (
+        <div className="w-full mt-6 bg-white rounded-xl shadow-sm border border-blue-100 p-6 print:hidden">
+          <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+            <span className="bg-blue-100 text-blue-700 p-1.5 rounded-lg">
+              <Info className="w-5 h-5" />
+            </span>
+            Hướng dẫn chi tiết cách chấm cơm
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-700">
+            <div className="space-y-3">
+              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-50 h-full">
+                <h4 className="font-bold text-blue-900 mb-2">1. Chấm thủ công từng buổi</h4>
+                <p className="mb-2">• <strong>Đánh dấu có ăn:</strong> Click chuột trái vào ô tương ứng (S: Sáng, T: Trưa, T: Tối) của học sinh. Ô sẽ hiện dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">{markSymbol}</span>.</p>
+                <p>• <strong>Xóa đánh dấu (không ăn):</strong> Click chuột trái thêm lần nữa vào ô đã có dấu <span className="font-bold text-black bg-gray-200 px-1.5 py-0.5 rounded">{markSymbol}</span> để xóa (ô trở về trống).</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-indigo-600" />
-                Cấu hình Favicon (Biểu tượng trang web)
-              </h2>
-              <div className="flex items-end gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL ảnh hoặc Tải lên ảnh (Base64)</label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={faviconUrl}
-                      onChange={(e) => setFaviconUrl(e.target.value)}
-                      placeholder="https://example.com/favicon.ico"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                    <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 transition-colors flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      Tải lên
-                      <input type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" />
-                    </label>
-                  </div>
-                </div>
-                <div className="w-12 h-12 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">
-                  {faviconUrl ? (
-                    <img src={faviconUrl} alt="Preview" className="w-full h-full object-contain" />
-                  ) : (
-                    <ImageIcon className="w-6 h-6 text-gray-300" />
-                  )}
-                </div>
-                <button
-                  onClick={saveFavicon}
-                  disabled={savingFavicon}
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {savingFavicon ? 'Đang lưu...' : 'Lưu Favicon'}
-                </button>
+            <div className="space-y-3">
+              <div className="bg-emerald-50/50 p-4 rounded-lg border border-emerald-50 h-full">
+                <h4 className="font-bold text-emerald-900 mb-2">2. Thao tác nhanh cho CẢ LỚP (Theo cột)</h4>
+                <p className="mb-2">Rê chuột vào tiêu đề cột buổi (S, T, T) của một ngày, một menu nhỏ sẽ hiện ra:</p>
+                <ul className="space-y-2 ml-2">
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Plus className="w-3.5 h-3.5 text-emerald-600" /></span> <strong>Chọn tất cả:</strong> Chấm cơm cho toàn bộ học sinh trong buổi đó.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Trash2 className="w-3.5 h-3.5 text-red-600" /></span> <strong>Xóa tất cả:</strong> Xóa chấm cơm của toàn bộ học sinh trong buổi đó.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Copy className="w-3.5 h-3.5 text-indigo-600" /></span> <strong>Sao chép:</strong> Copy dữ liệu của cột hiện tại.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><ClipboardPaste className="w-3.5 h-3.5 text-orange-600" /></span> <strong>Dán:</strong> Dán dữ liệu vừa copy vào cột này.</li>
+                </ul>
               </div>
-              <p className="text-xs text-gray-500 mt-2 italic">
-                * Favicon sẽ được áp dụng cho toàn bộ hệ thống. Nên sử dụng ảnh vuông (1:1), định dạng .ico, .png hoặc .svg.
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-50 h-full">
+                <h4 className="font-bold text-purple-900 mb-2">3. Thao tác nhanh cho MỘT HỌC SINH (Theo hàng)</h4>
+                <p className="mb-2">Rê chuột vào tên của một học sinh, các nút công cụ sẽ hiện ra bên phải tên:</p>
+                <ul className="space-y-2 ml-2">
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><Copy className="w-3.5 h-3.5 text-indigo-600" /></span> <strong>Sao chép:</strong> Copy toàn bộ dữ liệu chấm cơm cả tháng của học sinh này.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><ClipboardPaste className="w-3.5 h-3.5 text-orange-600" /></span> <strong>Dán:</strong> Dán dữ liệu đã copy cho học sinh này.</li>
+                  <li className="flex items-center gap-2"><span className="bg-white p-1 rounded shadow-sm"><ClipboardPaste className="w-3.5 h-3.5 text-orange-600" /></span> <strong>Dán cho tất cả:</strong> (Nút dán trên tiêu đề "Họ và tên") Dán mẫu đã copy cho toàn bộ lớp.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-red-50/50 p-4 rounded-lg border border-red-50 h-full">
+                <h4 className="font-bold text-red-900 mb-2">4. Xóa dữ liệu nhanh</h4>
+                <p className="mb-3">• <strong>Xóa cả ngày:</strong> Rê chuột vào số ngày (1, 2, 3...) trên tiêu đề, bấm biểu tượng <span className="bg-white p-1 rounded shadow-sm inline-flex align-middle mx-1"><Trash2 className="w-3.5 h-3.5 text-red-600" /></span> để xóa toàn bộ dữ liệu của ngày đó.</p>
+                <p>• <strong>Xóa học sinh:</strong> Rê chuột vào tên học sinh, bấm biểu tượng <span className="bg-white p-1 rounded shadow-sm inline-flex align-middle mx-1"><Trash2 className="w-3.5 h-3.5 text-red-600" /></span> để xóa học sinh khỏi danh sách.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Meal Quota Modal */}
+      {isQuotaModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:hidden p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-96 max-w-full animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4 border-b pb-2">
+              <h3 className="text-lg font-bold text-gray-900 uppercase">Định mức ăn tháng {month + 1}</h3>
+              <button onClick={() => setIsQuotaModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-6">
+              <p className="text-xs text-blue-800 leading-relaxed">
+                <strong>Lưu ý:</strong> Vui lòng kiểm tra và nhập đúng định mức ngày ăn của tháng này để hệ thống tính toán chính xác.
               </p>
             </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-indigo-600" />
-                Cấu hình Tiêu đề & Chân trang (Trang đăng nhập)
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên trường (Header)</label>
-                  <input 
-                    type="text" 
-                    value={uiConfigs.school_name}
-                    onChange={(e) => setUiConfigs({...uiConfigs, school_name: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề chính (Header)</label>
-                  <input 
-                    type="text" 
-                    value={uiConfigs.header_title}
-                    onChange={(e) => setUiConfigs({...uiConfigs, header_title: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Năm học (Header)</label>
-                  <input 
-                    type="text" 
-                    value={uiConfigs.school_year}
-                    onChange={(e) => setUiConfigs({...uiConfigs, school_year: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dòng 1 (Footer)</label>
-                  <input 
-                    type="text" 
-                    value={uiConfigs.footer_line1}
-                    onChange={(e) => setUiConfigs({...uiConfigs, footer_line1: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dòng 2 (Footer)</label>
-                  <input 
-                    type="text" 
-                    value={uiConfigs.footer_line2}
-                    onChange={(e) => setUiConfigs({...uiConfigs, footer_line2: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dòng 3 (Footer)</label>
-                  <input 
-                    type="text" 
-                    value={uiConfigs.footer_line3}
-                    onChange={(e) => setUiConfigs({...uiConfigs, footer_line3: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="font-medium text-gray-700">Sáng (S):</label>
+                <input 
+                  type="number" 
+                  value={standardMeals.S || ''} 
+                  onChange={(e) => setStandardMeals(prev => ({ ...prev, S: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
+                  className="w-24 border border-gray-300 rounded px-2 py-1 text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
               </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={saveUiConfigs}
-                  disabled={savingUiConfigs}
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {savingUiConfigs ? 'Đang lưu...' : 'Lưu cấu hình'}
-                </button>
+              <div className="flex items-center justify-between">
+                <label className="font-medium text-gray-700">Trưa (T):</label>
+                <input 
+                  type="number" 
+                  value={standardMeals.T1 || ''} 
+                  onChange={(e) => setStandardMeals(prev => ({ ...prev, T1: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
+                  className="w-24 border border-gray-300 rounded px-2 py-1 text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="font-medium text-gray-700">Tối (T):</label>
+                <input 
+                  type="number" 
+                  value={standardMeals.T2 || ''} 
+                  onChange={(e) => setStandardMeals(prev => ({ ...prev, T2: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
+                  className="w-24 border border-gray-300 rounded px-2 py-1 text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="p-4 font-semibold text-gray-600">Mã bản quyền</th>
-                    <th className="p-4 font-semibold text-gray-600">Loại mã</th>
-                    <th className="p-4 font-semibold text-gray-600">Trạng thái</th>
-                    <th className="p-4 font-semibold text-gray-600">Người sử dụng</th>
-                    <th className="p-4 font-semibold text-gray-600">Ngày tạo</th>
-                    <th className="p-4 font-semibold text-gray-600">Ngày hết hạn</th>
-                    <th className="p-4 font-semibold text-gray-600 text-right">Thao tác</th>
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => {
+                  setIsQuotaModalOpen(false);
+                }}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium w-full"
+              >
+                Xong
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Class & Teacher Configuration Modal */}
+      {isClassConfigModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:hidden p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4 border-b pb-2">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 uppercase">
+                <Settings className="w-5 h-5 text-indigo-600" />
+                Cấu hình danh sách Lớp & GVCN
+              </h3>
+              <button onClick={() => setIsClassConfigModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-4 text-xs text-indigo-800 leading-relaxed">
+              Thêm các lớp học và họ tên Giáo viên chủ nhiệm tương ứng tại đây. Khi chuyển lớp ở màn hình chính, hệ thống sẽ tự động cập nhật tên Giáo viên chủ nhiệm.
+            </div>
+
+            <div className="max-h-60 overflow-y-auto mb-4 border rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 text-gray-700 font-bold sticky top-0 border-b">
+                  <tr>
+                    <th className="p-2 text-left w-1/3">Tên lớp</th>
+                    <th className="p-2 text-left">Giáo viên chủ nhiệm</th>
+                    <th className="p-2 text-center w-12">Xóa</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-500">Đang tải dữ liệu...</td>
+                <tbody className="divide-y">
+                  {tempClassesConfig.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="p-2">
+                        <input 
+                          type="text"
+                          value={item.className}
+                          onChange={(e) => {
+                            const newCfg = [...tempClassesConfig];
+                            newCfg[index].className = e.target.value.toUpperCase();
+                            setTempClassesConfig(newCfg);
+                          }}
+                          placeholder="VD: 8C1"
+                          className="w-full border border-gray-300 rounded px-2 py-1 uppercase font-bold"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input 
+                          type="text"
+                          value={item.teacherName}
+                          onChange={(e) => {
+                            const newCfg = [...tempClassesConfig];
+                            newCfg[index].teacherName = e.target.value;
+                            setTempClassesConfig(newCfg);
+                          }}
+                          placeholder="Họ và tên Giáo viên"
+                          className="w-full border border-gray-300 rounded px-2 py-1 font-medium"
+                        />
+                      </td>
+                      <td className="p-2 text-center">
+                        <button 
+                          onClick={() => {
+                            setTempClassesConfig(tempClassesConfig.filter((_, i) => i !== index));
+                          }}
+                          className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
+                          title="Xóa lớp này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
-                  ) : keys.length === 0 ? (
+                  ))}
+                  {tempClassesConfig.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-500">Chưa có mã bản quyền nào.</td>
+                      <td colSpan={3} className="p-4 text-center text-gray-500 italic">
+                        Chưa có lớp nào. Hãy bấm "Thêm lớp mới" bên dưới.
+                      </td>
                     </tr>
-                  ) : (
-                    keys.map((k) => (
-                      <tr key={k.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <code className={`px-2 py-1 rounded font-mono font-bold ${k.duration_days === 30 ? 'bg-orange-50 text-orange-700' : 'bg-gray-100 text-indigo-700'}`}>
-                              {k.key}
-                            </code>
-                            <button
-                              onClick={() => copyToClipboard(k.key, k.id)}
-                              className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                              title="Sao chép"
-                            >
-                              {copiedId === k.id ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          {k.duration_days === 30 ? (
-                            <span className="text-xs font-bold text-orange-600">Dùng thử (30 ngày)</span>
-                          ) : (
-                            <span className="text-xs font-bold text-indigo-600">Bản quyền (1 năm)</span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          {k.is_used ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              Đã sử dụng
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Chưa sử dụng
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 text-sm text-gray-600">
-                          {k.used_by_email || '-'}
-                        </td>
-                        <td className="p-4 text-sm text-gray-500">
-                          {new Date(k.created_at).toLocaleDateString('vi-VN')}
-                        </td>
-                        <td className="p-4 text-sm text-gray-500 font-medium">
-                          {getExpirationDate(k.used_at, k.duration_days)}
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {k.is_used && k.used_by && (
-                              <button
-                                onClick={() => handleResetPassword(k.used_by, k.used_by_email)}
-                                disabled={resettingPassword === k.used_by}
-                                className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors disabled:opacity-50"
-                                title="Đặt lại mật khẩu"
-                              >
-                                {resettingPassword === k.used_by ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => deleteKey(k.id, k.is_used, k.used_by_email)}
-                              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title={k.is_used ? "Thu hồi mã" : "Xóa mã"}
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
                   )}
                 </tbody>
               </table>
             </div>
-          </>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="p-4 font-semibold text-gray-600">Người dùng</th>
-                  <th className="p-4 font-semibold text-gray-600">Thời gian truy cập</th>
-                  <th className="p-4 font-semibold text-gray-600">Địa chỉ IP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingLogs ? (
-                  <tr>
-                    <td colSpan={3} className="p-8 text-center text-gray-500">Đang tải lịch sử...</td>
-                  </tr>
-                ) : logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="p-8 text-center text-gray-500">Chưa có dữ liệu truy cập.</td>
-                  </tr>
-                ) : (
-                  logs.map((log) => (
-                    <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                            <UserIcon className="w-4 h-4 text-indigo-600" />
-                          </div>
-                          <span className="text-sm font-medium text-gray-900">{log.email}</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          {new Date(log.access_time).toLocaleString('vi-VN')}
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-gray-500 font-mono">
-                        {log.ip_address || 'N/A'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+
+            <div className="flex gap-2 justify-between">
+              <button 
+                onClick={() => {
+                  setTempClassesConfig([...tempClassesConfig, { className: '', teacherName: '' }]);
+                }}
+                className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-bold text-sm bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm lớp mới
+              </button>
+              
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsClassConfigModalOpen(false)}
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={() => handleSaveClassesConfig(tempClassesConfig)}
+                  className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-bold text-sm flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Lưu cấu hình
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Saved Sheets History Modal */}
+      {isSavedSheetsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:hidden p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
+              <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                <Calendar className="text-indigo-600 w-5 h-5" />
+                LỊCH SỬ CÁC THÁNG ĐÃ LƯU
+              </h3>
+              <button 
+                onClick={() => setIsSavedSheetsOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {isLoadingSavedSheets ? (
+              <div className="py-12 flex flex-col items-center justify-center">
+                <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <p className="text-sm text-gray-500 font-medium">Đang tải danh sách các tháng...</p>
+              </div>
+            ) : savedSheets.length === 0 ? (
+              <div className="py-12 text-center text-gray-500">
+                <p className="mb-2 font-medium">Chưa có bảng chấm cơm nào được lưu trước đó.</p>
+                <p className="text-xs text-gray-400">Các bảng chấm cơm bạn lưu sẽ tự động hiển thị tại đây.</p>
+              </div>
+            ) : (
+              <div className="max-h-[350px] overflow-y-auto pr-1">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left text-gray-500">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                      <tr>
+                        <th scope="col" className="px-4 py-3">Thời gian</th>
+                        <th scope="col" className="px-4 py-3">Lớp</th>
+                        {user?.email === 'vuhung@db.edu.vn' && (
+                          <th scope="col" className="px-4 py-3">Giáo viên</th>
+                        )}
+                        <th scope="col" className="px-4 py-3 text-center">Số học sinh</th>
+                        <th scope="col" className="px-4 py-3">Lưu cuối</th>
+                        <th scope="col" className="px-4 py-3 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {savedSheets.map((sheet) => (
+                        <tr key={`${sheet.year}-${sheet.month}-${sheet.class_name || 'default'}-${sheet.user_id || 'no-user'}`} className="border-b hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-gray-950">
+                            Tháng {sheet.month + 1} / {sheet.year}
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-indigo-700">
+                            {sheet.class_name || 'Không rõ'}
+                          </td>
+                          {user?.email === 'vuhung@db.edu.vn' && (
+                            <td className="px-4 py-3 font-medium text-gray-800">
+                              {sheet.teacher_name || 'Không rõ'}
+                            </td>
+                          )}
+                          <td className="px-4 py-3 text-center font-medium text-gray-700">
+                            {sheet.students ? sheet.students.length : 0}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-400">
+                            {sheet.updated_at ? new Date(sheet.updated_at).toLocaleString('vi-VN', { 
+                              hour: '2-digit', 
+                              minute: '2-digit', 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            }) : 'Không rõ'}
+                          </td>
+                          <td className="px-4 py-3 text-right flex justify-end gap-2">
+                            <button
+                              onClick={async () => {
+                                if (isDirty.current) {
+                                  if (confirm('Bạn có thay đổi chưa lưu ở bảng hiện tại. Bạn có muốn lưu trước khi chuyển sang tháng khác không?')) {
+                                    await handleSave(true);
+                                  }
+                                }
+                                setMonth(sheet.month);
+                                setYear(sheet.year);
+                                if (sheet.class_name) {
+                                  setClassName(sheet.class_name);
+                                }
+                                if (sheet.user_id) {
+                                  setViewingUserId(sheet.user_id);
+                                }
+                                setIsSavedSheetsOpen(false);
+                              }}
+                              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm"
+                            >
+                              Xem bảng
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSavedSheet(sheet.year, sheet.month, sheet.class_name, sheet.user_id)}
+                              className="p-1 hover:bg-red-50 text-red-500 hover:text-red-700 rounded transition-colors border border-transparent hover:border-red-200"
+                              title="Xóa dữ liệu tháng này"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end border-t pt-4">
+              <button 
+                onClick={() => setIsSavedSheetsOpen(false)}
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors font-medium text-sm border"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 }
