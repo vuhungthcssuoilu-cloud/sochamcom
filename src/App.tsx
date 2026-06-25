@@ -52,6 +52,12 @@ const getDayOfWeek = (day: number, month: number, year: number) => {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+const isAdminEmail = (email: string | undefined | null): boolean => {
+  if (!email) return false;
+  const lower = email.toLowerCase();
+  return lower === 'vuhung@db.edu.vn' || lower === 'vuhungthcssuoilu@gmail.com';
+};
+
 const INITIAL_STUDENTS: Student[] = [];
 
 export default function App() {
@@ -189,7 +195,7 @@ export default function App() {
   // Check license expiration
   useEffect(() => {
     if (user) {
-      if (user.email === 'vuhung@db.edu.vn') {
+      if (isAdminEmail(user.email)) {
         setIsLicenseExpired(false);
         return;
       }
@@ -747,7 +753,7 @@ export default function App() {
         .from('monthly_sheets')
         .select('month, year, class_name, teacher_name, students, updated_at, user_id');
 
-      if (user.email !== 'vuhung@db.edu.vn') {
+      if (!isAdminEmail(user.email)) {
         query = query.eq('user_id', user.id);
       }
 
@@ -1133,6 +1139,15 @@ export default function App() {
     localStorage.setItem(key, JSON.stringify(backupData));
   }, [students, className, month, year, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, user]);
 
+  const handleViewTeacherSheet = useCallback((targetUserId: string, targetYear: number, targetMonth: number, targetClassName: string) => {
+    setViewingUserId(targetUserId);
+    setYear(targetYear);
+    setMonth(targetMonth);
+    setClassName(targetClassName);
+    setClassNameInput(targetClassName);
+    setShowAdmin(false);
+  }, []);
+
   const handleLogout = async () => {
     try {
       if (isDirty.current && confirm('Bạn có thay đổi chưa lưu. Bạn có muốn lưu trước khi đăng xuất không?')) {
@@ -1259,7 +1274,7 @@ export default function App() {
           <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       }>
-        <Admin onBack={() => setShowAdmin(false)} />
+        <Admin onBack={() => setShowAdmin(false)} onViewSheet={handleViewTeacherSheet} />
       </Suspense>
     );
   }
@@ -2427,7 +2442,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="text-xs text-indigo-900/60 font-medium flex items-center gap-2">
               Phần mềm Sổ Chấm Cơm Nội Trú
-              {user?.email === 'vuhung@db.edu.vn' && viewingUserId && viewingUserId !== user.id && (
+              {isAdminEmail(user?.email) && viewingUserId && viewingUserId !== user.id && (
                 <div className="flex items-center gap-1">
                   <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded text-[10px] font-bold">
                     Đang xem: {teacherName || 'Giáo viên khác'}
@@ -2442,7 +2457,7 @@ export default function App() {
                 </div>
               )}
             </div>
-            {user?.email !== 'vuhung@db.edu.vn' && licenseExpiryDate && (
+            {!isAdminEmail(user?.email) && licenseExpiryDate && (
               <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/50 rounded-full border border-indigo-100/50">
                 <div className={`w-1.5 h-1.5 rounded-full ${isLicenseExpired ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
                 <span className="text-[10px] font-bold text-indigo-800/70">
@@ -2452,7 +2467,7 @@ export default function App() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            {user?.email === 'vuhung@db.edu.vn' && (
+            {isAdminEmail(user?.email) && (
               <button 
                 onClick={() => setShowAdmin(true)}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded-full transition-colors text-xs font-bold border border-indigo-200"
@@ -2528,11 +2543,11 @@ export default function App() {
                 fetchSavedSheets();
                 setIsSavedSheetsOpen(true);
               }}
-              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-lg transition-colors text-[10px] sm:text-xs font-bold border border-indigo-200 shadow-sm whitespace-nowrap"
-              title="Xem danh sách các tháng đã lưu"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-[10px] sm:text-xs font-bold shadow-md whitespace-nowrap"
+              title="Xem danh sách các bảng chấm cơm đã lưu"
             >
-              <Calendar className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
-              <span>Tháng đã lưu</span>
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Danh sách đã lưu</span>
             </button>
           </div>
           
@@ -3113,7 +3128,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b pb-3 mb-4">
               <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
                 <Calendar className="text-indigo-600 w-5 h-5" />
-                LỊCH SỬ CÁC THÁNG ĐÃ LƯU
+                DANH SÁCH BẢNG CHẤM CƠM ĐÃ LƯU
               </h3>
               <button 
                 onClick={() => setIsSavedSheetsOpen(false)}
@@ -3141,7 +3156,7 @@ export default function App() {
                       <tr>
                         <th scope="col" className="px-4 py-3">Thời gian</th>
                         <th scope="col" className="px-4 py-3">Lớp</th>
-                        {user?.email === 'vuhung@db.edu.vn' && (
+                        {isAdminEmail(user?.email) && (
                           <th scope="col" className="px-4 py-3">Giáo viên</th>
                         )}
                         <th scope="col" className="px-4 py-3 text-center">Số học sinh</th>
@@ -3158,7 +3173,7 @@ export default function App() {
                           <td className="px-4 py-3 font-semibold text-indigo-700">
                             {sheet.class_name || 'Không rõ'}
                           </td>
-                          {user?.email === 'vuhung@db.edu.vn' && (
+                          {isAdminEmail(user?.email) && (
                             <td className="px-4 py-3 font-medium text-gray-800">
                               {sheet.teacher_name || 'Không rõ'}
                             </td>
