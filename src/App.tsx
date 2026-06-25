@@ -179,6 +179,9 @@ export default function App() {
 
   // --- Auth & Data Fetching ---
   
+  const [backupNotice, setBackupNotice] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  
   // Ref to track if data has been modified
   const isDirty = useRef(false);
   const lastSavedDataRef = useRef<string>('');
@@ -794,6 +797,9 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
+    // Reset load tracking
+    hasLoadedRef.current = false;
+
     // If className is empty, do not query monthly_sheets as it represents a transitional loading state or no configured classes
     if (!className) {
       setStudents(INITIAL_STUDENTS);
@@ -820,6 +826,66 @@ export default function App() {
         if (error) {
           console.error('Error fetching data:', error);
         }
+
+        // Check for local backup
+        const backupKey = `attendance_backup_${user.id}_${year}_${month}_${className}`;
+        const localBackupStr = localStorage.getItem(backupKey);
+        let backupInfo: any = null;
+        if (localBackupStr) {
+          try {
+            backupInfo = JSON.parse(localBackupStr);
+          } catch (e) {
+            console.error('Error parsing local backup:', e);
+          }
+        }
+
+        let useBackup = false;
+        if (data && backupInfo && backupInfo.timestamp) {
+          const dbTime = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+          // If backup is at least 3 seconds newer than database
+          if (backupInfo.timestamp > dbTime + 3000) {
+            const dbStudentsStr = JSON.stringify(data.students || []);
+            const backupStudentsStr = JSON.stringify(backupInfo.students || []);
+            if (dbStudentsStr !== backupStudentsStr) {
+              useBackup = true;
+            }
+          }
+        } else if (!data && backupInfo && backupInfo.students && backupInfo.students.length > 0) {
+          useBackup = true;
+        }
+
+        if (useBackup && backupInfo) {
+          const backupTimeStr = new Date(backupInfo.timestamp).toLocaleTimeString('vi-VN', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+          });
+          setBackupNotice(`Hệ thống đã khôi phục bản nháp chưa lưu của lớp ${className} - Tháng ${month + 1}/${year} (lưu tạm trên trình duyệt lúc ${backupTimeStr})`);
+          
+          setStudents(backupInfo.students || INITIAL_STUDENTS);
+          if (backupInfo.teacherName !== undefined) setTeacherName(backupInfo.teacherName);
+          if (backupInfo.schoolName !== undefined) setSchoolName(backupInfo.schoolName);
+          if (backupInfo.location !== undefined) setLocation(backupInfo.location);
+          if (backupInfo.standardMeals !== undefined) setStandardMeals(backupInfo.standardMeals);
+          
+          if (backupInfo.footerDay !== undefined) setFooterDay(backupInfo.footerDay);
+          if (backupInfo.footerMonth !== undefined) setFooterMonth(backupInfo.footerMonth);
+          if (backupInfo.footerYear !== undefined) setFooterYear(backupInfo.footerYear);
+
+          lastSavedDataRef.current = JSON.stringify({
+            students: backupInfo.students || INITIAL_STUDENTS,
+            className: className,
+            bookTitle,
+            teacherName: backupInfo.teacherName || '',
+            schoolName: backupInfo.schoolName || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ',
+            location: backupInfo.location || 'Suối Lư',
+            standardMeals: backupInfo.standardMeals || { S: 0, T1: 0, T2: 0 },
+            footerDay: backupInfo.footerDay !== undefined ? backupInfo.footerDay : new Date().getDate(),
+            footerMonth: backupInfo.footerMonth !== undefined ? backupInfo.footerMonth : new Date().getMonth() + 1,
+            footerYear: backupInfo.footerYear !== undefined ? backupInfo.footerYear : new Date().getFullYear(),
+            markSymbol,
+            signature,
+          });
+          isDirty.current = true;
+        } else {
 
         if (data) {
           let fetchedSchoolName = data.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
@@ -1026,6 +1092,7 @@ export default function App() {
           });
           isDirty.current = false;
         }
+        } // Close the useBackup else block
 
         const today = new Date();
         if (month === today.getMonth() && year === today.getFullYear()) {
@@ -1034,6 +1101,7 @@ export default function App() {
       } finally {
         if (isCurrent) {
           setIsDataFetching(false);
+          hasLoadedRef.current = true;
         }
       }
     };
@@ -1044,6 +1112,26 @@ export default function App() {
       isCurrent = false;
     };
   }, [user, month, year, className, classesConfig, viewingUserId]);
+
+  // Auto-backup to localStorage whenever data changes
+  useEffect(() => {
+    if (!user || !hasLoadedRef.current || !className) return;
+
+    const backupData = {
+      students,
+      teacherName,
+      schoolName,
+      location,
+      standardMeals,
+      footerDay,
+      footerMonth,
+      footerYear,
+      timestamp: Date.now()
+    };
+
+    const key = `attendance_backup_${user.id}_${year}_${month}_${className}`;
+    localStorage.setItem(key, JSON.stringify(backupData));
+  }, [students, className, month, year, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, user]);
 
   const handleLogout = async () => {
     try {
@@ -2314,6 +2402,23 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-white ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'} text-gray-900 print:p-4`}>
       <div className="font-sans">
+      {backupNotice && (
+        <div className="mx-1 my-2 p-3 bg-emerald-50 border-2 border-emerald-300 text-emerald-800 rounded-xl flex items-center justify-between text-xs font-semibold shadow-md print:hidden animate-bounce-short">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            {backupNotice}
+          </div>
+          <button 
+            onClick={() => setBackupNotice(null)}
+            className="text-emerald-600 hover:text-emerald-950 px-2 py-0.5 bg-emerald-100 rounded hover:bg-emerald-200 transition-colors"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
       {/* Controls - Hidden on Print */}
       <div className={`w-full mb-3 bg-white rounded-xl shadow-md border border-gray-300 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
         
