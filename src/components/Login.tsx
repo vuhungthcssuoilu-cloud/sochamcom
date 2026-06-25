@@ -56,10 +56,11 @@ export default function Login() {
   // UI Config state
   const [uiConfigs, setUiConfigs] = useState({
     school_name: 'TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
-    header_title: 'ỨNG DỤNG CHẤM CƠM DÀNH CHO GVCN',
-    school_year: 'NĂM HỌC 2026 - 2027',
+    header_title: 'HỆ THỐNG QUẢN LÝ NỘI TRÚ - SỔ CHẤM CƠM',
+    school_year: 'NĂM HỌC 2024 - 2025',
+    footer_line1: 'DỮ LIỆU CHÍNH THỨC TỪ TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
     footer_line2: 'Mọi thắc mắc về phần mềm xin liên hệ quản trị viên',
-    footer_line3: 'Application developed by: Vũ Hùng - Email: vuhung@db.edu.vn'
+    footer_line3: 'Application developed by: Vũ Hùng - Email: vuhung@db.edu.vn - SĐT: 0984.246.993'
   });
 
   useEffect(() => {
