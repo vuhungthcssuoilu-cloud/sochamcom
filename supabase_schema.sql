@@ -128,7 +128,20 @@ returns trigger as $$
 declare
   valid_key boolean;
 begin
-  -- Check if license_key is provided in metadata
+  -- 1. Nếu email là admin, bỏ qua kiểm tra mã bản quyền
+  if new.email in ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com') then
+    return new;
+  end if;
+
+  -- 2. Nếu đăng ký qua bên thứ 3 (như Google OAuth), cho phép tạo tài khoản thành công mà không cần kiểm tra key lúc này.
+  --    Sau khi đăng nhập xong, React Client sẽ kiểm tra và yêu cầu người dùng nhập mã bản quyền sau.
+  if (new.raw_app_meta_data->>'provider' = 'google') or 
+     (new.raw_user_meta_data->>'iss' like '%google%') or
+     (new.raw_user_meta_data->>'provider' = 'google') then
+    return new;
+  end if;
+
+  -- 3. Đối với đăng ký Email & Password thông thường, vẫn bắt buộc phải có license_key hợp lệ
   if new.raw_user_meta_data->>'license_key' is null or new.raw_user_meta_data->>'license_key' = '' then
     raise exception 'Mã bản quyền là bắt buộc để đăng ký tài khoản.';
   end if;
@@ -158,12 +171,14 @@ create trigger check_license_key_on_signup
 create or replace function public.mark_license_key_as_used()
 returns trigger as $$
 begin
-  update public.license_keys
-  set is_used = true,
-      used_by = new.id,
-      used_by_email = new.email,
-      used_at = now()
-  where key = new.raw_user_meta_data->>'license_key';
+  if new.raw_user_meta_data->>'license_key' is not null and new.raw_user_meta_data->>'license_key' != '' then
+    update public.license_keys
+    set is_used = true,
+        used_by = new.id,
+        used_by_email = new.email,
+        used_at = now()
+    where key = new.raw_user_meta_data->>'license_key';
+  end if;
   
   return new;
 end;
