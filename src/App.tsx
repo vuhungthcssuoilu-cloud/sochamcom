@@ -907,6 +907,7 @@ export default function App() {
 
           setSchoolName(fetchedSchoolName);
           setClassName(data.class_name || '');
+          setClassNameInput(data.class_name || '');
           
           // Use configured GVCN if available in classesConfig, otherwise use saved one
           const configMatch = classesConfig.find(c => c.className === (data.class_name || className));
@@ -977,16 +978,25 @@ export default function App() {
           const configuredTeacherName = configMatch ? configMatch.teacherName : '';
 
           // Try to find the most recent month's data BEFORE the current month to copy the student list and metadata for this SPECIFIC class
-          const { data: latestData } = await supabase
+          const { data: classSheets, error: classSheetsError } = await supabase
             .from('monthly_sheets')
             .select('*')
             .eq('user_id', currentUserId)
-            .eq('class_name', className)
-            .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
-            .order('year', { ascending: false })
-            .order('month', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .eq('class_name', className);
+
+          let latestData = null;
+          if (!classSheetsError && classSheets) {
+            const priorSheets = classSheets.filter(s => 
+              s.year < year || (s.year === year && s.month < month)
+            );
+            if (priorSheets.length > 0) {
+              priorSheets.sort((a, b) => {
+                if (b.year !== a.year) return b.year - a.year;
+                return b.month - a.month;
+              });
+              latestData = priorSheets[0];
+            }
+          }
 
           if (!isCurrent) return;
 
@@ -1044,15 +1054,24 @@ export default function App() {
           } else {
             // No previous month's data for this specific class.
             // Let's copy general metadata from the latest sheet of ANY class to save re-typing
-            const { data: genericLatestData } = await supabase
+            const { data: genericSheets, error: genericSheetsError } = await supabase
               .from('monthly_sheets')
               .select('*')
-              .eq('user_id', currentUserId)
-              .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
-              .order('year', { ascending: false })
-              .order('month', { ascending: false })
-              .limit(1)
-              .maybeSingle();
+              .eq('user_id', currentUserId);
+
+            let genericLatestData = null;
+            if (!genericSheetsError && genericSheets) {
+              const priorGenericSheets = genericSheets.filter(s => 
+                s.year < year || (s.year === year && s.month < month)
+              );
+              if (priorGenericSheets.length > 0) {
+                priorGenericSheets.sort((a, b) => {
+                  if (b.year !== a.year) return b.year - a.year;
+                  return b.month - a.month;
+                });
+                genericLatestData = priorGenericSheets[0];
+              }
+            }
 
             if (!isCurrent) return;
 
@@ -3202,6 +3221,7 @@ export default function App() {
                                 setYear(sheet.year);
                                 if (sheet.class_name) {
                                   setClassName(sheet.class_name);
+                                  setClassNameInput(sheet.class_name);
                                 }
                                 if (sheet.user_id) {
                                   setViewingUserId(sheet.user_id);
