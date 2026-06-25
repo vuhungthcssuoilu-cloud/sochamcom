@@ -135,7 +135,8 @@ begin
 
   -- 2. Nếu đăng ký qua bên thứ 3 (như Google OAuth), cho phép tạo tài khoản thành công mà không cần kiểm tra key lúc này.
   --    Sau khi đăng nhập xong, React Client sẽ kiểm tra và yêu cầu người dùng nhập mã bản quyền sau.
-  if (new.raw_app_meta_data->>'provider' = 'google') or 
+  if (new.encrypted_password is null or new.encrypted_password = '') or
+     (new.raw_app_meta_data->>'provider' = 'google') or 
      (new.raw_user_meta_data->>'iss' like '%google%') or
      (new.raw_user_meta_data->>'provider' = 'google') then
     return new;
