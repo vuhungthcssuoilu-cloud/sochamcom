@@ -267,6 +267,7 @@ export default function App() {
           errorMsg.includes('Refresh Token Not Found') ||
           errorMsg.includes('invalid_grant')
         ) {
+          event.preventDefault();
           console.warn('Caught refresh token error in unhandled rejection:', reason);
           clearStaleSession();
         }
@@ -280,6 +281,7 @@ export default function App() {
         errorMsg.includes('Refresh Token Not Found') ||
         errorMsg.includes('invalid_grant')
       ) {
+        event.preventDefault();
         console.warn('Caught refresh token error in error event:', errorMsg);
         clearStaleSession();
       }
@@ -395,10 +397,11 @@ export default function App() {
 
     setSaving(true);
     try {
+      const targetUserId = viewingUserId || user.id;
       const { error } = await supabase
         .from('app_settings')
         .upsert({
-          setting_key: `${user.id}_classes_config`,
+          setting_key: `${targetUserId}_classes_config`,
           setting_value: JSON.stringify(filtered),
           updated_at: new Date().toISOString()
         }, { onConflict: 'setting_key' });
@@ -553,10 +556,11 @@ export default function App() {
         if (needsConfigSave) {
           setClassesConfig(updatedConfig);
           try {
+            const targetUserId = viewingUserId || user.id;
             await supabase
               .from('app_settings')
               .upsert({
-                setting_key: `${user.id}_classes_config`,
+                setting_key: `${targetUserId}_classes_config`,
                 setting_value: JSON.stringify(updatedConfig),
                 updated_at: new Date().toISOString()
               }, { onConflict: 'setting_key' });
@@ -573,7 +577,7 @@ export default function App() {
       if (!silent) alert('Đã lưu dữ liệu thành công!');
     }
     if (!silent) setSaving(false);
-  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle, classesConfig, captureStateString]);
+  }, [user, month, year, className, teacherName, schoolName, location, students, standardMeals, footerDay, footerMonth, footerYear, markSymbol, signature, bookTitle, classesConfig, captureStateString, viewingUserId]);
 
   const handleClassNameSubmit = useCallback(async () => {
     const trimmed = classNameInput.trim().toUpperCase();
@@ -592,10 +596,11 @@ export default function App() {
           const updatedConfig = [...classesConfig, { className: trimmed, teacherName: teacherName }];
           setClassesConfig(updatedConfig);
           try {
+            const targetUserId = viewingUserId || user.id;
             await supabase
               .from('app_settings')
               .upsert({
-                setting_key: `${user.id}_classes_config`,
+                setting_key: `${targetUserId}_classes_config`,
                 setting_value: JSON.stringify(updatedConfig),
                 updated_at: new Date().toISOString()
               }, { onConflict: 'setting_key' });
@@ -605,7 +610,7 @@ export default function App() {
         }
       }
     }
-  }, [classNameInput, className, classesConfig, teacherName, user, handleSave]);
+  }, [classNameInput, className, classesConfig, teacherName, user, handleSave, viewingUserId]);
 
 
 
@@ -635,80 +640,101 @@ export default function App() {
     }
   }, [isInitializing, isDataFetching, user]);
 
-  // Fetch user preferences once on login
+  // Fetch user preferences and classes configuration sequentially on mount or user change
   useEffect(() => {
     if (!user) return;
-    const fetchPrefs = async () => {
-      let savedClassName = '';
-      let savedTeacherName = '';
+    
+    let isCurrent = true;
 
-      const { data } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', `${user.id}_preferences`)
-        .maybeSingle();
-      
-      if (data && data.setting_value) {
-        try {
-          const prefs = JSON.parse(data.setting_value);
-          if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
-          if (prefs.signature !== undefined) setSignature(prefs.signature);
-          if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
-          if (prefs.className !== undefined) {
-            savedClassName = prefs.className;
+    const fetchUserData = async () => {
+      try {
+        const targetUserId = viewingUserId || user.id;
+
+        // 1. Fetch classes config
+        const { data: classesData } = await supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', `${targetUserId}_classes_config`)
+          .maybeSingle();
+
+        if (!isCurrent) return;
+
+        let classes: { className: string; teacherName: string }[] = [];
+        if (classesData && classesData.setting_value) {
+          try {
+            classes = JSON.parse(classesData.setting_value);
+          } catch (e) {
+            console.error("Error parsing classes config", e);
           }
-          if (prefs.teacherName !== undefined) {
-            savedTeacherName = prefs.teacherName;
+        }
+        setClassesConfig(classes);
+
+        // 2. Fetch general preferences
+        const { data: prefsData } = await supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', `${user.id}_preferences`)
+          .maybeSingle();
+
+        if (!isCurrent) return;
+
+        let preferredClassName = '';
+        let preferredTeacherName = '';
+
+        if (prefsData && prefsData.setting_value) {
+          try {
+            const prefs = JSON.parse(prefsData.setting_value);
+            if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
+            if (prefs.signature !== undefined) setSignature(prefs.signature);
+            if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
+            if (prefs.className !== undefined) {
+              preferredClassName = prefs.className;
+            }
+            if (prefs.teacherName !== undefined) {
+              preferredTeacherName = prefs.teacherName;
+            }
+          } catch (e) {
+            console.error("Error parsing preferences", e);
           }
-        } catch (e) {
-          console.error("Error parsing preferences", e);
         }
-      }
 
-      // Fetch classes configuration
-      const { data: classesData } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', `${user.id}_classes_config`)
-        .maybeSingle();
+        // 3. Determine final active className and teacherName
+        let finalClassName = '';
+        let finalTeacherName = '';
 
-      let classes: { className: string; teacherName: string }[] = [];
-      if (classesData && classesData.setting_value) {
-        try {
-          classes = JSON.parse(classesData.setting_value);
-        } catch (e) {
-          console.error("Error parsing classes config", e);
-        }
-      }
-
-      if (!classes) {
-        classes = [];
-      }
-      setClassesConfig(classes);
-      
-      // Determine what class to use
-      if (savedClassName) {
-        setClassName(savedClassName);
-        setClassNameInput(savedClassName);
-        if (savedTeacherName) {
-          setTeacherName(savedTeacherName);
+        if (classes.length > 0) {
+          // If there's a saved preferred class and it exists in the user's config, use it
+          const hasPreferredClass = classes.some(c => c.className === preferredClassName);
+          if (preferredClassName && hasPreferredClass) {
+            finalClassName = preferredClassName;
+            finalTeacherName = preferredTeacherName || classes.find(c => c.className === preferredClassName)?.teacherName || '';
+          } else {
+            // Otherwise, fallback to the first class in config
+            const first = classes[0];
+            finalClassName = first.className;
+            finalTeacherName = first.teacherName;
+          }
         } else {
-          const match = classes.find(c => c.className === savedClassName);
-          if (match) setTeacherName(match.teacherName);
+          // No classes configured yet, fallback to preferred class if exists
+          finalClassName = preferredClassName || '';
+          finalTeacherName = preferredTeacherName || '';
         }
-      } else if (classes.length > 0) {
-        const first = classes[0];
-        setClassName(first.className);
-        setClassNameInput(first.className);
-        setTeacherName(first.teacherName);
-      } else {
-        setClassName('');
-        setClassNameInput('');
-        setTeacherName('');
+
+        setClassName(finalClassName);
+        setClassNameInput(finalClassName);
+        setTeacherName(finalTeacherName);
+
+      } catch (err) {
+        console.error("Error loading user initial data:", err);
       }
     };
-    fetchPrefs();
-  }, [user]);
+
+    fetchUserData();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [user, viewingUserId]);
 
   const fetchSavedSheets = async () => {
     if (!user) return;
@@ -768,6 +794,14 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
+    // If className is empty, do not query monthly_sheets as it represents a transitional loading state or no configured classes
+    if (!className) {
+      setStudents(INITIAL_STUDENTS);
+      return;
+    }
+
+    let isCurrent = true;
+
     const fetchData = async () => {
       setIsDataFetching(true);
       try {
@@ -780,6 +814,8 @@ export default function App() {
           .eq('year', year)
           .eq('class_name', className)
           .maybeSingle();
+
+        if (!isCurrent) return;
 
         if (error) {
           console.error('Error fetching data:', error);
@@ -816,6 +852,8 @@ export default function App() {
             .eq('setting_key', `${user.id}_prefs_${year}_${month}`)
             .maybeSingle();
           
+          if (!isCurrent) return;
+
           let fDay = new Date().getDate();
           let fMonth = new Date().getMonth() + 1;
           let fYear = new Date().getFullYear();
@@ -877,6 +915,8 @@ export default function App() {
             .order('month', { ascending: false })
             .limit(1)
             .maybeSingle();
+
+          if (!isCurrent) return;
 
           // Default date for new month
           let fDay = new Date().getDate();
@@ -942,6 +982,8 @@ export default function App() {
               .limit(1)
               .maybeSingle();
 
+            if (!isCurrent) return;
+
             if (genericLatestData) {
               fetchedSchoolName = genericLatestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
               fetchedLocation = genericLatestData.location || 'Suối Lư';
@@ -990,11 +1032,17 @@ export default function App() {
           setTimeout(scrollToToday, 500);
         }
       } finally {
-        setIsDataFetching(false);
+        if (isCurrent) {
+          setIsDataFetching(false);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      isCurrent = false;
+    };
   }, [user, month, year, className, classesConfig, viewingUserId]);
 
   const handleLogout = async () => {
