@@ -67,6 +67,50 @@ export default function App() {
   const [isDataFetching, setIsDataFetching] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // 1. If running inside the OAuth popup, parse the session and send it to the opener
+  useEffect(() => {
+    if (window.opener && window.location.hash.includes('access_token=')) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          window.opener.postMessage({ type: 'OAUTH_SUCCESS', session }, window.location.origin);
+          setTimeout(() => {
+            try {
+              window.close();
+            } catch (e) {
+              console.error('Failed to close popup:', e);
+            }
+          }, 500);
+        }
+      }).catch(err => {
+        console.error('Error fetching session in popup:', err);
+      });
+    }
+  }, []);
+
+  // 2. In the main window, listen for the message from the popup
+  useEffect(() => {
+    const handleOauthMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        const { session } = event.data;
+        if (session) {
+          supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          }).then(() => {
+            setUser(session.user);
+            setIsInitializing(false);
+            window.location.reload();
+          }).catch(err => {
+            console.error('Failed to set session in main window:', err);
+          });
+        }
+      }
+    };
+    window.addEventListener('message', handleOauthMessage);
+    return () => window.removeEventListener('message', handleOauthMessage);
+  }, []);
+
   const [schoolName, setSchoolName] = useState('TRƯỜNG PTDTBT TH&THCS SUỐI LƯ');
   const [bookTitle, setBookTitle] = useState('SỔ CHẤM CƠM LỚP:');
   const [className, setClassName] = useState('');
