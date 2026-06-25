@@ -27,6 +27,12 @@ create policy "Users can select their own sheets"
   on monthly_sheets for select
   using (auth.uid() = user_id);
 
+-- Create a policy that allows admins to manage all sheets
+create policy "Admins can manage all sheets"
+  on monthly_sheets for all
+  using (auth.jwt() ->> 'email' in ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com'))
+  with check (auth.jwt() ->> 'email' in ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com'));
+
 -- Create a policy that allows users to insert their own sheets
 create policy "Users can insert their own sheets"
   on monthly_sheets for insert
@@ -66,7 +72,7 @@ create policy "Users can manage their own preferences"
 -- Admins can manage all settings
 create policy "Admins can manage all settings"
   on app_settings for all
-  using (auth.jwt() ->> 'email' = 'vuhung@db.edu.vn');
+  using (auth.jwt() ->> 'email' in ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com'));
 
 -- Create a function to automatically set the phone column in auth.users from user_metadata
 create or replace function public.sync_phone_from_metadata()
@@ -108,7 +114,7 @@ alter table public.license_keys enable row level security;
 create policy "Admins can manage license keys"
   on public.license_keys
   for all
-  using (auth.jwt() ->> 'email' = 'vuhung@db.edu.vn');
+  using (auth.jwt() ->> 'email' in ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com'));
 
 -- Users can view their own license key
 create policy "Users can view their own license key"
@@ -227,7 +233,7 @@ create or replace function public.admin_reset_user_password(target_user_id uuid,
 returns json as $$
 begin
   -- Check if the caller is the admin
-  if auth.jwt() ->> 'email' != 'vuhung@db.edu.vn' then
+  if auth.jwt() ->> 'email' not in ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com') then
     return json_build_object('success', false, 'message', 'Bạn không có quyền thực hiện hành động này.');
   end if;
 
@@ -267,7 +273,7 @@ alter table public.access_logs enable row level security;
 create policy "Admins can view all access logs"
   on public.access_logs
   for select
-  using (auth.jwt() ->> 'email' = 'vuhung@db.edu.vn');
+  using (auth.jwt() ->> 'email' in ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com'));
 
 -- Users can view their own access logs
 create policy "Users can view their own access logs"
