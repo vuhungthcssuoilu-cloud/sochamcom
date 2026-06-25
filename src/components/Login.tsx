@@ -56,7 +56,7 @@ export default function Login() {
   // UI Config state
   const [uiConfigs, setUiConfigs] = useState({
     school_name: 'TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
-    header_title: 'HỆ THỐNG QUẢN LÝ NỘI TRÚ - SỔ CHẤM CƠM',
+    header_title: 'ỨNG DỤNG CHẤM CƠM DÀNH CHO GVCN',
     school_year: 'NĂM HỌC 2026 - 2027',
     footer_line1: '',
     footer_line2: 'Mọi thắc mắc về phần mềm xin liên hệ quản trị viên',
