@@ -57,8 +57,8 @@ export default function Login() {
   // UI Config state
   const [uiConfigs, setUiConfigs] = useState({
     school_name: 'TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
-    header_title: 'ỨNG DỤNG CHẤM CƠM DÀNH CHO GVCN',
-    school_year: 'NĂM HỌC 2026 - 2027',
+    header_title: 'HỆ THỐNG QUẢN LÝ NỘI TRÚ - SỔ CHẤM CƠM',
+    school_year: 'NĂM HỌC 2024 - 2025',
     footer_line1: '',
     footer_line2: 'Mọi thắc mắc về phần mềm xin liên hệ quản trị viên',
     footer_line3: 'Application developed by: Vũ Hùng - Email: vuhung@db.edu.vn'
@@ -260,11 +260,12 @@ export default function Login() {
         }
       });
 
-      // 2. Trigger Google Sign-In with metadata
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      // 2. Trigger Google Sign-In with metadata using popup-based flow
+      const { data: oauthData, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
+          skipBrowserRedirect: true,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -277,6 +278,30 @@ export default function Login() {
 
       if (oauthError) {
         setError(oauthError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (oauthData?.url) {
+        // Open Google Login in a popup window to prevent frame restrictions and top-level redirection errors
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          oauthData.url,
+          'supabase_google_oauth',
+          `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`
+        );
+
+        if (!popup) {
+          setError('Không thể mở cửa sổ đăng nhập. Vui lòng tắt trình chặn popup của trình duyệt.');
+        } else {
+          setSuccessMsg('Đã mở cửa sổ đăng nhập Google. Vui lòng hoàn tất đăng nhập trong cửa sổ mới.');
+        }
+      } else {
+        setError('Không nhận được đường dẫn đăng nhập từ hệ thống.');
       }
     } catch (err: any) {
       setError(err.message || 'Có lỗi xảy ra khi liên kết với Google.');
@@ -482,31 +507,54 @@ export default function Login() {
 
               <div className="pt-1">
                 {isRegisterMode && registerMethod === 'google' ? (
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-[#0b5394] hover:bg-[#094074] text-white font-bold py-2.5 px-4 rounded shadow hover:shadow-md transition-all text-sm"
-                  >
-                    <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" width="16" height="16">
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    {loading ? 'Đang xử lý...' : 'Đăng ký bằng tài khoản Google'}
-                  </button>
+                  <>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full flex items-center justify-center gap-2 bg-[#0b5394] hover:bg-[#094074] text-white font-bold py-2.5 px-4 rounded shadow hover:shadow-md transition-all text-sm"
+                    >
+                      <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" width="16" height="16">
+                        <path
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          fill="#34A853"
+                        />
+                        <path
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          fill="#EA4335"
+                        />
+                      </svg>
+                      {loading ? 'Đang xử lý...' : 'Đăng ký bằng tài khoản Google'}
+                    </button>
+
+                    <div className="mt-4 p-3.5 bg-blue-50 border border-blue-200 rounded text-xs text-blue-950 leading-relaxed space-y-2">
+                      <p className="font-bold text-[#0b5394] flex items-center gap-1">
+                        💡 Cấu hình này hoàn toàn MIỄN PHÍ. Để tránh lỗi nhảy về localhost:3000:
+                      </p>
+                      <p>
+                        Mặc định Supabase sẽ chuyển hướng về <code className="bg-gray-100 px-1 py-0.5 rounded text-red-600 font-mono font-semibold">localhost:3000</code> nếu bạn chưa thêm URL của ứng dụng vào cấu hình.
+                      </p>
+                      <p className="font-semibold text-gray-800">
+                        Hãy thực hiện 2 bước đơn giản sau:
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1.5 text-gray-700">
+                        <li>
+                          Sao chép URL hiện tại này của bạn:<br />
+                          <span className="font-mono font-semibold select-all break-all text-[#0b5394] underline">{window.location.origin}</span>
+                        </li>
+                        <li>
+                          Truy cập vào trang quản trị <b>Supabase Dashboard</b> dự án của bạn &rarr; <b>Authentication</b> &rarr; <b>URL Configuration</b> &rarr; tại phần <b>Allowed Redirect URLs</b>, nhấp vào nút <b>Add URL</b>, dán URL đã sao chép ở trên vào và bấm <b>Save</b>.
+                        </li>
+                      </ol>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <button
