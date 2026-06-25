@@ -247,10 +247,12 @@ export default function App() {
   useEffect(() => {
     const clearStaleSession = () => {
       console.warn('Clearing stale session due to refresh token error');
+      let keysCleared = 0;
       // Manually clear any supabase related items from localStorage to be safe
       Object.keys(localStorage).forEach(key => {
         if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
           localStorage.removeItem(key);
+          keysCleared++;
         }
       });
       // Also clear session storage
@@ -263,6 +265,11 @@ export default function App() {
       supabase.auth.signOut({ scope: 'local' }).catch(() => {
         supabase.auth.signOut().catch(() => {});
       });
+
+      // Reload to completely reset Supabase JS client and avoid background promise errors
+      if (keysCleared > 0) {
+        window.location.reload();
+      }
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
