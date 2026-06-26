@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar, Settings } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
-import Login from './components/Login';
+const Login = lazy(() => import('./components/Login'));
 const Admin = lazy(() => import('./components/Admin'));
 
 // --- Types ---
@@ -244,8 +244,31 @@ export default function App() {
         return;
       }
 
+      const cacheKey = `license_cache_${user.id}`;
+      const cached = localStorage.getItem(cacheKey);
+      let hasValidCache = false;
+
+      if (cached) {
+        try {
+          const cacheData = JSON.parse(cached);
+          // If cached less than 1 day ago and was not expired
+          if (Date.now() - cacheData.timestamp < 24 * 60 * 60 * 1000) {
+            setIsLicenseExpired(cacheData.expired);
+            setLicenseExpiryDate(cacheData.expiryDate);
+            setLicenseDuration(cacheData.duration);
+            if (!cacheData.expired) {
+              hasValidCache = true;
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing license cache:', e);
+        }
+      }
+
       const checkLicense = async () => {
-        setLicenseCheckLoading(true);
+        if (!hasValidCache) {
+          setLicenseCheckLoading(true);
+        }
         try {
           // Fetch the latest license key used by this user
           const { data, error } = await supabase
@@ -257,23 +280,37 @@ export default function App() {
           
           if (error) {
             console.error('Error fetching license key:', error);
-            setIsLicenseExpired(true);
+            if (!hasValidCache) {
+              setIsLicenseExpired(true);
+            }
           } else if (data && data.length > 0 && data[0].used_at) {
             const usedAtDate = new Date(data[0].used_at);
             const duration = data[0].duration_days || 365;
             const expirationDate = new Date(usedAtDate);
             expirationDate.setDate(expirationDate.getDate() + duration);
             
-            setLicenseExpiryDate(expirationDate.toLocaleDateString('vi-VN'));
+            const expDateStr = expirationDate.toLocaleDateString('vi-VN');
+            setLicenseExpiryDate(expDateStr);
             setLicenseDuration(duration);
 
-            if (new Date() > expirationDate) {
-              setIsLicenseExpired(true);
-            } else {
-              setIsLicenseExpired(false);
-            }
+            const expired = new Date() > expirationDate;
+            setIsLicenseExpired(expired);
+            
+            // Cache license info
+            localStorage.setItem(cacheKey, JSON.stringify({
+              expired,
+              expiryDate: expDateStr,
+              duration,
+              timestamp: Date.now()
+            }));
           } else {
              setIsLicenseExpired(true);
+             localStorage.setItem(cacheKey, JSON.stringify({
+               expired: true,
+               expiryDate: null,
+               duration: 0,
+               timestamp: Date.now()
+             }));
           }
         } catch (err) {
           console.error('Failed to check license:', err);
@@ -706,44 +743,107 @@ export default function App() {
     
     let isCurrent = true;
 
+    // Load from local storage cache immediately so UI gets updated instantly
+    const cacheClassesKey = `classes_config_cache_${user.id}`;
+    const cachePrefsKey = `preferences_cache_${user.id}`;
+    
+    const cachedClasses = localStorage.getItem(cacheClassesKey);
+    const cachedPrefs = localStorage.getItem(cachePrefsKey);
+
+    let initialClasses: { className: string; teacherName: string }[] = [];
+    let initialPreferredClass = '';
+    let initialPreferredTeacher = '';
+
+    if (cachedClasses) {
+      try {
+        initialClasses = JSON.parse(cachedClasses);
+        setClassesConfig(initialClasses);
+      } catch (e) {
+        console.error("Error parsing cached classes", e);
+      }
+    }
+
+    if (cachedPrefs) {
+      try {
+        const prefs = JSON.parse(cachedPrefs);
+        if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
+        if (prefs.signature !== undefined) setSignature(prefs.signature);
+        if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
+        if (prefs.className !== undefined) {
+          initialPreferredClass = prefs.className;
+        }
+        if (prefs.teacherName !== undefined) {
+          initialPreferredTeacher = prefs.teacherName;
+        }
+      } catch (e) {
+        console.error("Error parsing cached preferences", e);
+      }
+    }
+
+    if (initialClasses.length > 0 || initialPreferredClass) {
+      let finalClassName = '';
+      let finalTeacherName = '';
+
+      if (initialClasses.length > 0) {
+        const hasPreferredClass = initialClasses.some(c => c.className === initialPreferredClass);
+        if (initialPreferredClass && hasPreferredClass) {
+          finalClassName = initialPreferredClass;
+          finalTeacherName = initialPreferredTeacher || initialClasses.find(c => c.className === initialPreferredClass)?.teacherName || '';
+        } else {
+          const first = initialClasses[0];
+          finalClassName = first.className;
+          finalTeacherName = first.teacherName;
+        }
+      } else {
+        finalClassName = initialPreferredClass;
+        finalTeacherName = initialPreferredTeacher;
+      }
+
+      if (finalClassName) {
+        setClassName(finalClassName);
+        setClassNameInput(finalClassName);
+        setTeacherName(finalTeacherName);
+      }
+    }
+
     const fetchUserData = async () => {
       try {
         const targetUserId = viewingUserId || user.id;
 
-        // 1. Fetch classes config
-        const { data: classesData } = await supabase
-          .from('app_settings')
-          .select('setting_value')
-          .eq('setting_key', `${targetUserId}_classes_config`)
-          .maybeSingle();
+        // Run queries in parallel using Promise.all to save database round-trip latency!
+        const [classesResult, prefsResult] = await Promise.all([
+          supabase
+            .from('app_settings')
+            .select('setting_value')
+            .eq('setting_key', `${targetUserId}_classes_config`)
+            .maybeSingle(),
+          supabase
+            .from('app_settings')
+            .select('setting_value')
+            .eq('setting_key', `${user.id}_preferences`)
+            .maybeSingle()
+        ]);
 
         if (!isCurrent) return;
 
         let classes: { className: string; teacherName: string }[] = [];
-        if (classesData && classesData.setting_value) {
+        if (classesResult.data && classesResult.data.setting_value) {
           try {
-            classes = JSON.parse(classesData.setting_value);
+            classes = JSON.parse(classesResult.data.setting_value);
+            // Update cache
+            localStorage.setItem(cacheClassesKey, classesResult.data.setting_value);
           } catch (e) {
             console.error("Error parsing classes config", e);
           }
         }
         setClassesConfig(classes);
 
-        // 2. Fetch general preferences
-        const { data: prefsData } = await supabase
-          .from('app_settings')
-          .select('setting_value')
-          .eq('setting_key', `${user.id}_preferences`)
-          .maybeSingle();
-
-        if (!isCurrent) return;
-
         let preferredClassName = '';
         let preferredTeacherName = '';
 
-        if (prefsData && prefsData.setting_value) {
+        if (prefsResult.data && prefsResult.data.setting_value) {
           try {
-            const prefs = JSON.parse(prefsData.setting_value);
+            const prefs = JSON.parse(prefsResult.data.setting_value);
             if (prefs.markSymbol !== undefined) setMarkSymbol(prefs.markSymbol);
             if (prefs.signature !== undefined) setSignature(prefs.signature);
             if (prefs.bookTitle !== undefined) setBookTitle(prefs.bookTitle);
@@ -753,12 +853,14 @@ export default function App() {
             if (prefs.teacherName !== undefined) {
               preferredTeacherName = prefs.teacherName;
             }
+            // Update cache
+            localStorage.setItem(cachePrefsKey, prefsResult.data.setting_value);
           } catch (e) {
             console.error("Error parsing preferences", e);
           }
         }
 
-        // 3. Determine final active className and teacherName
+        // Determine final active className and teacherName
         let finalClassName = '';
         let finalTeacherName = '';
 
@@ -865,20 +967,51 @@ export default function App() {
 
     let isCurrent = true;
 
+    // Load from cache first for instant SWR rendering (No latency!)
+    const cacheSheetKey = `sheet_cache_${user.id}_${year}_${month}_${className}`;
+    const cachedSheetStr = localStorage.getItem(cacheSheetKey);
+    if (cachedSheetStr) {
+      try {
+        const cached = JSON.parse(cachedSheetStr);
+        if (cached.students !== undefined) setStudents(cached.students);
+        if (cached.teacherName !== undefined) setTeacherName(cached.teacherName);
+        if (cached.schoolName !== undefined) setSchoolName(cached.schoolName);
+        if (cached.location !== undefined) setLocation(cached.location);
+        if (cached.standardMeals !== undefined) setStandardMeals(cached.standardMeals);
+        if (cached.footerDay !== undefined) setFooterDay(cached.footerDay);
+        if (cached.footerMonth !== undefined) setFooterMonth(cached.footerMonth);
+        if (cached.footerYear !== undefined) setFooterYear(cached.footerYear);
+      } catch (e) {
+        console.error("Error loading cached sheet:", e);
+      }
+    }
+
     const fetchData = async () => {
       setIsDataFetching(true);
       try {
         const currentUserId = viewingUserId || user.id;
-        const { data, error } = await supabase
-          .from('monthly_sheets')
-          .select('*')
-          .eq('user_id', currentUserId)
-          .eq('month', month)
-          .eq('year', year)
-          .eq('class_name', className)
-          .maybeSingle();
+        
+        // Execute queries in parallel using Promise.all to save database round-trip latency!
+        const [sheetResult, prefsResult] = await Promise.all([
+          supabase
+            .from('monthly_sheets')
+            .select('*')
+            .eq('user_id', currentUserId)
+            .eq('month', month)
+            .eq('year', year)
+            .eq('class_name', className)
+            .maybeSingle(),
+          supabase
+            .from('app_settings')
+            .select('setting_value')
+            .eq('setting_key', `${user.id}_prefs_${year}_${month}`)
+            .maybeSingle()
+        ]);
 
         if (!isCurrent) return;
+
+        const { data, error } = sheetResult;
+        const { data: monthPrefsData } = prefsResult;
 
         if (error) {
           console.error('Error fetching data:', error);
@@ -968,15 +1101,6 @@ export default function App() {
           setLocation(fetchedLocation);
           setStudents(data.students || INITIAL_STUDENTS);
           setStandardMeals(data.standard_meals || { S: 0, T1: 0, T2: 0 });
-          
-          // Fetch month-specific preferences (footer date)
-          const { data: monthPrefsData } = await supabase
-            .from('app_settings')
-            .select('setting_value')
-            .eq('setting_key', `${user.id}_prefs_${year}_${month}`)
-            .maybeSingle();
-          
-          if (!isCurrent) return;
 
           let fDay = new Date().getDate();
           let fMonth = new Date().getMonth() + 1;
@@ -1023,6 +1147,18 @@ export default function App() {
             signature,
           });
           isDirty.current = false;
+
+          // Cache fresh data to localStorage
+          localStorage.setItem(cacheSheetKey, JSON.stringify({
+            students: data.students || INITIAL_STUDENTS,
+            teacherName: finalTeacherName,
+            schoolName: fetchedSchoolName,
+            location: fetchedLocation,
+            standardMeals: data.standard_meals || { S: 0, T1: 0, T2: 0 },
+            footerDay: fDay,
+            footerMonth: fMonth,
+            footerYear: fYear,
+          }));
         } else {
           // Find if there is a configured GVCN for this class in classesConfig
           const configMatch = classesConfig.find(c => c.className === className);
@@ -1167,6 +1303,18 @@ export default function App() {
             signature,
           });
           isDirty.current = false;
+
+          // Cache fallback / newly initialized month data to localStorage
+          localStorage.setItem(cacheSheetKey, JSON.stringify({
+            students: copiedStudents,
+            teacherName: finalTeacherName,
+            schoolName: fetchedSchoolName,
+            location: fetchedLocation,
+            standardMeals: { S: 0, T1: 0, T2: 0 },
+            footerDay: fDay,
+            footerMonth: fMonth,
+            footerYear: fYear,
+          }));
         }
         } // Close the useBackup else block
 
@@ -1254,7 +1402,18 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-[#0b5394] border-t-transparent rounded-full animate-spin mb-4"></div>
+            <div className="text-gray-500 text-sm font-medium">Đang tải trang đăng nhập...</div>
+          </div>
+        </div>
+      }>
+        <Login />
+      </Suspense>
+    );
   }
 
   const handleRenewLicense = async () => {
