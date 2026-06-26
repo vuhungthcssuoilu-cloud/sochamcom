@@ -1,7 +1,7 @@
 -- Create a table to store monthly sheets for each teacher/class
 create table monthly_sheets (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users not null,
+  user_id uuid references auth.users on delete cascade not null,
   month int not null,
   year int not null,
   class_name text,
@@ -276,7 +276,7 @@ create trigger mark_license_key_used_on_signup
 -- Create a table for user access logs
 create table if not exists public.access_logs (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users not null,
+  user_id uuid references auth.users on delete cascade not null,
   email text not null,
   access_time timestamptz default now(),
   ip_address text
