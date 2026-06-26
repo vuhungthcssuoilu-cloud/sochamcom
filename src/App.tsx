@@ -2705,8 +2705,17 @@ export default function App() {
                 <span>Quản lý mã bản quyền</span>
               </button>
             )}
-            <div className="flex items-center gap-1.5 text-indigo-700 bg-white px-2.5 py-1 rounded-full shadow-sm border border-indigo-100">
-              <UserIcon className="w-3.5 h-3.5" />
+            <div className={`flex items-center gap-1.5 text-indigo-700 bg-white ${user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? 'pl-1 pr-2.5 py-0.5' : 'px-2.5 py-1'} rounded-full shadow-sm border border-indigo-100`}>
+              {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+                <img 
+                  src={user.user_metadata.avatar_url || user.user_metadata.picture} 
+                  alt="Avatar" 
+                  className="w-6 h-6 rounded-full object-cover border border-indigo-200"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <UserIcon className="w-3.5 h-3.5" />
+              )}
               <span className="text-xs font-bold">{user?.user_metadata?.full_name || user?.email}</span>
             </div>
             <button 
