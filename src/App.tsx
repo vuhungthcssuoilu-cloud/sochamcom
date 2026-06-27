@@ -8,8 +8,8 @@ import { createPortal } from 'react-dom';
 import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar, Settings } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
-const Login = lazy(() => import('./components/Login'));
-const Admin = lazy(() => import('./components/Admin'));
+import Login from './components/Login';
+import Admin from './components/Admin';
 
 // --- Types ---
 
@@ -62,8 +62,43 @@ const INITIAL_STUDENTS: Student[] = [];
 
 export default function App() {
   // --- State ---
-  const [user, setUser] = useState<any>(null);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [user, setUser] = useState<any>(() => {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token')))) {
+          const item = localStorage.getItem(key);
+          if (item) {
+            const parsed = JSON.parse(item);
+            if (parsed && parsed.currentSession && parsed.currentSession.user) {
+              return parsed.currentSession.user;
+            } else if (parsed && parsed.user) {
+              return parsed.user;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading fast auth cache:', e);
+    }
+    return null;
+  });
+
+  const [isInitializing, setIsInitializing] = useState(() => {
+    try {
+      let hasToken = false;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token')))) {
+          hasToken = true;
+          break;
+        }
+      }
+      return hasToken;
+    } catch (e) {
+      return true;
+    }
+  });
   const [isDataFetching, setIsDataFetching] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -1390,7 +1425,7 @@ export default function App() {
     }
   };
 
-  if (isInitializing || licenseCheckLoading) {
+  if ((isInitializing && !user) || licenseCheckLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="flex flex-col items-center">
@@ -1402,18 +1437,7 @@ export default function App() {
   }
 
   if (!user) {
-    return (
-      <Suspense fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-[#0b5394] border-t-transparent rounded-full animate-spin mb-4"></div>
-            <div className="text-gray-500 text-sm font-medium">Đang tải trang đăng nhập...</div>
-          </div>
-        </div>
-      }>
-        <Login />
-      </Suspense>
-    );
+    return <Login />;
   }
 
   const handleRenewLicense = async () => {
@@ -1497,15 +1521,7 @@ export default function App() {
   }
 
   if (showAdmin) {
-    return (
-      <Suspense fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      }>
-        <Admin onBack={() => setShowAdmin(false)} onViewSheet={handleViewTeacherSheet} />
-      </Suspense>
-    );
+    return <Admin onBack={() => setShowAdmin(false)} onViewSheet={handleViewTeacherSheet} />;
   }
 
   // --- Handlers ---
