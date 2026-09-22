@@ -1013,9 +1013,18 @@ export default function App() {
         if (cached.schoolName !== undefined) setSchoolName(cached.schoolName);
         if (cached.location !== undefined) setLocation(cached.location);
         if (cached.standardMeals !== undefined) setStandardMeals(cached.standardMeals);
-        if (cached.footerDay !== undefined) setFooterDay(cached.footerDay);
-        if (cached.footerMonth !== undefined) setFooterMonth(cached.footerMonth);
-        if (cached.footerYear !== undefined) setFooterYear(cached.footerYear);
+        
+        const today = new Date();
+        const isCurrentMonthYear = (month === today.getMonth() && year === today.getFullYear());
+        if (isCurrentMonthYear) {
+          setFooterDay(today.getDate());
+          setFooterMonth(today.getMonth() + 1);
+          setFooterYear(today.getFullYear());
+        } else {
+          if (cached.footerDay !== undefined) setFooterDay(cached.footerDay);
+          if (cached.footerMonth !== undefined) setFooterMonth(cached.footerMonth);
+          if (cached.footerYear !== undefined) setFooterYear(cached.footerYear);
+        }
       } catch (e) {
         console.error("Error loading cached sheet:", e);
       }
@@ -1091,9 +1100,15 @@ export default function App() {
           if (backupInfo.location !== undefined) setLocation(backupInfo.location);
           if (backupInfo.standardMeals !== undefined) setStandardMeals(backupInfo.standardMeals);
           
-          if (backupInfo.footerDay !== undefined) setFooterDay(backupInfo.footerDay);
-          if (backupInfo.footerMonth !== undefined) setFooterMonth(backupInfo.footerMonth);
-          if (backupInfo.footerYear !== undefined) setFooterYear(backupInfo.footerYear);
+          const today = new Date();
+          const isCurrentMonthYear = (month === today.getMonth() && year === today.getFullYear());
+          let backupFDay = isCurrentMonthYear ? today.getDate() : (backupInfo.footerDay !== undefined ? backupInfo.footerDay : today.getDate());
+          let backupFMonth = isCurrentMonthYear ? (today.getMonth() + 1) : (backupInfo.footerMonth !== undefined ? backupInfo.footerMonth : today.getMonth() + 1);
+          let backupFYear = isCurrentMonthYear ? today.getFullYear() : (backupInfo.footerYear !== undefined ? backupInfo.footerYear : today.getFullYear());
+
+          setFooterDay(backupFDay);
+          setFooterMonth(backupFMonth);
+          setFooterYear(backupFYear);
 
           lastSavedDataRef.current = JSON.stringify({
             students: backupInfo.students || INITIAL_STUDENTS,
@@ -1103,9 +1118,9 @@ export default function App() {
             schoolName: backupInfo.schoolName || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ',
             location: backupInfo.location || 'Suối Lư',
             standardMeals: backupInfo.standardMeals || { S: 0, T1: 0, T2: 0 },
-            footerDay: backupInfo.footerDay !== undefined ? backupInfo.footerDay : new Date().getDate(),
-            footerMonth: backupInfo.footerMonth !== undefined ? backupInfo.footerMonth : new Date().getMonth() + 1,
-            footerYear: backupInfo.footerYear !== undefined ? backupInfo.footerYear : new Date().getFullYear(),
+            footerDay: backupFDay,
+            footerMonth: backupFMonth,
+            footerYear: backupFYear,
             markSymbol,
             signature,
           });
@@ -1141,30 +1156,29 @@ export default function App() {
           let fMonth = new Date().getMonth() + 1;
           let fYear = new Date().getFullYear();
 
-          if (monthPrefsData && monthPrefsData.setting_value) {
+          const today = new Date();
+          const isCurrentMonthYear = (month === today.getMonth() && year === today.getFullYear());
+
+          if (isCurrentMonthYear) {
+            fDay = today.getDate();
+            fMonth = today.getMonth() + 1;
+            fYear = today.getFullYear();
+            setFooterDay(today.getDate());
+            setFooterMonth(today.getMonth() + 1);
+            setFooterYear(today.getFullYear());
+          } else if (monthPrefsData && monthPrefsData.setting_value) {
             const mPrefs = JSON.parse(monthPrefsData.setting_value);
             if (mPrefs.footerDay !== undefined) { fDay = mPrefs.footerDay; setFooterDay(mPrefs.footerDay); }
             if (mPrefs.footerMonth !== undefined) { fMonth = mPrefs.footerMonth; setFooterMonth(mPrefs.footerMonth); }
             if (mPrefs.footerYear !== undefined) { fYear = mPrefs.footerYear; setFooterYear(mPrefs.footerYear); }
           } else {
-            // Default to current date if selected month & year match today's date, otherwise default to end of month
-            const today = new Date();
-            if (month === today.getMonth() && year === today.getFullYear()) {
-              fDay = today.getDate();
-              fMonth = today.getMonth() + 1;
-              fYear = today.getFullYear();
-              setFooterDay(today.getDate());
-              setFooterMonth(today.getMonth() + 1);
-              setFooterYear(today.getFullYear());
-            } else {
-              const lastDay = new Date(year, month + 1, 0).getDate();
-              fDay = lastDay;
-              fMonth = month + 1;
-              fYear = year;
-              setFooterDay(lastDay);
-              setFooterMonth(month + 1);
-              setFooterYear(year);
-            }
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            fDay = lastDay;
+            fMonth = month + 1;
+            fYear = year;
+            setFooterDay(lastDay);
+            setFooterMonth(month + 1);
+            setFooterYear(year);
           }
 
           lastSavedDataRef.current = JSON.stringify({
