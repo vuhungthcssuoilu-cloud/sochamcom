@@ -52,6 +52,16 @@ const getDayOfWeek = (day: number, month: number, year: number) => {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+const toTitleCase = (str: string) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .filter(word => word !== '')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const isAdminEmail = (email: string | undefined | null): boolean => {
   if (!email) return false;
   const lower = email.toLowerCase();
@@ -164,7 +174,8 @@ export default function App() {
   });
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
-  const [location, setLocation] = useState('Suối Lư');
+  const [location, setLocation] = useState('');
+  const [defaultSigningLocation, setDefaultSigningLocation] = useState('Suối Lư');
   const [teacherName, setTeacherName] = useState('');
   const [standardMeals, setStandardMeals] = useState({ S: 0, T1: 0, T2: 0 });
   const [footerDay, setFooterDay] = useState(new Date().getDate());
@@ -371,15 +382,26 @@ export default function App() {
     const clearStaleSession = () => {
       console.warn('Clearing stale session due to refresh token error');
       let keysCleared = 0;
+      
+      // Get current reload count to prevent infinite loop
+      const reloadCountStr = sessionStorage.getItem('auth_reload_count') || '0';
+      const reloadCount = parseInt(reloadCountStr, 10);
+
       // Manually clear any supabase related items from localStorage to be safe
       Object.keys(localStorage).forEach(key => {
-        if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+        if (
+          key.includes('supabase.auth.token') || 
+          key.includes('auth-token') ||
+          (key.startsWith('sb-') && key.endsWith('-auth-token'))
+        ) {
           localStorage.removeItem(key);
           keysCleared++;
         }
       });
-      // Also clear session storage
+      
+      // Clear session storage, but preserve reload count so we don't loop
       sessionStorage.clear();
+      sessionStorage.setItem('auth_reload_count', reloadCountStr);
       
       setUser(null);
       setIsInitializing(false);
@@ -390,8 +412,13 @@ export default function App() {
       });
 
       // Reload to completely reset Supabase JS client and avoid background promise errors
-      if (keysCleared > 0) {
+      if (reloadCount < 2) {
+        sessionStorage.setItem('auth_reload_count', (reloadCount + 1).toString());
         window.location.reload();
+      } else {
+        console.error('Stopping infinite reload loop in auth recovery');
+        // Clear reload count now that we stopped
+        sessionStorage.removeItem('auth_reload_count');
       }
     };
 
@@ -484,31 +511,41 @@ export default function App() {
     }
   }, [user, isInitializing]);
 
-  // Update tab title and favicon
+  // Update tab title and fetch global configurations
   useEffect(() => {
     document.title = "Chấm ăn học sinh nội trú";
     
-    // Fetch global favicon
-    const fetchFavicon = async () => {
-      const { data } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'global_favicon')
-        .single();
-      
-      if (data && data.setting_value) {
-        const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-        if (link) {
-          link.href = data.setting_value;
-        } else {
-          const newLink = document.createElement('link');
-          newLink.rel = 'icon';
-          newLink.href = data.setting_value;
-          document.head.appendChild(newLink);
+    const fetchGlobalConfigs = async () => {
+      try {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('setting_key, setting_value')
+          .in('setting_key', ['global_favicon', 'global_signing_location']);
+        
+        if (data) {
+          const faviconObj = data.find(d => d.setting_key === 'global_favicon');
+          if (faviconObj && faviconObj.setting_value) {
+            const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+            if (link) {
+              link.href = faviconObj.setting_value;
+            } else {
+              const newLink = document.createElement('link');
+              newLink.rel = 'icon';
+              newLink.href = faviconObj.setting_value;
+              document.head.appendChild(newLink);
+            }
+          }
+
+          const locationObj = data.find(d => d.setting_key === 'global_signing_location');
+          if (locationObj && locationObj.setting_value) {
+            setDefaultSigningLocation(locationObj.setting_value);
+          }
         }
+      } catch (err) {
+        console.warn('Failed to fetch global configurations on mount:', err);
       }
     };
-    fetchFavicon();
+    fetchGlobalConfigs();
   }, []);
 
   // Save Classes Config function
@@ -1145,7 +1182,7 @@ export default function App() {
             bookTitle,
             teacherName: backupInfo.teacherName || '',
             schoolName: backupInfo.schoolName || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ',
-            location: backupInfo.location || 'Suối Lư',
+            location: backupInfo.location || '',
             standardMeals: backupInfo.standardMeals || { S: 0, T1: 0, T2: 0 },
             footerDay: backupFDay,
             footerMonth: backupFMonth,
@@ -1158,7 +1195,7 @@ export default function App() {
 
         if (data) {
           let fetchedSchoolName = data.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-          let fetchedLocation = data.location || 'Suối Lư';
+          let fetchedLocation = data.location || '';
           
           // Auto-correct typo if found
           if (fetchedSchoolName.includes('SUỐI LỪ')) {
@@ -1295,13 +1332,13 @@ export default function App() {
 
           let copiedStudents = INITIAL_STUDENTS;
           let fetchedSchoolName = 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-          let fetchedLocation = 'Suối Lư';
+          let fetchedLocation = '';
           let finalTeacherName = configuredTeacherName;
 
           if (latestData) {
             console.log(`Copying student list for ${className} from ${latestData.month + 1}/${latestData.year}`);
             fetchedSchoolName = latestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-            fetchedLocation = latestData.location || 'Suối Lư';
+            fetchedLocation = latestData.location || '';
 
             // Auto-correct typo if found
             if (fetchedSchoolName.includes('SUỐI LỪ')) {
@@ -1348,7 +1385,7 @@ export default function App() {
 
             if (genericLatestData) {
               fetchedSchoolName = genericLatestData.school_name || 'TRƯỜNG PTDTBT TH&THCS SUỐI LƯ';
-              fetchedLocation = genericLatestData.location || 'Suối Lư';
+              fetchedLocation = genericLatestData.location || '';
 
               if (fetchedSchoolName.includes('SUỐI LỪ')) {
                 fetchedSchoolName = fetchedSchoolName.replace('SUỐI LỪ', 'SUỐI LƯ');
@@ -2017,34 +2054,39 @@ export default function App() {
       schoolRow.font = { name: 'Times New Roman', size: 11, bold: true };
       sheet.mergeCells(1, 1, 1, 5);
 
-      // Row 2: Title
+      // Row 2: Branch Name
+      const branchRow = sheet.addRow([location ? `PHÂN HIỆU: ${location.toUpperCase()}` : 'PHÂN HIỆU: .......................']);
+      branchRow.font = { name: 'Times New Roman', size: 10, bold: true };
+      sheet.mergeCells(2, 1, 2, 5);
+
+      // Row 3: Title
       const titleRow = sheet.addRow(['', '', `${bookTitle} ${className} THÁNG ${month + 1}/${year}`]);
       titleRow.getCell(3).font = { name: 'Times New Roman', size: 14, bold: true };
       titleRow.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
-      sheet.mergeCells(2, 3, 2, lastColIdx);
+      sheet.mergeCells(3, 3, 3, lastColIdx);
       titleRow.height = 30;
 
-      // Row 3: Day Numbers
-      const row3Vals = ['STT', 'Ngày', ...days.flatMap(d => [String(d), '', ''])];
-      if (isSecondHalf) row3Vals.push('Số ngày ăn trong tháng', '', '', '', '', '');
-      const row3 = sheet.addRow(row3Vals);
-
-      // Row 4: Day of Week
-      const row4Vals = ['', 'Thứ', ...days.flatMap(d => [getDayOfWeek(d, month, year), '', ''])];
-      if (isSecondHalf) row4Vals.push('Số ngày báo ăn', '', '', 'Số ngày không báo ăn', '', '');
+      // Row 4: Day Numbers
+      const row4Vals = ['STT', 'Ngày', ...days.flatMap(d => [String(d), '', ''])];
+      if (isSecondHalf) row4Vals.push('Số ngày ăn trong tháng', '', '', '', '', '');
       const row4 = sheet.addRow(row4Vals);
 
-      // Row 5: Họ và tên & S, T, T
-      const row5Vals = ['', 'Họ và tên', ...days.flatMap(() => ['S', 'T', 'T'])];
-      if (isSecondHalf) row5Vals.push('S', 'T', 'T', 'S', 'T', 'T');
+      // Row 5: Day of Week
+      const row5Vals = ['', 'Thứ', ...days.flatMap(d => [getDayOfWeek(d, month, year), '', ''])];
+      if (isSecondHalf) row5Vals.push('Số ngày báo ăn', '', '', 'Số ngày không báo ăn', '', '');
       const row5 = sheet.addRow(row5Vals);
 
+      // Row 6: Họ và tên & S, T, T
+      const row6Vals = ['', 'Họ và tên', ...days.flatMap(() => ['S', 'T', 'T'])];
+      if (isSecondHalf) row6Vals.push('S', 'T', 'T', 'S', 'T', 'T');
+      const row6 = sheet.addRow(row6Vals);
+
       // Merges based on image
-      sheet.mergeCells(3, 1, 5, 1); // STT spans 3 rows (3, 4, 5)
-      sheet.mergeCells(3, 2, 4, 2); // Diagonal cell spans 2 rows (3, 4)
+      sheet.mergeCells(4, 1, 6, 1); // STT spans 3 rows (4, 5, 6)
+      sheet.mergeCells(4, 2, 5, 2); // Diagonal cell spans 2 rows (4, 5)
       
-      // Diagonal line for cell B3:B4
-      const diagonalCell = sheet.getCell(3, 2);
+      // Diagonal line for cell B4:B5
+      const diagonalCell = sheet.getCell(4, 2);
       diagonalCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       diagonalCell.border = {
         top: { style: 'thin' },
@@ -2063,19 +2105,19 @@ export default function App() {
 
       let colIdx = 3;
       days.forEach(() => {
-        sheet.mergeCells(3, colIdx, 3, colIdx + 2); // Day Num
-        sheet.mergeCells(4, colIdx, 4, colIdx + 2); // DOW
+        sheet.mergeCells(4, colIdx, 4, colIdx + 2); // Day Num
+        sheet.mergeCells(5, colIdx, 5, colIdx + 2); // DOW
         colIdx += 3;
       });
 
       if (isSecondHalf) {
-        sheet.mergeCells(3, colIdx, 3, colIdx + 5); // "Số ngày ăn..."
-        sheet.mergeCells(4, colIdx, 4, colIdx + 2); // "Có báo"
-        sheet.mergeCells(4, colIdx + 3, 4, colIdx + 5); // "Không báo"
+        sheet.mergeCells(4, colIdx, 4, colIdx + 5); // "Số ngày ăn..."
+        sheet.mergeCells(5, colIdx, 5, colIdx + 2); // "Có báo"
+        sheet.mergeCells(5, colIdx + 3, 5, colIdx + 5); // "Không báo"
       }
 
-      // Styling Headers (Rows 3, 4, 5)
-      [3, 4, 5].forEach(r => {
+      // Styling Headers (Rows 4, 5, 6)
+      [4, 5, 6].forEach(r => {
         const row = sheet.getRow(r);
         row.font = { name: 'Times New Roman', size: 11, bold: true };
         row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -2147,7 +2189,7 @@ export default function App() {
 
       // Borders
       const lastRowIdx = totalRow.number;
-      for (let r = 3; r <= lastRowIdx; r++) {
+      for (let r = 4; r <= lastRowIdx; r++) {
         for (let c = 1; c <= lastColIdx; c++) {
           const cell = sheet.getCell(r, c);
           cell.border = {
@@ -2170,7 +2212,7 @@ export default function App() {
         const sigColStart = lastColIdx - 8;
         sheet.mergeCells(sigRowIdx, sigColStart, sigRowIdx, lastColIdx);
         const dateCell = sheet.getCell(sigRowIdx, sigColStart);
-        dateCell.value = `${location}, ngày ${footerDay} tháng ${footerMonth} năm ${footerYear}`;
+        dateCell.value = `${toTitleCase(defaultSigningLocation)}, ngày ${footerDay} tháng ${footerMonth} năm ${footerYear}`;
         dateCell.alignment = { horizontal: 'center' };
         dateCell.font = { name: 'Times New Roman', size: 11, italic: true };
 
@@ -2253,8 +2295,18 @@ export default function App() {
           type="text" 
           value={schoolName} 
           onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
-          className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[400px] bg-transparent"
+          className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[450px] bg-transparent"
         />
+        <div className="flex items-center gap-1 text-[11px] font-bold uppercase text-gray-700/90 mt-0.5">
+          <span>PHÂN HIỆU:</span>
+          <input 
+            type="text" 
+            value={location} 
+            onChange={(e) => setLocation(e.target.value.toUpperCase())}
+            className="font-bold text-[11px] border-none focus:ring-0 p-0 bg-transparent uppercase w-48"
+            placeholder="......................."
+          />
+        </div>
         <div className="text-center font-bold uppercase text-base mt-2 flex justify-center items-center flex-wrap">
           <input 
             type="text" 
@@ -2635,13 +2687,7 @@ export default function App() {
             <div className="flex justify-end pr-8">
               <div className="text-center w-80 print:break-inside-avoid">
                 <p className="italic text-[13px] mb-1 flex items-center justify-center gap-0.5">
-                  <input 
-                    type="text" 
-                    value={location} 
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="border-none focus:ring-0 p-0 min-w-[60px] text-right bg-transparent italic"
-                    style={{ width: `${Math.max(location.length * 9, 60)}px` }}
-                  />
+                  <span className="font-medium italic">{toTitleCase(defaultSigningLocation)}</span>
                   , ngày 
                   <input 
                     type="text" 
@@ -3217,7 +3263,7 @@ export default function App() {
                   <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
                     <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1">Cơ sở giáo dục & Tên sổ</div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Trường:</span>
+                      <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Trường:</span>
                       <input 
                         type="text" 
                         value={schoolName} 
@@ -3227,7 +3273,17 @@ export default function App() {
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Tên sổ:</span>
+                      <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Phân hiệu:</span>
+                      <input 
+                        type="text" 
+                        value={location} 
+                        onChange={(e) => setLocation(e.target.value.toUpperCase())}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-inner"
+                        placeholder="Phân hiệu trường"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Tên sổ:</span>
                       <input 
                         type="text" 
                         value={bookTitle} 
@@ -3235,6 +3291,12 @@ export default function App() {
                         className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-inner"
                         placeholder="Tên Sổ"
                       />
+                    </div>
+                    <div className="flex items-center gap-2 pt-1 border-t border-dashed border-gray-100">
+                      <span className="text-xs font-semibold text-gray-500 w-16 shrink-0">Địa danh ký:</span>
+                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 flex-1 truncate text-center select-none" title="Địa danh ký được Admin đồng bộ toàn hệ thống">
+                        {toTitleCase(defaultSigningLocation) || 'Chưa thiết lập'}
+                      </span>
                     </div>
                   </div>
 
@@ -3425,8 +3487,18 @@ export default function App() {
               type="text" 
               value={schoolName} 
               onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
-              className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[400px] bg-transparent"
+              className="font-bold text-sm uppercase border-none focus:ring-0 p-0 w-full sm:w-[450px] bg-transparent"
             />
+            <div className="flex items-center gap-1 text-[11px] font-bold uppercase text-gray-700/90 mt-0.5">
+              <span>PHÂN HIỆU:</span>
+              <input 
+                type="text" 
+                value={location} 
+                onChange={(e) => setLocation(e.target.value.toUpperCase())}
+                className="font-bold text-[11px] border-none focus:ring-0 p-0 bg-transparent uppercase w-48"
+                placeholder="......................."
+              />
+            </div>
           </div>
           <div className="text-center font-bold uppercase text-lg mt-2 flex flex-wrap justify-center items-center">
             <input 

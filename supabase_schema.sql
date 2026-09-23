@@ -58,10 +58,20 @@ create table if not exists app_settings (
 -- Enable RLS for app_settings to fix security vulnerability
 alter table app_settings enable row level security;
 
--- Anyone can read global settings (favicon, login background)
+-- Anyone can read global settings (favicon, login background, signing location, school metadata)
 create policy "Anyone can read global settings"
   on app_settings for select
-  using (setting_key in ('global_favicon', 'login_bg_image'));
+  using (setting_key in (
+    'global_favicon', 
+    'login_bg_image', 
+    'global_signing_location', 
+    'school_name', 
+    'header_title', 
+    'school_year', 
+    'footer_line1', 
+    'footer_line2', 
+    'footer_line3'
+  ));
 
 -- Authenticated users can manage their own preferences (keys starting with their UID)
 create policy "Users can manage their own preferences"
