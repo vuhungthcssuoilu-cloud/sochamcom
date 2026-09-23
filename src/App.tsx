@@ -511,42 +511,50 @@ export default function App() {
     }
   }, [user, isInitializing]);
 
-  // Update tab title and fetch global configurations
-  useEffect(() => {
-    document.title = "Chấm ăn học sinh nội trú";
-    
-    const fetchGlobalConfigs = async () => {
-      try {
-        const { data } = await supabase
-          .from('app_settings')
-          .select('setting_key, setting_value')
-          .in('setting_key', ['global_favicon', 'global_signing_location']);
-        
-        if (data) {
-          const faviconObj = data.find(d => d.setting_key === 'global_favicon');
-          if (faviconObj && faviconObj.setting_value) {
-            const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-            if (link) {
-              link.href = faviconObj.setting_value;
-            } else {
-              const newLink = document.createElement('link');
-              newLink.rel = 'icon';
-              newLink.href = faviconObj.setting_value;
-              document.head.appendChild(newLink);
-            }
-          }
-
-          const locationObj = data.find(d => d.setting_key === 'global_signing_location');
-          if (locationObj && locationObj.setting_value) {
-            setDefaultSigningLocation(locationObj.setting_value);
+  // Fetch global configurations (favicon, signing location)
+  const fetchGlobalConfigs = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', ['global_favicon', 'global_signing_location']);
+      
+      if (data) {
+        const faviconObj = data.find(d => d.setting_key === 'global_favicon');
+        if (faviconObj && faviconObj.setting_value) {
+          const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+          if (link) {
+            link.href = faviconObj.setting_value;
+          } else {
+            const newLink = document.createElement('link');
+            newLink.rel = 'icon';
+            newLink.href = faviconObj.setting_value;
+            document.head.appendChild(newLink);
           }
         }
-      } catch (err) {
-        console.warn('Failed to fetch global configurations on mount:', err);
+
+        const locationObj = data.find(d => d.setting_key === 'global_signing_location');
+        if (locationObj && locationObj.setting_value) {
+          setDefaultSigningLocation(locationObj.setting_value);
+        }
       }
-    };
-    fetchGlobalConfigs();
+    } catch (err) {
+      console.warn('Failed to fetch global configurations:', err);
+    }
   }, []);
+
+  // Update tab title and fetch configurations on mount
+  useEffect(() => {
+    document.title = "Chấm ăn học sinh nội trú";
+    fetchGlobalConfigs();
+  }, [fetchGlobalConfigs]);
+
+  // Re-fetch global configurations instantly when exiting Admin mode
+  useEffect(() => {
+    if (!showAdmin) {
+      fetchGlobalConfigs();
+    }
+  }, [showAdmin, fetchGlobalConfigs]);
 
   // Save Classes Config function
   const handleSaveClassesConfig = async (newConfig: { className: string; teacherName: string }[]) => {
