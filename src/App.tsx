@@ -700,17 +700,25 @@ export default function App() {
     const { error: prefsError } = await supabase
       .from('app_settings')
       .upsert({
-        setting_key: `${user.id}_preferences`,
+        setting_key: `${currentUserId}_preferences`,
         setting_value: JSON.stringify(prefs),
         updated_at: new Date().toISOString()
       }, { onConflict: 'setting_key' });
+
+    // Update local storage cache for preferences
+    try {
+      const cachePrefsKey = `preferences_cache_${currentUserId}`;
+      localStorage.setItem(cachePrefsKey, JSON.stringify(prefs));
+    } catch (e) {
+      console.warn('Failed to update local preferences cache:', e);
+    }
 
     // Save month-specific preferences
     const monthPrefs = { footerDay, footerMonth, footerYear };
     const { error: monthPrefsError } = await supabase
       .from('app_settings')
       .upsert({
-        setting_key: `${user.id}_prefs_${year}_${month}`,
+        setting_key: `${currentUserId}_prefs_${year}_${month}`,
         setting_value: JSON.stringify(monthPrefs),
         updated_at: new Date().toISOString()
       }, { onConflict: 'setting_key' });
@@ -829,10 +837,19 @@ export default function App() {
     if (!user) return;
     
     let isCurrent = true;
+    const targetUserId = viewingUserId || user.id;
+
+    // Reset states to default to prevent bleed from previous user/teacher
+    setMarkSymbol('+');
+    setSignature(null);
+    setBookTitle('SỔ CHẤM CƠM LỚP:');
+    setClassName('');
+    setClassNameInput('');
+    setTeacherName('');
 
     // Load from local storage cache immediately so UI gets updated instantly
-    const cacheClassesKey = `classes_config_cache_${user.id}`;
-    const cachePrefsKey = `preferences_cache_${user.id}`;
+    const cacheClassesKey = `classes_config_cache_${targetUserId}`;
+    const cachePrefsKey = `preferences_cache_${targetUserId}`;
     
     const cachedClasses = localStorage.getItem(cacheClassesKey);
     const cachedPrefs = localStorage.getItem(cachePrefsKey);
@@ -907,7 +924,7 @@ export default function App() {
           supabase
             .from('app_settings')
             .select('setting_value')
-            .eq('setting_key', `${user.id}_preferences`)
+            .eq('setting_key', `${targetUserId}_preferences`)
             .maybeSingle()
         ]);
 
@@ -1062,9 +1079,10 @@ export default function App() {
     }
 
     let isCurrent = true;
+    const currentUserId = viewingUserId || user.id;
 
     // Load from cache first for instant SWR rendering (No latency!)
-    const cacheSheetKey = `sheet_cache_${user.id}_${year}_${month}_${className}`;
+    const cacheSheetKey = `sheet_cache_${currentUserId}_${year}_${month}_${className}`;
     const cachedSheetStr = localStorage.getItem(cacheSheetKey);
     if (cachedSheetStr) {
       try {
@@ -1094,8 +1112,6 @@ export default function App() {
     const fetchData = async () => {
       setIsDataFetching(true);
       try {
-        const currentUserId = viewingUserId || user.id;
-        
         // Execute queries in parallel using Promise.all to save database round-trip latency!
         const [sheetResult, prefsResult] = await Promise.all([
           supabase
@@ -1109,7 +1125,7 @@ export default function App() {
           supabase
             .from('app_settings')
             .select('setting_value')
-            .eq('setting_key', `${user.id}_prefs_${year}_${month}`)
+            .eq('setting_key', `${currentUserId}_prefs_${year}_${month}`)
             .maybeSingle()
         ]);
 
@@ -1136,7 +1152,7 @@ export default function App() {
         }
 
         // Check for local backup
-        const backupKey = `attendance_backup_${user.id}_${year}_${month}_${className}`;
+        const backupKey = `attendance_backup_${currentUserId}_${year}_${month}_${className}`;
         const localBackupStr = localStorage.getItem(backupKey);
         let backupInfo: any = null;
         if (localBackupStr) {
@@ -1491,9 +1507,10 @@ export default function App() {
       timestamp: Date.now()
     };
 
-    const key = `attendance_backup_${user.id}_${year}_${month}_${className}`;
+    const currentUserId = viewingUserId || user.id;
+    const key = `attendance_backup_${currentUserId}_${year}_${month}_${className}`;
     localStorage.setItem(key, JSON.stringify(backupData));
-  }, [students, className, month, year, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, user]);
+  }, [students, className, month, year, teacherName, schoolName, location, standardMeals, footerDay, footerMonth, footerYear, user, viewingUserId]);
 
   const handleViewTeacherSheet = useCallback((targetUserId: string, targetYear: number, targetMonth: number, targetClassName: string) => {
     setViewingUserId(targetUserId);
