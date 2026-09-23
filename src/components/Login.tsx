@@ -57,7 +57,7 @@ export default function Login() {
   // UI Config state
   const [uiConfigs, setUiConfigs] = useState({
     school_name: 'TRƯỜNG PTDTBT TH VÀ THCS SUỐI LƯ',
-    header_title: 'ỨNG DỤNG CHẤM ĂN DÀNH CHO GVCN',
+    header_title: 'ỨNG DỤNG CHẤM CƠM DÀNH CHO GVCN',
     school_year: 'NĂM HỌC 2026 - 2027',
     footer_line1: '',
     footer_line2: 'Mọi thắc mắc về phần mềm xin liên hệ quản trị viên',
@@ -86,8 +86,8 @@ export default function Login() {
             return hasChanges ? newConfigs : prev;
           });
         }
-      } catch (err) {
-        console.error('Error fetching UI configs:', err);
+      } catch (err: any) {
+        console.warn('Error fetching UI configs (using defaults):', err?.message || err);
       }
     };
     

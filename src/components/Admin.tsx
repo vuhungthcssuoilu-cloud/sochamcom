@@ -78,7 +78,7 @@ export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onV
         .like('setting_key', '%_classes_config');
       
       if (error) {
-        console.error('Error fetching classes configs:', error);
+        console.warn('Could not fetch classes configs:', error.message);
         return;
       }
 

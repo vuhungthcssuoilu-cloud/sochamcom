@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar, Settings } from 'lucide-react';
+import { Printer, Save, Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, Upload, LogOut, FileSpreadsheet, Copy, ClipboardPaste, Maximize2, Minimize2, User as UserIcon, Info, X, Key, Calendar, Settings, Globe, ExternalLink } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 import Login from './components/Login';
@@ -198,6 +198,8 @@ export default function App() {
   const [savedSheets, setSavedSheets] = useState<any[]>([]);
   const [isSavedSheetsOpen, setIsSavedSheetsOpen] = useState(false);
   const [isLoadingSavedSheets, setIsLoadingSavedSheets] = useState(false);
+  const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
+  const [isConfigExpanded, setIsConfigExpanded] = useState(false);
 
   // Record user access
   useEffect(() => {
@@ -220,8 +222,8 @@ export default function App() {
             ip_address: ip
           }]);
           hasRecordedAccess.current = true;
-        } catch (err) {
-          console.error('Failed to record access log:', err);
+        } catch (err: any) {
+          console.warn('Failed to record access log (non-critical):', err?.message || err);
         }
       };
       recordAccess();
@@ -314,7 +316,12 @@ export default function App() {
             .limit(1);
           
           if (error) {
-            console.error('Error fetching license key:', error);
+            const isNetErr = error.message?.includes('Failed to fetch') || error.details?.includes('Failed to fetch');
+            if (isNetErr) {
+              console.warn('Network issue fetching license key, using cache if available:', error.message);
+            } else {
+              console.error('Error fetching license key:', error);
+            }
             if (!hasValidCache) {
               setIsLicenseExpired(true);
             }
@@ -948,7 +955,12 @@ export default function App() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching saved sheets:', error);
+        const isNetErr = error.message?.includes('Failed to fetch') || error.details?.includes('Failed to fetch');
+        if (isNetErr) {
+          console.warn('Network issue fetching saved sheets:', error.message);
+        } else {
+          console.error('Error fetching saved sheets:', error);
+        }
       } else {
         const sortedData = (data || []).sort((a, b) => {
           if (b.year !== a.year) {
@@ -958,8 +970,12 @@ export default function App() {
         });
         setSavedSheets(sortedData);
       }
-    } catch (err) {
-      console.error('Failed to fetch saved sheets:', err);
+    } catch (err: any) {
+      if (err?.message?.includes('Failed to fetch')) {
+        console.warn('Network error in fetchSavedSheets:', err.message);
+      } else {
+        console.error('Failed to fetch saved sheets:', err);
+      }
     } finally {
       setIsLoadingSavedSheets(false);
     }
@@ -1057,8 +1073,21 @@ export default function App() {
         const { data, error } = sheetResult;
         const { data: monthPrefsData } = prefsResult;
 
+        const isNetworkError = error?.message?.includes('Failed to fetch') || 
+                               error?.details?.includes('Failed to fetch') ||
+                               error?.name === 'TypeError';
+
         if (error) {
-          console.error('Error fetching data:', error);
+          if (isNetworkError) {
+            console.warn('Network issue fetching data (falling back to cache/backup):', error.message);
+          } else {
+            console.error('Error fetching data:', error);
+          }
+        }
+
+        // If network failed and we already restored from local cache, keep it safely
+        if (error && isNetworkError && cachedSheetStr) {
+          return;
         }
 
         // Check for local backup
@@ -1209,6 +1238,12 @@ export default function App() {
             footerYear: fYear,
           }));
         } else {
+          // If network error occurred, do not execute further remote queries
+          if (isNetworkError) {
+            console.warn('Skipping remote prior-sheet queries due to network error');
+            return;
+          }
+
           // Find if there is a configured GVCN for this class in classesConfig
           const configMatch = classesConfig.find(c => c.className === className);
           const configuredTeacherName = configMatch ? configMatch.teacherName : '';
@@ -1370,6 +1405,15 @@ export default function App() {
         const today = new Date();
         if (month === today.getMonth() && year === today.getFullYear()) {
           setTimeout(scrollToToday, 500);
+        }
+      } catch (err: any) {
+        const isNetErr = err?.name === 'TypeError' ||
+                         err?.message?.includes('Failed to fetch') ||
+                         err?.message?.includes('NetworkError');
+        if (isNetErr) {
+          console.warn('Network issue in fetchData, keeping current/cached state:', err.message);
+        } else {
+          console.error('Unexpected error fetching data:', err);
         }
       } finally {
         if (isCurrent) {
@@ -2693,79 +2737,220 @@ export default function App() {
           </button>
         </div>
       )}
-      {/* Controls - Hidden on Print */}
-      <div className={`w-full mb-3 bg-white rounded-xl shadow-md border border-gray-300 print:hidden ${isFullScreen ? 'hidden' : ''}`}>
+      {/* Controls - Fixed/Sticky on Scroll - Hidden on Print */}
+      <div className={`w-full mb-3 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-300 print:hidden sticky top-0 z-40 transition-all ${isFullScreen ? 'hidden' : ''}`}>
         
-        {/* Top bar of control panel for User Info */}
-        <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-200 bg-indigo-50/70 rounded-t-xl shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="text-xs text-indigo-900/60 font-medium flex items-center gap-2">
-              Phần mềm Sổ Chấm Cơm Nội Trú
-              {isAdminEmail(user?.email) && viewingUserId && viewingUserId !== user.id && (
-                <div className="flex items-center gap-1">
-                  <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded text-[10px] font-bold">
-                    Đang xem: {teacherName || 'Giáo viên khác'}
-                  </span>
-                  <button 
-                    onClick={() => setViewingUserId(user.id)}
-                    className="text-[10px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded transition-colors"
-                    title="Thoát chế độ xem và quay về bảng của tôi"
-                  >
-                    Thoát
-                  </button>
-                </div>
-              )}
-            </div>
-            {!isAdminEmail(user?.email) && licenseExpiryDate && (
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/50 rounded-full border border-indigo-100/50">
-                <div className={`w-1.5 h-1.5 rounded-full ${isLicenseExpired ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-                <span className="text-[10px] font-bold text-indigo-800/70">
-                  {licenseDuration === 30 ? 'Dùng thử' : 'Bản quyền'}: Hết hạn {licenseExpiryDate}
+        {isMenuCollapsed ? (
+          /* Compact Sticky Bar */
+          <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 flex-wrap bg-white/95 rounded-xl">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 font-extrabold text-indigo-950 text-xs sm:text-sm mr-1">
+                <span className="p-1 bg-indigo-100 text-indigo-700 rounded-md shadow-xs">
+                  <Save className="w-3.5 h-3.5" />
+                </span>
+                <span className="hidden sm:inline">Sổ Chấm Cơm</span>
+                <span className="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-bold border border-indigo-200">
+                  {classNameInput || className || 'Lớp'}
                 </span>
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {isAdminEmail(user?.email) && (
-              <button 
-                onClick={() => setShowAdmin(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded-full transition-colors text-xs font-bold border border-indigo-200"
-              >
-                <Key className="w-3.5 h-3.5" />
-                <span>Quản lý mã bản quyền</span>
-              </button>
-            )}
-            <div className={`flex items-center gap-1.5 text-indigo-700 bg-white ${user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? 'pl-1 pr-2.5 py-0.5' : 'px-2.5 py-1'} rounded-full shadow-sm border border-indigo-100`}>
-              {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
-                <img 
-                  src={user.user_metadata.avatar_url || user.user_metadata.picture} 
-                  alt="Avatar" 
-                  className="w-6 h-6 rounded-full object-cover border border-indigo-200"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <UserIcon className="w-3.5 h-3.5" />
-              )}
-              <span className="text-xs font-bold">{user?.user_metadata?.full_name || user?.email}</span>
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-full transition-colors text-xs font-bold border border-red-100"
-              title="Đăng xuất"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Đăng xuất</span>
-            </button>
-          </div>
-        </div>
 
-        {/* Warning Banner */}
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-2.5 text-amber-800 text-xs sm:text-sm font-medium">
-          <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-          <div>
-            <span className="font-bold text-amber-900">Lưu ý quan trọng:</span> Mọi thiết lập xong của các tháng phải nhấn vào nút <span className="font-bold text-indigo-700 underline">Lưu dữ liệu</span> thì dữ liệu mới được ghi.
+              {/* Month Navigator */}
+              <div className="flex items-center bg-gray-100 hover:bg-gray-200/80 rounded-lg p-0.5 border border-gray-200 relative">
+                <button onClick={prevMonth} className="p-1 hover:bg-white rounded text-gray-700" title="Tháng trước">
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="px-2 text-xs font-bold text-indigo-950 min-w-[75px] text-center">
+                  T{month + 1}/{year}
+                </span>
+                <button onClick={nextMonth} className="p-1 hover:bg-white rounded text-gray-700" title="Tháng sau">
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                {isDataFetching && (
+                  <div className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  setMonth(today.getMonth());
+                  setYear(today.getFullYear());
+                  setTimeout(scrollToToday, 400);
+                }}
+                className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-[11px] font-bold shadow-xs"
+                title="Quay về tháng hiện tại và nhảy đến hôm nay"
+              >
+                Hôm nay
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <button 
+                onClick={() => handleSave()}
+                disabled={saving}
+                className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-bold text-xs shadow-xs disabled:opacity-50"
+                title="Lưu dữ liệu chấm cơm"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>{saving ? 'Đang lưu...' : 'Lưu dữ liệu'}</span>
+              </button>
+
+              <button 
+                onClick={autoFillMeals}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 rounded-lg transition-all font-bold text-xs shadow-xs"
+                title="Chấm tự động cả tháng (Trừ chiều T6, T7, CN)"
+              >
+                <ClipboardPaste className="w-3.5 h-3.5 text-amber-600" />
+                <span className="hidden sm:inline">Chấm tự động</span>
+              </button>
+
+              <button 
+                onClick={addStudent}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 rounded-lg transition-all font-bold text-xs shadow-xs"
+                title="Thêm học sinh mới"
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Thêm HS</span>
+              </button>
+
+              <button 
+                onClick={() => window.print()}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-700 text-white hover:bg-slate-800 rounded-lg transition-all font-bold text-xs shadow-xs"
+                title="In sổ (PDF)"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">In sổ</span>
+              </button>
+
+              <button 
+                onClick={handleExportExcel}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-green-700 text-white hover:bg-green-800 rounded-lg transition-all font-bold text-xs shadow-xs"
+                title="Xuất file Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Excel</span>
+              </button>
+
+              <div className="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-300 p-0.5 shadow-xs">
+                <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-5 h-5 hover:bg-gray-200 rounded text-xs font-extrabold flex items-center justify-center text-slate-700">-</button>
+                <span className="text-[10px] font-extrabold w-7 text-center text-slate-700">{zoomLevel}%</span>
+                <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-5 h-5 hover:bg-gray-200 rounded text-xs font-extrabold flex items-center justify-center text-slate-700">+</button>
+              </div>
+
+              <a 
+                href="https://thcsxadung.db.edu.vn" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all shadow-xs group"
+                title="Cổng thông tin điện tử trường: thcsxadung.db.edu.vn"
+              >
+                <Globe className="w-3.5 h-3.5 text-blue-600 group-hover:rotate-45 transition-transform" />
+                <span className="hidden xl:inline">thcsxadung.db.edu.vn</span>
+                <span className="xl:hidden">Website</span>
+                <ExternalLink className="w-3 h-3 text-indigo-400" />
+              </a>
+
+              <button
+                onClick={() => setIsMenuCollapsed(false)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg transition-all font-bold text-xs shadow-xs"
+                title="Mở rộng đầy đủ bảng điều khiển"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>Mở rộng</span>
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Full Expanded Menu */
+          <>
+            {/* Top bar of control panel for User Info */}
+            <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-200 bg-indigo-50/70 rounded-t-xl shadow-xs flex-wrap gap-2">
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                <div className="text-xs text-indigo-900/60 font-medium flex items-center gap-2">
+                  Phần mềm Sổ Chấm Cơm Nội Trú
+                  {isAdminEmail(user?.email) && viewingUserId && viewingUserId !== user.id && (
+                    <div className="flex items-center gap-1">
+                      <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded text-[10px] font-bold">
+                        Đang xem: {teacherName || 'Giáo viên khác'}
+                      </span>
+                      <button 
+                        onClick={() => setViewingUserId(user.id)}
+                        className="text-[10px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded transition-colors"
+                        title="Thoát chế độ xem và quay về bảng của tôi"
+                      >
+                        Thoát
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* School Website Badge in Top Bar */}
+                <a 
+                  href="https://thcsxadung.db.edu.vn" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-0.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-full transition-all text-[11px] font-bold shadow-xs hover:shadow hover:scale-[1.02] active:scale-95 group"
+                  title="Truy cập Trang thông tin điện tử: thcsxadung.db.edu.vn"
+                >
+                  <Globe className="w-3.5 h-3.5 text-cyan-200 group-hover:rotate-45 transition-transform" />
+                  <span className="hidden sm:inline">Cổng TTĐT:</span>
+                  <span className="underline decoration-blue-300 underline-offset-2">thcsxadung.db.edu.vn</span>
+                  <ExternalLink className="w-3 h-3 text-white/80" />
+                </a>
+
+                {!isAdminEmail(user?.email) && licenseExpiryDate && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/50 rounded-full border border-indigo-100/50">
+                    <div className={`w-1.5 h-1.5 rounded-full ${isLicenseExpired ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                    <span className="text-[10px] font-bold text-indigo-800/70">
+                      {licenseDuration === 30 ? 'Dùng thử' : 'Bản quyền'}: Hết hạn {licenseExpiryDate}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {isAdminEmail(user?.email) && (
+                  <button 
+                    onClick={() => setShowAdmin(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded-full transition-colors text-xs font-bold border border-indigo-200"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    <span>Quản lý mã bản quyền</span>
+                  </button>
+                )}
+                <div className={`flex items-center gap-1.5 text-indigo-700 bg-white ${user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? 'pl-1 pr-2.5 py-0.5' : 'px-2.5 py-1'} rounded-full shadow-xs border border-indigo-100`}>
+                  {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+                    <img 
+                      src={user.user_metadata.avatar_url || user.user_metadata.picture} 
+                      alt="Avatar" 
+                      className="w-6 h-6 rounded-full object-cover border border-indigo-200"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <UserIcon className="w-3.5 h-3.5" />
+                  )}
+                  <span className="text-xs font-bold">{user?.user_metadata?.full_name || user?.email}</span>
+                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-full transition-colors text-xs font-bold border border-red-100"
+                  title="Đăng xuất"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Warning Banner */}
+            <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-2.5 text-amber-800 text-xs sm:text-sm font-medium">
+              <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <span className="font-bold text-amber-900">Lưu ý quan trọng:</span> Mọi thiết lập xong của các tháng phải nhấn vào nút <span className="font-bold text-indigo-700 underline">Lưu dữ liệu</span> thì dữ liệu mới được ghi.
+              </div>
+            </div>
 
         <div className="p-4 sm:p-5">
           {/* Row 1: Header title, Month navigators, Primary saved sheets button */}
@@ -2832,17 +3017,39 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end lg:self-auto">
+            <div className="flex items-center gap-2 self-end lg:self-auto flex-wrap">
+              <a
+                href="https://thcsxadung.db.edu.vn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-lg transition-all text-xs font-bold shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-95 whitespace-nowrap group"
+                title="Mở Trang thông tin điện tử Trường THCS Xã Dung (thcsxadung.db.edu.vn)"
+              >
+                <Globe className="w-4 h-4 text-cyan-200 group-hover:rotate-12 transition-transform" />
+                <span className="hidden sm:inline">Website Nhà Trường</span>
+                <span className="sm:hidden">Website</span>
+                <ExternalLink className="w-3.5 h-3.5 text-cyan-200/90" />
+              </a>
+
               <button
                 onClick={() => {
                   fetchSavedSheets();
                   setIsSavedSheetsOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-150 rounded-lg transition-all text-xs font-bold shadow-sm whitespace-nowrap"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-150 rounded-lg transition-all text-xs font-bold shadow-xs whitespace-nowrap"
                 title="Xem danh sách các bảng chấm cơm đã lưu"
               >
                 <Calendar className="w-4 h-4" />
                 <span>Danh sách đã lưu</span>
+              </button>
+
+              <button
+                onClick={() => setIsMenuCollapsed(true)}
+                className="flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg transition-all text-xs font-bold shadow-xs whitespace-nowrap"
+                title="Thu gọn menu khi cuộn xuống xem danh sách học sinh"
+              >
+                <ChevronUp className="w-4 h-4 text-slate-600" />
+                <span className="hidden sm:inline">Thu gọn menu</span>
               </button>
             </div>
           </div>
@@ -2974,178 +3181,210 @@ export default function App() {
           </div>
         </div>
 
-        {/* Configuration Section - Hidden in Preview Mode or Fullscreen */}
+        {/* Configuration Section - Collapsible - Hidden in Preview Mode or Fullscreen */}
         {(!isPreviewMode && !isFullScreen) && (
-          <div className="w-full mt-0 pt-4 pb-4 border-t border-gray-200 px-4 sm:px-6 bg-slate-50/50 rounded-b-xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Cột 1: Thông tin Trường & Sổ */}
-              <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1">Cơ sở giáo dục & Tên sổ</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Trường:</span>
-                  <input 
-                    type="text" 
-                    value={schoolName} 
-                    onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-inner"
-                    placeholder="Tên Trường"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Tên sổ:</span>
-                  <input 
-                    type="text" 
-                    value={bookTitle} 
-                    onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-inner"
-                    placeholder="Tên Sổ"
-                  />
-                </div>
+          <div className="w-full mt-0 border-t border-gray-200 bg-slate-50/60 rounded-b-xl transition-all">
+            <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-indigo-950 uppercase tracking-wider text-[11px]">Thông số sổ:</span>
+                <span className="text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200 font-bold shadow-2xs">{schoolName}</span>
+                <span className="text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 font-extrabold shadow-2xs">Lớp: {classNameInput || className || '---'}</span>
+                <span className="text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200 font-semibold shadow-2xs">GVCN: {teacherName || '---'}</span>
+                <span className="text-gray-600 bg-white px-2 py-0.5 rounded border border-gray-200 font-medium shadow-2xs">Ký: {footerDay}/{footerMonth}/{footerYear}</span>
+                <span className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 font-mono font-bold shadow-2xs">
+                  Định mức: {standardMeals.S}|{standardMeals.T1}|{standardMeals.T2}
+                </span>
+                {signature ? (
+                  <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-semibold text-[11px]">✓ Đã có chữ ký</span>
+                ) : (
+                  <span className="text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200 text-[11px]">Chưa có chữ ký</span>
+                )}
               </div>
+              <button 
+                onClick={() => setIsConfigExpanded(!isConfigExpanded)}
+                className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-bold px-2.5 py-1 bg-white hover:bg-indigo-50 rounded-lg border border-gray-200 transition-colors shadow-2xs ml-auto"
+                title={isConfigExpanded ? 'Thu gọn các ô thiết lập' : 'Mở rộng các ô thiết lập'}
+              >
+                <span>{isConfigExpanded ? 'Thu gọn thiết lập' : 'Chỉnh sửa thiết lập'}</span>
+                {isConfigExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+            </div>
 
-              {/* Cột 2: Lớp học & Giáo viên chủ nhiệm */}
-              <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1 flex justify-between items-center">
-                  <span>Lớp học & GVCN</span>
-                  <button
-                    onClick={() => {
-                      setTempClassesConfig([...classesConfig]);
-                      setIsClassConfigModalOpen(true);
-                    }}
-                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-0.5"
-                    title="Cấu hình danh sách lớp & giáo viên chủ nhiệm"
-                  >
-                    <Settings className="w-3 h-3" />
-                    <span>Cấu hình Lớp</span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Lớp:</span>
-                  <input 
-                    type="text" 
-                    value={classNameInput} 
-                    list="classes-datalist"
-                    onChange={(e) => {
-                      const val = e.target.value.toUpperCase();
-                      setClassNameInput(val);
-                      const match = classesConfig.find(c => c.className === val);
-                      if (match) {
-                        setTeacherName(match.teacherName);
-                        setClassName(val);
-                      }
-                    }}
-                    onBlur={handleClassNameSubmit}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-inner uppercase text-center"
-                    placeholder="Lớp"
-                  />
-                  <datalist id="classes-datalist">
-                    {selectOptions.map((c) => (
-                      <option key={c.className} value={c.className}>{c.teacherName ? `GV: ${c.teacherName}` : ''}</option>
-                    ))}
-                  </datalist>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">GVCN:</span>
-                  <input 
-                    type="text" 
-                    value={teacherName} 
-                    onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold uppercase shadow-inner"
-                    placeholder="GVCN"
-                  />
-                </div>
-              </div>
-
-              {/* Cột 3: Thiết lập Ngày & Chữ ký */}
-              <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1">Ngày ký & Chữ ký</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Ngày ký:</span>
-                  <div className="flex items-center gap-1 flex-1">
-                    <input 
-                      type="number" 
-                      value={footerDay} 
-                      onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
-                      className="border border-gray-300 rounded-md px-1 py-1 text-xs w-10 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold"
-                    />
-                    <span className="text-gray-400 text-sm">/</span>
-                    <input 
-                      type="number" 
-                      value={footerMonth} 
-                      onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
-                      className="border border-gray-300 rounded-md px-1 py-1 text-xs w-10 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold"
-                    />
-                    <span className="text-gray-400 text-sm">/</span>
-                    <input 
-                      type="number" 
-                      value={footerYear} 
-                      onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
-                      className="border border-gray-300 rounded-md px-1 py-1 text-xs w-16 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold"
-                    />
+            {isConfigExpanded && (
+              <div className="p-4 sm:p-6 pt-1 border-t border-gray-200/70">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Cột 1: Thông tin Trường & Sổ */}
+                  <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1">Cơ sở giáo dục & Tên sổ</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Trường:</span>
+                      <input 
+                        type="text" 
+                        value={schoolName} 
+                        onChange={(e) => setSchoolName(e.target.value.toUpperCase())}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-inner"
+                        placeholder="Tên Trường"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Tên sổ:</span>
+                      <input 
+                        type="text" 
+                        value={bookTitle} 
+                        onChange={(e) => setBookTitle(e.target.value.toUpperCase())}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white uppercase font-bold shadow-inner"
+                        placeholder="Tên Sổ"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Chữ ký:</span>
-                  {signature ? (
-                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200 shadow-sm flex-1 justify-between h-[26px]">
-                      <img src={signature} alt="Signature" className="h-5 object-contain mix-blend-multiply" />
-                      <button 
-                        onClick={() => setSignature(null)} 
-                        className="text-red-500 hover:text-red-700 p-0.5 hover:bg-red-50 rounded transition-colors"
-                        title="Xóa chữ ký"
+
+                  {/* Cột 2: Lớp học & Giáo viên chủ nhiệm */}
+                  <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1 flex justify-between items-center">
+                      <span>Lớp học & GVCN</span>
+                      <button
+                        onClick={() => {
+                          setTempClassesConfig([...classesConfig]);
+                          setIsClassConfigModalOpen(true);
+                        }}
+                        className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-0.5"
+                        title="Cấu hình danh sách lớp & giáo viên chủ nhiệm"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <Settings className="w-3 h-3" />
+                        <span>Cấu hình Lớp</span>
                       </button>
                     </div>
-                  ) : (
-                    <button 
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => handleSignatureUpload(e as any);
-                        input.click();
-                      }}
-                      className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100 transition-colors shadow-sm text-xs font-semibold flex-1 justify-center h-[26px]"
-                    >
-                      <Upload className="w-3 h-3" />
-                      <span>Tải ảnh chữ ký</span>
-                    </button>
-                  )}
-                </div>
-              </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Lớp:</span>
+                      <input 
+                        type="text" 
+                        value={classNameInput} 
+                        list="classes-datalist"
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase();
+                          setClassNameInput(val);
+                          const match = classesConfig.find(c => c.className === val);
+                          if (match) {
+                            setTeacherName(match.teacherName);
+                            setClassName(val);
+                          }
+                        }}
+                        onBlur={handleClassNameSubmit}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleClassNameSubmit(); }}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold shadow-inner uppercase text-center"
+                        placeholder="Lớp"
+                      />
+                      <datalist id="classes-datalist">
+                        {selectOptions.map((c) => (
+                          <option key={c.className} value={c.className}>{c.teacherName ? `GV: ${c.teacherName}` : ''}</option>
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">GVCN:</span>
+                      <input 
+                        type="text" 
+                        value={teacherName} 
+                        onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold uppercase shadow-inner"
+                        placeholder="GVCN"
+                      />
+                    </div>
+                  </div>
 
-              {/* Cột 4: Ký hiệu & Công cụ đồng bộ/định mức */}
-              <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1">Cấu hình hiển thị & Định mức</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Ký hiệu:</span>
-                  <select 
-                    value={markSymbol} 
-                    onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold text-indigo-700 cursor-pointer"
-                  >
-                    <option value="+">Dấu cộng (+)</option>
-                    <option value="x">Dấu nhân (x)</option>
-                    <option value="1">Số một (1)</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Định mức:</span>
-                  <button 
-                    onClick={() => setIsQuotaModalOpen(true)}
-                    className="flex items-center justify-between bg-purple-50 hover:bg-purple-100 text-purple-700 px-2.5 py-1 rounded-md border border-purple-200 transition-colors shadow-sm text-xs font-bold flex-1 h-[26px]"
-                  >
-                    <span>Xem định mức</span>
-                    <span className="bg-purple-200 text-purple-900 px-1.5 py-0.2 rounded text-[10px] font-extrabold font-mono">
-                      {standardMeals.S}|{standardMeals.T1}|{standardMeals.T2}
-                    </span>
-                  </button>
+                  {/* Cột 3: Thiết lập Ngày & Chữ ký */}
+                  <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1">Ngày ký & Chữ ký</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Ngày ký:</span>
+                      <div className="flex items-center gap-1 flex-1">
+                        <input 
+                          type="number" 
+                          value={footerDay} 
+                          onChange={(e) => setFooterDay(parseInt(e.target.value) || 0)}
+                          className="border border-gray-300 rounded-md px-1 py-1 text-xs w-10 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold"
+                        />
+                        <span className="text-gray-400 text-sm">/</span>
+                        <input 
+                          type="number" 
+                          value={footerMonth} 
+                          onChange={(e) => setFooterMonth(parseInt(e.target.value) || 0)}
+                          className="border border-gray-300 rounded-md px-1 py-1 text-xs w-10 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold"
+                        />
+                        <span className="text-gray-400 text-sm">/</span>
+                        <input 
+                          type="number" 
+                          value={footerYear} 
+                          onChange={(e) => setFooterYear(parseInt(e.target.value) || 0)}
+                          className="border border-gray-300 rounded-md px-1 py-1 text-xs w-16 text-center focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Chữ ký:</span>
+                      {signature ? (
+                        <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200 shadow-sm flex-1 justify-between h-[26px]">
+                          <img src={signature} alt="Signature" className="h-5 object-contain mix-blend-multiply" />
+                          <button 
+                            onClick={() => setSignature(null)} 
+                            className="text-red-500 hover:text-red-700 p-0.5 hover:bg-red-50 rounded transition-colors"
+                            title="Xóa chữ ký"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = (e) => handleSignatureUpload(e as any);
+                            input.click();
+                          }}
+                          className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100 transition-colors shadow-sm text-xs font-semibold flex-1 justify-center h-[26px]"
+                        >
+                          <Upload className="w-3 h-3" />
+                          <span>Tải ảnh chữ ký</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cột 4: Ký hiệu & Công cụ đồng bộ/định mức */}
+                  <div className="space-y-2.5 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="text-[11px] font-extrabold text-indigo-900/60 uppercase tracking-wider mb-1">Cấu hình hiển thị & Định mức</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Ký hiệu:</span>
+                      <select 
+                        value={markSymbol} 
+                        onChange={(e) => setMarkSymbol(e.target.value as '+' | 'x' | '1')}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-bold text-indigo-700 cursor-pointer"
+                      >
+                        <option value="+">Dấu cộng (+)</option>
+                        <option value="x">Dấu nhân (x)</option>
+                        <option value="1">Số một (1)</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 w-12 shrink-0">Định mức:</span>
+                      <button 
+                        onClick={() => setIsQuotaModalOpen(true)}
+                        className="flex items-center justify-between bg-purple-50 hover:bg-purple-100 text-purple-700 px-2.5 py-1 rounded-md border border-purple-200 transition-colors shadow-sm text-xs font-bold flex-1 h-[26px]"
+                      >
+                        <span>Xem định mức</span>
+                        <span className="bg-purple-200 text-purple-900 px-1.5 py-0.2 rounded text-[10px] font-extrabold font-mono">
+                          {standardMeals.S}|{standardMeals.T1}|{standardMeals.T2}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
+        )}
+        </>
         )}
       </div>
 

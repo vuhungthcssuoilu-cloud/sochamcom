@@ -8,10 +8,39 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Resilient fetch wrapper with automatic retry on transient network issues (Failed to fetch)
+const resilientFetch: typeof fetch = async (input, init) => {
+  let attempts = 0;
+  const maxAttempts = 3;
+
+  while (true) {
+    try {
+      return await fetch(input, init);
+    } catch (err: any) {
+      attempts++;
+      const isNetworkErr = 
+        err?.name === 'TypeError' ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError') ||
+        err?.message?.includes('network');
+
+      if (attempts >= maxAttempts || !isNetworkErr) {
+        throw err;
+      }
+      // Wait before retrying (400ms, 800ms)
+      await new Promise((resolve) => setTimeout(resolve, attempts * 400));
+    }
+  }
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true
+  },
+  global: {
+    fetch: resilientFetch
   }
 });
+
