@@ -254,7 +254,13 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- Function to reset user password by admin
+-- ========================================================
+-- FUNCTION ĐẶT LẠI MẬT KHẨU CHO ADMIN
+-- Xóa các phiên bản cũ bị xung đột chữ ký tham số (khắc phục lỗi PGRST203)
+-- ========================================================
+drop function if exists public.admin_reset_user_password(text, text);
+drop function if exists public.admin_reset_user_password(uuid, text);
+
 create or replace function public.admin_reset_user_password(target_user_id uuid, new_password text)
 returns json as $$
 begin
