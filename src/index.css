@@ -5,8 +5,29 @@
 }
 
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-white;
+  }
+}
+
+/* Tối ưu hóa hiển thị cho màn hình độ phân giải cao (High DPI / 2K / 4K / Retina) */
+@media screen and (-webkit-min-device-pixel-ratio: 1.25), 
+       screen and (min-resolution: 120dpi),
+       screen and (min-width: 1920px) {
+  table.attendance-table {
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Chống nhòe và tránh tràn viền khi cuộn ngang trên màn hình tỉ lệ co giãn lẻ (125%, 150%) */
+  table.attendance-table th,
+  table.attendance-table td {
+    background-clip: padding-box;
   }
 }
 
