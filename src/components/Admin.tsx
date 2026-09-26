@@ -427,8 +427,8 @@ export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onV
   };
 
   return (
-    <div className="min-h-screen bg-white p-8">
-      <div className="w-full mx-auto">
+    <div className="min-h-screen bg-white p-6 sm:p-8">
+      <div className="w-full max-w-[1720px] mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <button 
