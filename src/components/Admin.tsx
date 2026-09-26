@@ -1,6 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, Save, Lock, RefreshCw, History, User as UserIcon, Calendar, Settings } from 'lucide-react';
+import { 
+  Key, Plus, Trash2, Copy, Check, ArrowLeft, Info, Image as ImageIcon, 
+  Save, Lock, RefreshCw, History, User as UserIcon, Calendar, Settings,
+  Eye, EyeOff, X, AlertTriangle, ExternalLink, Code, Wrench
+} from 'lucide-react';
+
+const SQL_FIX_SCRIPT = `-- ========================================================
+-- CÂU LỆNH SỬA LỖI ĐẶT LẠI MẬT KHẨU (PGRST203) TRONG SUPABASE
+-- Xóa 2 phiên bản cũ bị trùng chữ ký hàm và tạo lại chuẩn xác
+-- ========================================================
+
+DROP FUNCTION IF EXISTS public.admin_reset_user_password(text, text);
+DROP FUNCTION IF EXISTS public.admin_reset_user_password(uuid, text);
+
+CREATE OR REPLACE FUNCTION public.admin_reset_user_password(target_user_id uuid, new_password text)
+RETURNS json AS $$
+BEGIN
+  -- Kiểm tra quyền Admin
+  IF auth.jwt() ->> 'email' NOT IN ('vuhung@db.edu.vn', 'vuhungthcssuoilu@gmail.com') THEN
+    RETURN json_build_object('success', false, 'message', 'Bạn không có quyền thực hiện hành động này.');
+  END IF;
+
+  -- Cập nhật mật khẩu mới trong auth.users
+  UPDATE auth.users
+  SET encrypted_password = crypt(new_password, gen_salt('bf'))
+  WHERE id = target_user_id;
+
+  RETURN json_build_object('success', true, 'message', 'Đã đặt lại mật khẩu thành công.');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;`;
 
 export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onViewSheet?: (userId: string, year: number, month: number, className: string) => void }) {
   const [activeTab, setActiveTab] = useState<'keys' | 'history' | 'classes'>('keys');
@@ -23,6 +52,16 @@ export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onV
   const [savingClasses, setSavingClasses] = useState(false);
   const [teacherSavedSheets, setTeacherSavedSheets] = useState<any[]>([]);
   const [loadingTeacherSheets, setLoadingTeacherSheets] = useState(false);
+
+  // Reset password and SQL fix modal state
+  const [resetModalUser, setResetModalUser] = useState<{ id: string; email: string } | null>(null);
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [resettingLoading, setResettingLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+  const [showSqlFixModal, setShowSqlFixModal] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   useEffect(() => {
     if (selectedTeacherId) {
@@ -330,31 +369,52 @@ export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onV
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleResetPassword = async (userId: string, email: string) => {
-    const newPassword = prompt(`Nhập mật khẩu mới cho người dùng ${email}:`);
-    if (!newPassword) return;
-    if (newPassword.length < 6) {
-      alert('Mật khẩu phải có ít nhất 6 ký tự.');
+  const openResetPasswordModal = (userId: string, email: string) => {
+    setResetModalUser({ id: userId, email });
+    setNewPasswordVal('');
+    setShowPassword(false);
+    setResetError(null);
+    setResetSuccess(null);
+  };
+
+  const handleExecuteResetPassword = async () => {
+    if (!resetModalUser) return;
+    if (!newPasswordVal || newPasswordVal.length < 6) {
+      setResetError('Mật khẩu phải có ít nhất 6 ký tự.');
       return;
     }
 
-    setResettingPassword(userId);
+    setResettingLoading(true);
+    setResetError(null);
+    setResetSuccess(null);
+    setResettingPassword(resetModalUser.id);
+
     try {
       const { data, error } = await supabase.rpc('admin_reset_user_password', {
-        target_user_id: userId,
-        new_password: newPassword
+        target_user_id: resetModalUser.id,
+        new_password: newPasswordVal
       });
 
       if (error) {
-        alert('Lỗi đặt lại mật khẩu: ' + error.message);
+        if (
+          error.code === 'PGRST203' || 
+          error.message?.includes('Could not choose the best candidate function') ||
+          error.message?.includes('overloading')
+        ) {
+          setShowSqlFixModal(true);
+          setResetError('Cơ sở dữ liệu Supabase đang bị trùng lặp 2 hàm (lỗi PGRST203). Vui lòng chạy lệnh SQL trong bảng hướng dẫn vừa mở để khắc phục.');
+        } else {
+          setResetError('Lỗi đặt lại mật khẩu: ' + error.message);
+        }
       } else if (data && !data.success) {
-        alert(data.message);
+        setResetError(data.message || 'Không thể đặt lại mật khẩu.');
       } else {
-        alert('Đã đặt lại mật khẩu thành công cho ' + email);
+        setResetSuccess(`Đã đặt lại mật khẩu thành công cho ${resetModalUser.email}!`);
       }
     } catch (e: any) {
-      alert('Lỗi hệ thống: ' + e.message);
+      setResetError('Lỗi hệ thống: ' + (e.message || e));
     } finally {
+      setResettingLoading(false);
       setResettingPassword(null);
     }
   };
@@ -419,7 +479,15 @@ export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onV
             </div>
           </div>
           {activeTab === 'keys' && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowSqlFixModal(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition-all shadow-sm"
+                title="Hướng dẫn sửa lỗi đặt lại mật khẩu trong Supabase SQL Editor"
+              >
+                <Wrench className="w-4 h-4 text-amber-600" />
+                Sửa lỗi Reset MK (SQL)
+              </button>
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1">
                 <button 
                   onClick={() => setNewKeyDuration(365)}
@@ -663,7 +731,7 @@ export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onV
                           <div className="flex items-center justify-end gap-2">
                             {k.is_used && k.used_by && (
                               <button
-                                onClick={() => handleResetPassword(k.used_by, k.used_by_email)}
+                                onClick={() => openResetPasswordModal(k.used_by, k.used_by_email)}
                                 disabled={resettingPassword === k.used_by}
                                 className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors disabled:opacity-50"
                                 title="Đặt lại mật khẩu"
@@ -945,6 +1013,249 @@ export default function Admin({ onBack, onViewSheet }: { onBack: () => void; onV
           </div>
         )}
       </div>
+
+      {/* MODAL ĐẶT LẠI MẬT KHẨU */}
+      {resetModalUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Đặt lại mật khẩu</h3>
+                    <p className="text-xs text-gray-500 font-medium">Cập nhật mật khẩu cho tài khoản người dùng</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setResetModalUser(null);
+                    setResetError(null);
+                    setResetSuccess(null);
+                    setNewPasswordVal('');
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="bg-slate-50 p-3.5 rounded-xl mb-4 border border-slate-200">
+                <div className="text-xs text-slate-500 font-medium">Tài khoản đích:</div>
+                <div className="text-sm font-bold text-slate-800 break-all">{resetModalUser.email}</div>
+              </div>
+
+              {resetSuccess ? (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl mb-4">
+                  <div className="flex items-center gap-2 text-green-700 font-bold text-sm mb-1">
+                    <Check className="w-4 h-4" /> Đặt lại thành công!
+                  </div>
+                  <p className="text-xs text-green-600 mb-3">{resetSuccess}</p>
+                  <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-green-200">
+                    <span className="text-xs text-gray-500 font-medium">Mật khẩu mới:</span>
+                    <code className="text-sm font-bold text-gray-800 flex-1 font-mono">{newPasswordVal}</code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(newPasswordVal);
+                        alert('Đã sao chép mật khẩu mới vào bộ nhớ đệm!');
+                      }}
+                      className="px-2.5 py-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-semibold rounded transition-colors"
+                    >
+                      Sao chép
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-gray-700">Mật khẩu mới</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const randomPass = 'Gv' + Math.floor(100000 + Math.random() * 900000) + '@';
+                          setNewPasswordVal(randomPass);
+                        }}
+                        className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
+                      >
+                        Tạo ngẫu nhiên
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={newPasswordVal}
+                        onChange={(e) => setNewPasswordVal(e.target.value)}
+                        placeholder="Nhập tối thiểu 6 ký tự..."
+                        className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {resetError && (
+                    <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 leading-relaxed">
+                      <div className="font-bold flex items-center gap-1.5 mb-1">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                        Lỗi đặt lại mật khẩu:
+                      </div>
+                      <p>{resetError}</p>
+                      <button
+                        onClick={() => setShowSqlFixModal(true)}
+                        className="mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Wrench className="w-3.5 h-3.5" />
+                        Xem hướng dẫn sửa lỗi SQL (PGRST203)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    setResetModalUser(null);
+                    setResetError(null);
+                    setResetSuccess(null);
+                    setNewPasswordVal('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Đóng
+                </button>
+                {!resetSuccess && (
+                  <button
+                    onClick={handleExecuteResetPassword}
+                    disabled={resettingLoading || !newPasswordVal || newPasswordVal.length < 6}
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {resettingLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Đang cập nhật...
+                      </>
+                    ) : (
+                      'Xác nhận đổi MK'
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HƯỚNG DẪN SỬA LỖI SQL (PGRST203) */}
+      {showSqlFixModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-gray-100">
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Khắc phục lỗi Đặt lại mật khẩu (PGRST203)
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      Xóa phiên bản hàm trùng lặp trong Supabase PostgreSQL
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSqlFixModal(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed">
+                  <p className="font-semibold mb-1">
+                    🔍 <strong>Nguyên nhân lỗi:</strong> Cơ sở dữ liệu Supabase đang tồn tại cùng lúc 2 phiên bản của hàm <code>admin_reset_user_password</code> (một bản nhận kiểu <code>text</code>, một bản nhận <code>uuid</code>).
+                  </p>
+                  <p>
+                    PostgREST không xác định được cần gọi bản nào nên trả về thông báo lỗi: <br />
+                    <code className="text-[11px] bg-amber-100/70 px-1 py-0.5 rounded text-amber-950">Could not choose the best candidate function between: public.admin_reset_user_password(text, text), public.admin_reset_user_password(uuid, text)</code>
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                      <Code className="w-4 h-4 text-indigo-600" /> Câu lệnh SQL khắc phục (chỉ cần chạy 1 lần):
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(SQL_FIX_SCRIPT);
+                        setCopiedSql(true);
+                        setTimeout(() => setCopiedSql(false), 2500);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs ${
+                        copiedSql 
+                          ? 'bg-green-600 text-white' 
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      }`}
+                    >
+                      {copiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copiedSql ? 'Đã sao chép SQL!' : 'Sao chép câu lệnh SQL'}
+                    </button>
+                  </div>
+                  <pre className="bg-slate-900 text-slate-100 p-4 rounded-xl text-xs font-mono overflow-x-auto max-h-52 leading-relaxed border border-slate-800">
+                    {SQL_FIX_SCRIPT}
+                  </pre>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs text-slate-700">
+                  <div className="font-bold text-slate-900">Cách thực hiện chỉ mất 10 giây:</div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">1</span>
+                    <span>Bấm nút <strong>"Sao chép câu lệnh SQL"</strong> ở phía trên.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
+                    <span>
+                      Bấm nút màu xanh <strong>"Mở Supabase SQL Editor"</strong> bên dưới rồi Dán (Paste) câu lệnh vào.
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
+                    <span>Bấm nút <strong>RUN</strong> trong Supabase. Sau đó quay lại đây đặt lại mật khẩu là hoàn tất!</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-gray-100">
+                <a
+                  href="https://supabase.com/dashboard/project/jzycmjynzkhevuxyjngv/sql/new"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                >
+                  <ExternalLink className="w-4 h-4" /> Mở Supabase SQL Editor
+                </a>
+                <button
+                  onClick={() => setShowSqlFixModal(false)}
+                  className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded-xl transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
