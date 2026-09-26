@@ -184,7 +184,30 @@ export default function App() {
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomLevel, setZoomLevel] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('app_zoom_level');
+      if (saved) {
+        const val = Number(saved);
+        if (!isNaN(val) && val >= 50 && val <= 200) return val;
+      }
+      if (typeof window !== 'undefined' && window.innerWidth >= 2200) {
+        return 110;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return 100;
+  });
+
+  // Save zoom level preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('app_zoom_level', zoomLevel.toString());
+    } catch (e) {
+      // ignore
+    }
+  }, [zoomLevel]);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [classesConfig, setClassesConfig] = useState<{ className: string; teacherName: string }[]>([]);
   const [isClassConfigModalOpen, setIsClassConfigModalOpen] = useState(false);
@@ -2352,7 +2375,7 @@ export default function App() {
       </div>
       <table className="w-full border-collapse text-[12px] print:text-[13px] leading-none border-[0.5px] border-black table-fixed min-w-max print:min-w-0 print:w-full attendance-table">
         <colgroup>
-          <col className="w-8 print:w-[30px]" /><col className="w-40 print:w-[180px]" />
+          <col className="w-8 min-w-[32px] max-w-[32px] print:w-[30px]" /><col className="w-40 min-w-[160px] print:w-[180px]" />
           {days.map(d => (
             <React.Fragment key={d}>
               <col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" /><col className="w-[26px] print:w-[18px]" />
@@ -2368,8 +2391,8 @@ export default function App() {
         <thead>
           {/* Header Row 1: STT, Diagonal, Day Numbers */}
           <tr>
-            <th rowSpan={2} className="border-[1px] border-gray-400 text-center font-bold text-[13px] sticky left-0 print:left-0 print:relative bg-slate-100 z-20 w-8 print:w-[30px] print:border-black">STT</th>
-            <th rowSpan={2} className="border-[1px] border-gray-400 text-center relative sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none w-40 print:w-[180px] overflow-hidden print:border-black">
+            <th rowSpan={2} className="border-[1px] border-gray-400 text-center font-bold text-[13px] sticky left-0 print:left-0 print:relative bg-slate-100 z-20 w-8 min-w-[32px] max-w-[32px] print:w-[30px] print:border-black">STT</th>
+            <th rowSpan={2} className="border-[1px] border-gray-400 text-center relative sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none w-40 min-w-[160px] print:w-[180px] overflow-hidden print:border-black">
               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="currentColor" className="text-gray-400 print:text-black" strokeWidth="1" />
               </svg>
@@ -2421,8 +2444,8 @@ export default function App() {
           </tr>
           {/* Header Row 4: Họ và tên & Meal Labels */}
           <tr>
-            <th className="border-[1px] border-gray-400 sticky left-0 print:left-0 print:relative bg-slate-100 z-20 h-5 w-8 print:w-[30px] print:border-black"></th>
-            <th className="border-[1px] border-gray-400 text-center font-bold py-0.5 sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none relative h-5 w-40 print:w-[180px] print:border-black">
+            <th className="border-[1px] border-gray-400 sticky left-0 print:left-0 print:relative bg-slate-100 z-20 h-5 w-8 min-w-[32px] max-w-[32px] print:w-[30px] print:border-black"></th>
+            <th className="border-[1px] border-gray-400 text-center font-bold py-0.5 sticky left-8 print:left-0 print:relative bg-slate-100 z-20 shadow-[1px_0_0_gray] print:shadow-none relative h-5 w-40 min-w-[160px] print:w-[180px] print:border-black">
               <div className="flex items-center justify-center px-1 w-full h-full print:text-[13px]">
                 <span>Họ và tên</span>
                 {clipboard && (
@@ -2545,8 +2568,8 @@ export default function App() {
                 onMouseLeave={() => setHoveredStudentId(null)}
                 className={`hover:bg-blue-50 group h-5 student-row ${isStudentEmpty ? 'is-empty' : ''}`}
               >
-                <td className={`border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative z-10 w-8 print:w-[30px] student-stt transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900 font-bold' : 'bg-white group-hover:bg-blue-50'}`}></td>
-                <td className={`border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative z-10 shadow-[1px_0_0_black] print:shadow-none w-40 print:w-[180px] transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900' : 'bg-white group-hover:bg-blue-50'}`}>
+                <td className={`border-[0.5px] border-black text-center sticky left-0 print:left-0 print:relative z-10 w-8 min-w-[32px] max-w-[32px] print:w-[30px] student-stt transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900 font-bold' : 'bg-white group-hover:bg-blue-50'}`}></td>
+                <td className={`border-[0.5px] border-black px-1 font-medium whitespace-nowrap overflow-hidden relative group/cell sticky left-8 print:left-0 print:relative z-10 shadow-[1px_0_0_black] print:shadow-none w-40 min-w-[160px] print:w-[180px] transition-colors duration-75 ${hoveredStudentId === student.id ? '!bg-blue-100 text-blue-900' : 'bg-white group-hover:bg-blue-50'}`}>
                   <div className="flex items-center gap-1 h-full">
                     <input 
                       type="text" 
@@ -2676,15 +2699,15 @@ export default function App() {
           {/* Add Student Row */}
           {!isPreviewMode && (
             <tr className="print:hidden hover:bg-emerald-50 cursor-pointer group/add h-6" onClick={addStudent}>
-              <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:relative bg-white z-10">+</td>
-              <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:relative bg-white z-10">
+              <td className="border-[0.5px] border-black text-center text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-0 print:relative bg-white z-10 w-8 min-w-[32px] max-w-[32px]">+</td>
+              <td colSpan={days.length * 3 + 1 + (isSecondHalf ? 6 : 0)} className="border-[0.5px] border-black px-2 text-[10px] text-emerald-600 font-bold group-hover/add:bg-emerald-100 sticky left-8 print:relative bg-white z-10 min-w-[160px]">
                 Thêm học sinh mới...
               </td>
             </tr>
           )}
           {/* Footer Row: Totals */}
           <tr className="bg-gray-50 font-bold h-6">
-            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none">CỘNG</td>
+            <td colSpan={2} className="border-[0.5px] border-black text-center uppercase sticky left-0 print:left-0 print:relative bg-gray-50 z-10 shadow-[1px_0_0_black] print:shadow-none w-48 min-w-[192px]">CỘNG</td>
             {days.map(d => (
               <React.Fragment key={d}>
                 <td className={`border-[0.5px] border-black text-center align-middle h-6 ${isCurrentMonthYear && d === todayDay ? 'bg-amber-100 font-extrabold' : ''}`}>
@@ -2789,8 +2812,8 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-white ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2'} text-gray-900 print:p-4`}>
-      <div className="font-sans">
+    <div className={`min-h-screen bg-white ${isFullScreen ? 'p-0 overflow-hidden' : 'p-2 sm:p-3'} text-gray-900 print:p-4`}>
+      <div className="font-sans max-w-[1720px] mx-auto print:max-w-none print:w-full">
       {backupNotice && (
         <div className="mx-1 my-2 p-3 bg-emerald-50 border-2 border-emerald-300 text-emerald-800 rounded-xl flex items-center justify-between text-xs font-semibold shadow-md print:hidden animate-bounce-short">
           <div className="flex items-center gap-2">
@@ -2907,7 +2930,7 @@ export default function App() {
 
               <div className="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-300 p-0.5 shadow-xs">
                 <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-5 h-5 hover:bg-gray-200 rounded text-xs font-extrabold flex items-center justify-center text-slate-700">-</button>
-                <span className="text-[10px] font-extrabold w-7 text-center text-slate-700">{zoomLevel}%</span>
+                <span onClick={() => setZoomLevel(100)} className="text-[10px] font-extrabold w-7 text-center text-slate-700 cursor-pointer hover:text-indigo-600 transition-colors" title="Nhấp để đặt lại 100%">{zoomLevel}%</span>
                 <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-5 h-5 hover:bg-gray-200 rounded text-xs font-extrabold flex items-center justify-center text-slate-700">+</button>
               </div>
 
@@ -3219,7 +3242,7 @@ export default function App() {
 
                 <div className="flex items-center gap-1 bg-white rounded-lg border border-gray-300 p-1 shadow-sm shrink-0">
                   <button onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))} className="w-5 h-5 hover:bg-gray-100 rounded text-xs font-extrabold flex items-center justify-center text-slate-700">-</button>
-                  <span className="text-[11px] font-extrabold w-8 text-center text-slate-700">{zoomLevel}%</span>
+                  <span onClick={() => setZoomLevel(100)} className="text-[11px] font-extrabold w-8 text-center text-slate-700 cursor-pointer hover:text-indigo-600 transition-colors" title="Nhấp để đặt lại 100%">{zoomLevel}%</span>
                   <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 10))} className="w-5 h-5 hover:bg-gray-100 rounded text-xs font-extrabold flex items-center justify-center text-slate-700">+</button>
                 </div>
               </div>
