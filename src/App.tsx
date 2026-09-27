@@ -2947,6 +2947,19 @@ export default function App() {
                 <ExternalLink className="w-3 h-3 text-indigo-400" />
               </a>
 
+              <a 
+                href="https://kqht.db.edu.vn/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition-all shadow-xs group"
+                title="Tra cứu kết quả học tập của nhà trường: kqht.db.edu.vn"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                <span className="hidden xl:inline">kqht.db.edu.vn</span>
+                <span className="xl:hidden">Tra cứu KQHT</span>
+                <ExternalLink className="w-3 h-3 text-emerald-400" />
+              </a>
+
               <button
                 onClick={() => setIsMenuCollapsed(false)}
                 className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg transition-all font-bold text-xs shadow-xs"
@@ -2992,6 +3005,19 @@ export default function App() {
                   <Globe className="w-3.5 h-3.5 text-cyan-200 group-hover:rotate-45 transition-transform" />
                   <span className="hidden sm:inline">Cổng TTĐT:</span>
                   <span className="underline decoration-blue-300 underline-offset-2">thcsxadung.db.edu.vn</span>
+                  <ExternalLink className="w-3 h-3 text-white/80" />
+                </a>
+
+                <a 
+                  href="https://kqht.db.edu.vn/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full transition-all text-[11px] font-bold shadow-xs hover:shadow hover:scale-[1.02] active:scale-95 group"
+                  title="Truy cập Trang Tra cứu kết quả học tập của nhà trường: kqht.db.edu.vn"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-200 group-hover:scale-110 transition-transform" />
+                  <span className="hidden sm:inline">Tra cứu KQHT:</span>
+                  <span className="underline decoration-emerald-300 underline-offset-2">kqht.db.edu.vn</span>
                   <ExternalLink className="w-3 h-3 text-white/80" />
                 </a>
 
@@ -3123,6 +3149,19 @@ export default function App() {
                 <span className="hidden sm:inline">Website Nhà Trường</span>
                 <span className="sm:hidden">Website</span>
                 <ExternalLink className="w-3.5 h-3.5 text-cyan-200/90" />
+              </a>
+
+              <a
+                href="https://kqht.db.edu.vn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-lg transition-all text-xs font-bold shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-95 whitespace-nowrap group"
+                title="Mở Trang Tra cứu kết quả học tập của nhà trường (kqht.db.edu.vn)"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-200 group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Tra cứu kết quả học tập</span>
+                <span className="sm:hidden">Tra cứu KQHT</span>
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-200/90" />
               </a>
 
               <button
